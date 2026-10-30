@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Composer from '@/components/dashboard/Composer';
+import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist';
 import NewProjectDialog from '@/components/NewProjectDialog';
 import PageCanvas from '@/components/studio/PageCanvas';
 
@@ -51,6 +52,8 @@ export default function Dashboard() {
         </h1>
 
         <Composer onSubmit={(text) => open(text)} onPickTemplate={() => open('')} />
+
+        <OnboardingChecklist />
 
         {templates.length > 0 && (
           <div className="mt-12">

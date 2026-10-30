@@ -5,6 +5,8 @@ import { Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { SettingsCard } from '@/components/settings/SettingsUI';
 import StatusPill from '@/components/manus/StatusPill';
+import UsageBreakdowns from '@/components/usage/UsageBreakdowns';
+import CoverageCard from '@/components/usage/CoverageCard';
 
 export default function SettingsUsage() {
   const [tasks, setTasks] = useState([]);
@@ -72,6 +74,8 @@ export default function SettingsUsage() {
         ))}
       </div>
 
+      <UsageBreakdowns tasks={tasks} />
+
       <SettingsCard title="Sessions, last 14 days" description="Where your studio time went.">
         <div className="flex h-[104px] items-end gap-1.5">
           {days.map((day) => (
@@ -86,6 +90,8 @@ export default function SettingsUsage() {
           ))}
         </div>
       </SettingsCard>
+
+      <CoverageCard />
 
       <SettingsCard title="Recent sessions" description="Latest runs across both engines.">
         {tasks.length === 0 ? (
