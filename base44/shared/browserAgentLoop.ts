@@ -110,6 +110,29 @@ export async function advanceRun(base44, run, agent) {
     }
 
     const snapshot = (snapshotResponse.data && snapshotResponse.data.result) || {};
+
+    // A fresh session starts on about:blank. If the task names a page, open it
+    // before asking for a decision: the operator should never have to spend a
+    // step on the obvious first move, and a blank page gives the model nothing.
+    const taskUrl = (String(current.task || "").match(/https?:\/\/[^\s"'<>)]+/) || [])[0];
+    const blank = !snapshot.url || /^about:blank/i.test(String(snapshot.url));
+    if (taskUrl && blank && !steps.some((step) => step.kind === "goto")) {
+      const nav = await hostRequest("sessions.act", { session_id: sessionId, page_action: "goto", url: taskUrl });
+      errorNote = nav.ok ? null : nav.error;
+      record = await base44.entities.BrowserRun.update(run.id, {
+        session_id: sessionId,
+        steps: [
+          ...steps,
+          {
+            at: new Date().toISOString(),
+            kind: nav.ok ? "goto" : "error",
+            text: nav.ok ? `Opening ${taskUrl}` : `Could not open ${taskUrl}: ${nav.error}`,
+          },
+        ],
+      });
+      continue;
+    }
+
     const decision = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: decidePrompt(current, agent, snapshot, steps.slice(-HISTORY_WINDOW), errorNote),
       response_json_schema: {
