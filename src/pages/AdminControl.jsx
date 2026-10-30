@@ -7,6 +7,7 @@ import ControlThread from '@/components/admin/ControlThread';
 import ControlComposer from '@/components/admin/ControlComposer';
 import GuardrailBar from '@/components/admin/GuardrailBar';
 import LiveFrame from '@/components/admin/LiveFrame';
+import ProvisionRow from '@/components/admin/ProvisionRow';
 
 export default function AdminControl() {
   const { user } = useAuth();
@@ -61,6 +62,8 @@ export default function AdminControl() {
           <GuardrailBar minutes={minutes} guardrail={guardrail} />
         </div>
       </header>
+
+      <ProvisionRow />
 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">

@@ -102,14 +102,13 @@ export async function countRows(table) {
   const cfg = config();
   if (!cfg) return null;
   try {
-    const response = await fetch(`${cfg.url}/rest/v1/${table}?select=id&limit=1`, {
-      headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}`, Prefer: "count=exact", Range: "0-0" },
+    const response = await fetch(`${cfg.url}/rest/v1/${table}?select=*&limit=1000`, {
+      headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok) return null;
-    const range = response.headers.get("content-range") || "";
-    const total = Number(range.split("/")[1]);
-    return Number.isFinite(total) ? total : null;
+    const rows = await response.json().catch(() => null);
+    return Array.isArray(rows) ? rows.length : null;
   } catch {
     return null;
   }

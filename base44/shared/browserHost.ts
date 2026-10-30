@@ -78,7 +78,10 @@ export async function railwayGraphQL(query, variables) {
 
 async function fromRailway() {
   const result = await railwayGraphQL(
-    `query($p:String!,$e:String!,$s:String!){ project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } variables(projectId:$p, environmentId:$e, serviceId:$s) }`,
+    `query($p:String!,$e:String!,$s:String!){
+      variables(projectId:$p, environmentId:$e, serviceId:$s)
+      project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } }
+    }`,
     { p: RAILWAY.projectId, e: RAILWAY.environmentId, s: RAILWAY.serviceId }
   );
   if (!result.ok) return null;

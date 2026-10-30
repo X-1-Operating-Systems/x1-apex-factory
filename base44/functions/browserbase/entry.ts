@@ -6,11 +6,15 @@ import {
   actionSummary,
   hostCall,
   hostConfigured,
+  ensureHost,
+  hostSource,
+  hostUrl,
   isDestructive,
   listActions,
   signedFrameUrl,
 } from '../../shared/browserHost.ts';
 import { advanceRun } from '../../shared/browserAgentLoop.ts';
+import { recordAudit, recordRun, recordSession, recordUsage } from '../../shared/hostStore.ts';
 
 function objectOrNull(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
@@ -175,6 +179,18 @@ async function runActions(base44, action, params) {
       agent = items[0] || null;
     }
     const advanced = await advanceRun(base44, record, agent);
+    await recordRun({
+      id: advanced.run_id,
+      session_id: advanced.session_id,
+      agent_id: advanced.agent_id,
+      task: advanced.task,
+      status: advanced.status,
+      output: advanced.output,
+      steps: advanced.steps,
+      error: advanced.error,
+      started_at: advanced.started_at,
+      ended_at: advanced.ended_at,
+    });
     return { ok: true, data: runView(advanced), record: advanced };
   }
 
@@ -193,6 +209,8 @@ export default async function (req) {
     const params = objectOrNull(payload.params) || {};
     const started = Date.now();
 
+    await ensureHost();
+
     if (action === 'registry.list') {
       return Response.json({
         ok: true,
@@ -200,6 +218,8 @@ export default async function (req) {
         data: listActions(),
         guardrails: GUARDRAILS,
         host_configured: hostConfigured(),
+        host_url: hostUrl(),
+        host_source: hostSource(),
       });
     }
 
@@ -291,6 +311,31 @@ export default async function (req) {
       }
       saved = (await touchSession(base44, params.session_id, patch)) || saved;
     }
+
+    if (result.ok && action === 'sessions.create' && data.id) {
+      await recordSession({
+        id: data.id,
+        status: data.status || 'RUNNING',
+        context_id: data.context_id,
+        started_at: data.started_at || now,
+        meta: { keep_alive: Boolean(data.keep_alive), timeout_seconds: Number(data.timeout_seconds) || null },
+      });
+    }
+
+    if (action === 'usage.get' && result.ok && data.browserMinutes !== undefined) {
+      await recordUsage({
+        minutes: data.browserMinutes,
+        sessions: data.sessionsOpened,
+        actions: data.pageActions,
+      });
+    }
+
+    await recordAudit({
+      action,
+      target: params.session_id || params.run_id || params.agent_id || null,
+      ok: Boolean(result.ok),
+      detail: { status: result.status, ms: Date.now() - started, error: result.error || null },
+    });
 
     return Response.json({ ...result, record: saved });
   } catch (error) {
