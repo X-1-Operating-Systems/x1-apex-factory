@@ -1,15 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
-export function ResultSection({ title, count, children }) {
+export function ResultSection({ title, count, hasMore, onMore, busy, children }) {
   if (!count) return null;
   return (
     <section>
       <div className="flex items-baseline justify-between">
         <h2 className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
-        <span className="text-[10.5px] text-muted-foreground">{count}</span>
+        <span className="text-[10.5px] text-muted-foreground">
+          {count}
+          {hasMore ? '+' : ''}
+        </span>
       </div>
-      <div className="mt-1.5 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">{children}</div>
+      <div className="mt-1.5 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+        {children}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onMore}
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-1.5 px-3.5 py-2 text-[11px] text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground disabled:opacity-50"
+          >
+            {busy && <Loader2 size={10} className="animate-spin" />}
+            {busy ? 'Loading…' : 'Show more'}
+          </button>
+        )}
+      </div>
     </section>
   );
 }

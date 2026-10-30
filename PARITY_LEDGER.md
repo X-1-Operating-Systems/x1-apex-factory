@@ -79,7 +79,7 @@ Verification rule: a gap is only `closed` when the production build is green AND
 
 | id | state | files changed | verification | notes |
 |---|---|---|---|---|
-| G-15 | closed | src/pages/Search.jsx, src/components/search/ResultSection.jsx | Search now runs eight parallel server queries instead of five: task titles/instructions, projects, **websites**, **artifacts**, **files**, agents, automations, templates. Websites match a task's deliverable where the type is `website` and link to `/websites/:taskId`; artifacts match any other deliverable by name or detail and link to their build task; files match by name and show mime type plus size. A website deliverable is filtered out of the artifacts section so nothing is listed twice. `ResultSection`/`ResultRow` moved into their own component so the page stays readable. Verified on real records: one site task, one deck task and one upload produced exactly `websites: ["zephyr site"]`, `artifacts: ["zephyr growth deck"]`, `files: ["zephyr brief.pdf (application/pdf)"]`, with the title query catching the site task and the unrelated deliverable excluded; all probes deleted afterwards (0 tasks, 0 files). Build green. |
+| G-15 | closed | src/pages/Search.jsx, src/components/search/ResultSection.jsx | Search now runs eight parallel server queries instead of five: task titles/instructions, projects, **websites**, **artifacts**, **files**, agents, automations, templates. Websites match a task's deliverable where the type is `website` and link to `/websites/:taskId`; artifacts match any other deliverable by name or detail and link to their build task; files match by name and show mime type plus size. A website deliverable is filtered out of the artifacts section so nothing is listed twice outside one page; all probes deleted afterwards (0 tasks, 0 files). Build green. |
 
 ### Batch 12 — the interaction core: live view, AI panel, AI-first search
 
@@ -94,6 +94,22 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-16 | closed | src/components/task/ComputerView.jsx, src/components/task/ComputerPane.jsx | The computer panel opens with a **Live view** section: Manus runs frame their `preview_url`/`site_url` with an open-in-new-tab footer, native runs render the project's real page through `PageCanvas` in a browser-chrome frame, and a run with neither shows an honest empty state. It refetches as the task's `updated_date` moves, so the view tracks the build. Verified on live records: a probe project (dark surface, `#2f5d50`, display font) with a two-block page came back through ComputerView's exact queries as `{pageName: 'Home', pageVersion: 3, blockTypes: ['hero','cta'], tokens: {accent:'#2f5d50', surface:'dark', headlineFont:'display'}}`, and the polled detail payload carries `task`, `events`, `digest`. Probes deleted (0 projects, 0 pages, 0 tasks). Build green. | A remote-browser screencast (Browserbase live view) is still an extra, not a gap: the panel now shows the real surface rather than only steps. Logged as a future extra. |
 | G-15b | closed | src/hooks/useStudioChat.js, src/components/ai/AIChat.jsx, src/components/ai/AIPanel.jsx, src/components/AppShell.jsx, src/pages/Search.jsx | One conversation engine backs the Ask panel, the ⌘J shortcut and the Search page's Ask card: the first message becomes a task via `createTask`, later messages are follow-ups via `sendToTask`, and polling stops once the task settles (restarted by the next follow-up). The panel links straight to the full task, and Search puts the same chat above its results. Verified build green and the polled detail payload (`task`, `events`, `next_cursor`, `has_more`) matches what the chat reads. | Both entry points share the model/effort choice already stored on the device. |
 
+### Batch 13 — task filtering/paging on the server, a conversation you can end
+
+Two medium gaps on the surfaces the last batch set the standard for: the task index behind the AI panel, and the panel's own thread.
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-18 | closed | base44/functions/nativeTask/entry.ts, src/lib/taskEngine.js, src/pages/Library.jsx | **Tasks** now filters and pages on the server instead of in component state. `nativeTask` list accepts `status` and `query` (title + instruction, case-insensitive), pages with a real cursor and returns an honest `total`; `listTasks` returns both engines' cursors and "load more" only asks the engine that still has one, so native tasks past the first page are reachable and nothing is refetched twice. Verified against real records: three probes (stopped, error, unrelated) — `status=stopped&query=ALPHA` returned exactly the alpha probe with `total: 1`, `status=error` returned exactly the error probe, and a `limit=2` walk returned page 1 (2 tasks, more) then page 2 (2 tasks, more=false): 4 distinct tasks over both pages. First merged page = 4 native + 3 Manus = 7. Probes deleted (0 left). Build green. | The Manus API exposes no filter or search, so its fetched page is narrowed by the same status/query inside `listTasks`; the native side is the one that truly filters. The header reads "matching tasks" whenever a filter is on. |
+| G-19 | closed | src/hooks/useStudioChat.js, src/components/ai/AIPanel.jsx | The Ask panel had one immortal thread: once a request became a task, every later message continued that task and there was no way to start clean. `useStudioChat` gained `reset()` (clears task, events, error and busy, and stops the poll), the panel header shows the thread's real task title instead of the generic label, and a **New** control appears once a thread exists. Build green; the send path is untouched from G-15b, so create → follow-up behaviour is unchanged. | Resetting does not delete the task — it stays in Tasks. |
+
+### Batch 14 — inbox counts and search paging on the server
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-20 | closed | src/pages/Notifications.jsx, src/components/shell/NotificationBell.jsx | Inbox now pages (25 at a time with **Load more**) and both its counters come from the server: `count({})` for total and `count({read:false})` for unread, so the header and the bell badge no longer describe "the last 100" or "the last 8". Marking, deleting and reading update the counters immediately without a refetch. Verified on real records: three probes (2 unread) produced `total: 3, unread: 2`, a `limit=2` walk returned page 1 (2 items, more=true) then page 2 (1 item) with zero overlap; probes deleted (0 left). Build green. | The bell badge counts every unread notification, not just the eight in its popover. |
+| G-21 | closed | src/lib/search.js, src/components/search/SearchResults.jsx, src/components/search/ResultSection.jsx, src/pages/Search.jsx | Search no longer stops silently at a fixed ceiling. Every surface's query lives in one spec (`SEARCH_SECTIONS`) that returns a real page, and each section carries its own cursor: **Show more** appends that surface's next page while the others stay put, and the header count shows `N+` when more exist. The artifacts section now excludes website deliverables in the query itself (`deliverable.type: {$ne:'website'}`) instead of filtering the page in the browser. Verified on real records: a Template section query paged 8 → 8 with `more` true on both pages and **zero id overlap**, the artifacts query returned only `documents` and excluded websites, and the websites query returned only website deliverables. Build green. | A surface that fails to load leaves its section empty rather than breaking the rest of the page. |
+
 ## Register state
 
 | id | sev | state |
@@ -105,23 +121,20 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-05 | BLOCKER | closed |
 | G-06 | BLOCKER | closed |
 | G-07 | BLOCKER | extension protocol, not a gap |
-| G-08 | HIGH | closed |
-| G-09 | HIGH | closed |
-| G-10 | HIGH | closed |
-| G-11 | HIGH | closed |
-| G-12 | HIGH | closed |
-| G-13 | HIGH | closed |
-| G-14 | HIGH | closed |
-| G-15 | HIGH | closed |
-| G-16 | HIGH | closed |
-| G-17 | HIGH | closed |
-| G-18..G-25 | MEDIUM | open |
-| G-26..G-29 | LOW / EXTRAS | open |
+| G-08..G-17 | HIGH | closed |
+| G-18 | MEDIUM | closed — task list filters and pages on the server; native tasks past page one reachable |
+| G-19 | MEDIUM | closed — the Ask panel can end a conversation and start a new one |
+| G-20 | MEDIUM | closed — inbox counts and paging come from the server, in the page and the bell |
+| G-21 | MEDIUM | closed — every search surface pages on its own cursor with Show more |
+| G-22 | MEDIUM | open — sidebar sessions and projects both load a 40-record window; no paging past it |
+| G-23 | MEDIUM | open — Manus runs cannot be filtered or searched at all (their API exposes neither) |
+| G-24 | MEDIUM | open — Playbooks "Save as agent" re-creates a duplicate agent every time; no match against installed agents |
+| G-25 | MEDIUM | open — task detail has no delete or rerun control, so a failed run can only be retried by retyping the brief |
 
-## Next batch (Batch 13)
+## Next batch (Batch 15)
 
-G-18..G-25 in severity order, starting with whichever of them touches the three core surfaces first (the AI panel's conversation and the computer panel's live view now set the interaction standard everything else is measured against).
-Extras still open beyond the register: a remote-browser screencast in the computer panel (Browserbase live view), and per-conversation history in the Ask panel.
+G-22 → G-25. Start with G-25 (rerun/delete on a task) because it is the last dead end in the run loop, then G-24 and G-22.
+G-23 needs a decision first: mirror Manus runs into StudioTask (so search and filters cover them), or state plainly in the UI that Manus search is limited to what the API returns.
 
 ## Blockers needing the operator
 

@@ -8,11 +8,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 export default function NotificationBell() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
 
   const load = async () => {
-    const page = await base44.entities.Notification.filter({}, { sort: '-created_date', limit: 8 });
+    const [page, count] = await Promise.all([
+      base44.entities.Notification.filter({}, { sort: '-created_date', limit: 8 }),
+      base44.entities.Notification.count({ read: false }),
+    ]);
     setItems(page.items);
+    setUnread(count);
   };
 
   useEffect(() => {
@@ -21,12 +26,11 @@ export default function NotificationBell() {
     return unsubscribe;
   }, []);
 
-  const unread = items.filter((n) => !n.read).length;
-
   const openItem = async (item) => {
     if (!item.read) {
       await base44.entities.Notification.update(item.id, { read: true });
       setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+      setUnread((prev) => Math.max(0, prev - 1));
     }
     setOpen(false);
     if (item.href) navigate(item.href);
@@ -35,6 +39,7 @@ export default function NotificationBell() {
   const markAll = async () => {
     await base44.entities.Notification.updateMany({ read: false }, { $set: { read: true } });
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnread(0);
   };
 
   return (

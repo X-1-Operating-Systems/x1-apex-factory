@@ -1,25 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, Search as SearchIcon, Sparkles } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
-import StatusPill from '@/components/manus/StatusPill';
-import { ResultRow, ResultSection } from '@/components/search/ResultSection';
+import SearchResults from '@/components/search/SearchResults';
 import AIChat from '@/components/ai/AIChat';
 import useStudioChat from '@/hooks/useStudioChat';
 import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
-import { prettySize } from '@/lib/files';
-
-const like = (value) => ({ $regex: value, $options: 'i' });
-const artifactMatch = (query) => ({
-  $or: [{ 'deliverable.name': like(query) }, { 'deliverable.detail': like(query) }],
-});
+import { SEARCH_SECTIONS } from '@/lib/search';
 
 export default function Search() {
   const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState(params.get('q') || '');
   const query = (params.get('q') || '').trim();
-  const [results, setResults] = useState(null);
+  const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [moreBusy, setMoreBusy] = useState('');
+  const [error, setError] = useState('');
   const [chatOptions, setChatOptions] = useState(() => loadTaskOptions());
   const chat = useStudioChat({ model: chatOptions.model, effort: chatOptions.effort });
 
@@ -30,54 +25,69 @@ export default function Search() {
 
   useEffect(() => {
     if (!query) {
-      setResults(null);
-      return;
+      setSections([]);
+      return undefined;
     }
     let live = true;
     setLoading(true);
-    const run = async () => {
-      const [tasks, projects, agents, automations, templates, artifacts, sites, files] = await Promise.all([
-        base44.entities.StudioTask.filter(
-          { $or: [{ title: like(query) }, { instruction: like(query) }] },
-          { sort: '-created_date', limit: 12 }
-        ),
-        base44.entities.Project.filter({ name: like(query) }, { sort: '-updated_date', limit: 8 }),
-        base44.entities.StudioAgent.filter({ name: like(query) }, { limit: 8 }),
-        base44.entities.Automation.filter({ title: like(query) }, { limit: 8 }),
-        base44.entities.Template.filter({ name: like(query) }, { limit: 8 }),
-        base44.entities.StudioTask.filter(artifactMatch(query), { sort: '-created_date', limit: 12 }),
-        base44.entities.StudioTask.filter(
-          { 'deliverable.type': 'website', ...artifactMatch(query) },
-          { sort: '-created_date', limit: 8 }
-        ),
-        base44.entities.StudioFile.filter({ name: like(query) }, { sort: '-created_date', limit: 8 }),
-      ]);
-      if (!live) return;
-      const websiteIds = new Set(sites.items.map((task) => task.id));
-      setResults({
-        tasks: tasks.items,
-        projects: projects.items,
-        websites: sites.items,
-        artifacts: artifacts.items.filter(
-          (task) => !websiteIds.has(task.id) && task.deliverable?.type !== 'website'
-        ),
-        files: files.items,
-        agents: agents.items,
-        automations: automations.items,
-        templates: templates.items,
+    setError('');
+    Promise.all(
+      SEARCH_SECTIONS.map((section) =>
+        section
+          .run(query, { limit: section.limit })
+          .then((page) => ({
+            key: section.key,
+            title: section.title,
+            items: page.items || [],
+            cursor: page.next_cursor || null,
+            has_more: Boolean(page.has_more),
+          }))
+          .catch(() => ({ key: section.key, title: section.title, items: [], cursor: null, has_more: false }))
+      )
+    )
+      .then((next) => {
+        if (!live) return;
+        setSections(next);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!live) return;
+        setError(err?.response?.data?.error || err.message);
+        setLoading(false);
       });
-      setLoading(false);
-    };
-    run();
     return () => {
       live = false;
     };
   }, [query]);
 
-  const total = useMemo(
-    () => (results ? Object.values(results).reduce((sum, list) => sum + list.length, 0) : 0),
-    [results]
-  );
+  const more = async (key) => {
+    const current = sections.find((section) => section.key === key);
+    const spec = SEARCH_SECTIONS.find((section) => section.key === key);
+    if (!current?.cursor || !spec || moreBusy) return;
+    setMoreBusy(key);
+    try {
+      const page = await spec.run(query, { limit: spec.limit, cursor: current.cursor });
+      setSections((prev) =>
+        prev.map((section) =>
+          section.key !== key
+            ? section
+            : {
+                ...section,
+                items: [...section.items, ...(page.items || [])],
+                cursor: page.next_cursor || null,
+                has_more: Boolean(page.has_more),
+              }
+        )
+      );
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+    } finally {
+      setMoreBusy('');
+    }
+  };
+
+  const total = sections.reduce((sum, section) => sum + section.items.length, 0);
+  const anyMore = sections.some((section) => section.has_more);
 
   const submit = (event) => {
     event.preventDefault();
@@ -123,9 +133,11 @@ export default function Search() {
         </div>
       )}
 
+      {!loading && error && <p className="mt-6 text-[12px] text-destructive">{error}</p>}
+
       {!loading && !query && (
         <p className="mt-8 text-[12px] text-muted-foreground">
-          Type a term and press enter. Results are grouped by workspace surface.
+          Type a term and press enter. Results are grouped by workspace surface, and each one pages on its own.
         </p>
       )}
 
@@ -136,66 +148,12 @@ export default function Search() {
       )}
 
       {!loading && total > 0 && (
-        <div className="mt-4 space-y-5">
-          <ResultSection title="Tasks" count={results.tasks.length}>
-            {results.tasks.map((task) => (
-              <ResultRow key={task.id} to={`/task/${task.id}`} title={task.title || 'Untitled task'} meta={task.summary || task.instruction}>
-                <StatusPill status={task.status} />
-              </ResultRow>
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Projects" count={results.projects.length}>
-            {results.projects.map((project) => (
-              <ResultRow key={project.id} to={`/studio/${project.id}`} title={project.name} meta={project.client_name || project.description} />
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Websites" count={results.websites.length}>
-            {results.websites.map((task) => (
-              <ResultRow key={task.id} to={`/websites/${task.id}`} title={task.deliverable?.name} meta={task.deliverable?.detail || task.title} />
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Artifacts" count={results.artifacts.length}>
-            {results.artifacts.map((task) => (
-              <ResultRow key={task.id} to={`/task/${task.id}`} title={task.deliverable?.name} meta={task.deliverable?.detail || task.title}>
-                <span className="shrink-0 rounded-full border border-border px-1.5 py-[1px] text-[10px] capitalize text-muted-foreground">
-                  {task.deliverable?.type || 'file'}
-                </span>
-              </ResultRow>
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Files" count={results.files.length}>
-            {results.files.map((file) => (
-              <ResultRow
-                key={file.id}
-                to="/files"
-                title={file.name}
-                meta={[file.mime_type, file.size ? prettySize(file.size) : ''].filter(Boolean).join(' · ')}
-              />
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Agents" count={results.agents.length}>
-            {results.agents.map((agent) => (
-              <ResultRow key={agent.id} to="/agents" title={agent.name} meta={agent.role || agent.instructions} />
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Scheduled" count={results.automations.length}>
-            {results.automations.map((automation) => (
-              <ResultRow key={automation.id} to="/automations" title={automation.title} meta={automation.instruction} />
-            ))}
-          </ResultSection>
-
-          <ResultSection title="Templates" count={results.templates.length}>
-            {results.templates.map((template) => (
-              <ResultRow key={template.id} to="/templates" title={template.name} meta={template.tagline || template.description} />
-            ))}
-          </ResultSection>
-        </div>
+        <>
+          <p className="mt-4 text-[11px] text-muted-foreground">
+            {total} loaded{anyMore ? ' · more available in some surfaces' : ''}
+          </p>
+          <SearchResults sections={sections} onMore={more} moreBusy={moreBusy} />
+        </>
       )}
     </div>
   );
