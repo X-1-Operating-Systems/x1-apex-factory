@@ -52,33 +52,14 @@ function b64url(text: string) {
   return out;
 }
 
-/**
- * Workspace-owned OAuth apps (BYO_SHARED) are not reachable through
- * getConnection(type) — they are keyed by their connector id, so a key with an
- * entry here is resolved through getWorkspaceConnection instead.
- */
-const WORKSPACE_CONNECTOR_IDS: Record<string, string> = {
-  github: '6ab15ad1cf868907e918178e',
-  supabase: '69e521c8418f5cecefb2567c',
-};
-
+/** Returns the live token for a connector key, or '' when nothing is connected. */
 async function resolveAccessToken(base44: any, key: string): Promise<string> {
   try {
-    const shared = await base44.asServiceRole.connectors.getConnection(key);
-    if (shared?.accessToken) return shared.accessToken;
+    const connection = await base44.asServiceRole.connectors.getConnection(key);
+    return connection?.accessToken || '';
   } catch {
-    // fall through to a workspace-owned connection
+    return '';
   }
-  const workspaceId = WORKSPACE_CONNECTOR_IDS[key];
-  if (workspaceId) {
-    try {
-      const own = await base44.asServiceRole.connectors.getWorkspaceConnection(workspaceId);
-      if (own?.accessToken) return own.accessToken;
-    } catch {
-      // nothing connected for this key
-    }
-  }
-  return '';
 }
 
 export const CONNECTOR_SPECS: Record<string, ConnectorSpec> = {
