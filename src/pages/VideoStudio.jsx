@@ -42,6 +42,21 @@ export default function VideoStudio() {
     })().finally(() => setLoading(false));
   }, [user]);
 
+  // A render that is still in flight is polled until it lands, so a finished video appears
+  // without anyone pressing Status.
+  useEffect(() => {
+    const pending = jobs
+      .filter((job) => !job.video_url && ['submitted', 'processing', 'waiting', 'pending'].includes(String(job.status || '').toLowerCase()))
+      .slice(0, 5);
+    if (!pending.length) return undefined;
+    const timer = window.setInterval(async () => {
+      await Promise.all(pending.map((job) => callVideo('heygen', 'videos.get', { video_id: job.job_id })));
+      await loadJobs().catch(() => {});
+    }, 20000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs]);
+
   if (user && user.role !== 'admin') return <AdminGate />;
 
   return (

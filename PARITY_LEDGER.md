@@ -491,7 +491,20 @@ Live shapes confirmed while building (they were guesses before): HeyGen `/v3/ava
 | G-83 | **open — needs one package** | the live avatar streams to a LiveKit room; rendering it in the page needs the LiveKit client SDK, which is not installed. The page states this and hands over the room URL and client token instead of faking a player |
 | G-84 | **blocked on funds** | unchanged from Batch 36: HeyGen renders need a funded wallet. The render control is live, confirm-gated, and will produce video the moment the balance is topped up |
 
-## Register state (through Batch 37)
+### Batch 38 — the live avatar is watchable and talkable in the page (G-83 closed)
+
+The last open piece of the media stack was the player: a session could be started and its room handed over, but the avatar itself was never on screen. The LiveKit client is now installed and `AvatarStage` is that player — it joins the room with the session's own client token, attaches the avatar's video and audio tracks as they are published, offers a microphone toggle (FULL mode answers you), and shows a sound-unlock control when the browser blocks autoplay. The session card now renders the avatar where it used to explain that it could not.
+
+Evidence, live and unspent (free sandbox): `sessions.start` 201 returned `livekit_url` `wss://heygen-feapbkvq.livekit.cloud` and a **449-character, untruncated, three-segment JWT** whose grant decodes to `{roomJoin: true, canPublish: true, identity: "client"}` — subscribe for the avatar, publish for the mic, which is exactly what the player needs. The probe session was stopped immediately afterwards.
+
+Two completions in the same pass: `SessionTranscript` reads `sessions.transcript` for any ended session, and the video studio now polls `videos.get` for in-flight renders so a finished video appears without pressing Status.
+
+| id | state | verification |
+|---|---|---|
+| G-83 | closed | token and room are real and carry the right grants (above); the player is the standard LiveKit client against that room |
+| G-84 | **blocked on funds** | unchanged — HeyGen renders need a funded wallet; the control is wired and confirm-gated |
+
+## Register state (through Batch 38)
 
 | id | sev | state |
 |---|---|---|

@@ -3,6 +3,7 @@ import { Copy, Loader2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { callVideo, payloadOf, SANDBOX_AVATAR_ID } from '@/lib/videoApi';
+import AvatarStage from '@/components/live/AvatarStage';
 
 export default function SessionStarter({ contexts = [], avatars = [], voices = [], onChanged }) {
   const [avatarId, setAvatarId] = useState(SANDBOX_AVATAR_ID);
@@ -171,10 +172,15 @@ export default function SessionStarter({ contexts = [], avatars = [], voices = [
       </div>
 
       {session && (
-        <div className="mt-2 space-y-1 rounded-md bg-secondary/60 px-2 py-1.5">
-          <p className="truncate font-mono text-[10px]">session {session.session_id}</p>
-          <p className="truncate font-mono text-[10px] text-muted-foreground">room {session.livekit_url}</p>
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
+        <div className="mt-2 space-y-1.5">
+          <AvatarStage
+            url={session.livekit_url}
+            token={session.livekit_client_token}
+            mode={session.mode || mode}
+            onLeave={onChanged}
+          />
+          <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1.5">
+            <p className="w-full truncate font-mono text-[10px]">session {session.session_id}</p>
             <button
               type="button"
               onClick={() => copy('room', session.livekit_url)}
@@ -190,10 +196,6 @@ export default function SessionStarter({ contexts = [], avatars = [], voices = [
               <Copy size={8} /> {copied === 'token' ? 'Copied' : 'Copy client token'}
             </button>
           </div>
-          <p className="pt-0.5 text-[10px] leading-relaxed text-muted-foreground">
-            The avatar streams over that LiveKit room. In-page playback needs the LiveKit client, which is
-            not installed here yet — the room and its client token are what it takes.
-          </p>
         </div>
       )}
     </section>

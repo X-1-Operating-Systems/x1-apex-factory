@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+import SessionTranscript from '@/components/live/SessionTranscript';
 
 const TONE = {
   started: 'text-emerald-600 bg-emerald-500/10',
@@ -25,6 +26,7 @@ export default function SessionHistory({ sessions = [] }) {
               <span className="text-[10px] text-muted-foreground">
                 {moment(session.started_at || session.created_date).format('D MMM, HH:mm')}
               </span>
+              {session.status === 'ended' && <SessionTranscript session={session} />}
             </div>
           ))}
         </div>
