@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { callVideo, payloadOf } from '@/lib/videoApi';
 import PersistentRoom from '@/components/live/PersistentRoom';
+import OwnedAvatarStudio from '@/components/live/OwnedAvatarStudio';
 import SessionHistory from '@/components/live/SessionHistory';
 import CapabilityTable from '@/components/video/CapabilityTable';
 import AdminGate from '@/components/video/AdminGate';
@@ -68,6 +69,10 @@ export default function LiveAvatar() {
       <KeyNotice surfaceKey="Live avatar" />
 
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
+
+      <div className="mt-3">
+        <OwnedAvatarStudio />
+      </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
         <PersistentRoom hasOwnAvatar={avatars.length > 0} onChanged={loadSessions} />

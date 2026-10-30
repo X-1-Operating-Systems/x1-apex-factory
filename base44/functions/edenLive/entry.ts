@@ -48,6 +48,12 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
     const action = typeof body.action === 'string' ? body.action : 'state';
+    // OWNER SAFETY HOLD 2026-10-30: do not mint tokens, start, or automatically renew
+    // any LiveAvatar session. The prior UI invoked keep every 15 seconds without
+    // specific per-session authorization. Keep stop/state accessible for cleanup.
+    if (action === 'keep') {
+      return Response.json({ ok: false, error: 'LiveAvatar session creation and automatic renewals are paused pending explicit owner approval.', paused: true }, { status: 423 });
+    }
     const apiKey = secrets.get('LIVEAVATAR_API_KEY');
     if (!apiKey) return Response.json({ ok: false, error: 'LIVEAVATAR_API_KEY is not configured.' }, { status: 400 });
 
