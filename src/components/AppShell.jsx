@@ -14,7 +14,7 @@ const NAV = [
 function Wordmark() {
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-primary text-primary-foreground display-title text-[15px] tracking-tight">
+      <div className="glass-blue grid h-9 w-9 place-items-center rounded-[10px] display-title text-[15px] tracking-tight">
         X1
       </div>
       <div className="leading-tight">
@@ -29,7 +29,7 @@ export default function AppShell() {
   const { user } = useAuth();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden">
       <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border px-4 py-6 lg:flex">
         <div className="px-2">
           <Wordmark />
@@ -88,7 +88,7 @@ export default function AppShell() {
               end={end}
               className={({ isActive }) =>
                 `flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-medium ${
-                  isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                  isActive ? 'glass-blue' : 'text-muted-foreground'
                 }`
               }
             >
