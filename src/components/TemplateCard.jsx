@@ -10,7 +10,7 @@ export default function TemplateCard({ template, onUse }) {
   };
 
   return (
-    <div className="glass-panel group overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1">
+    <div className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/25">
       <div className="pointer-events-none h-[168px] overflow-hidden border-b border-border">
         <PageCanvas blocks={template.blocks || []} tokens={tokens} showSelection={false} />
       </div>

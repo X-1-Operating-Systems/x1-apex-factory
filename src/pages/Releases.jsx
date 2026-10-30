@@ -33,14 +33,13 @@ export default function Releases() {
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-5 py-8 lg:px-10 lg:py-12">
-      <p className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">Release ledger</p>
-      <h1 className="display-title mt-2 text-[38px] leading-[1.02] lg:text-[48px]">Releases</h1>
-      <p className="mt-2 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
+      <h1 className="text-[15px] font-medium">Releases</h1>
+      <p className="mt-1.5 max-w-[62ch] text-[12.5px] leading-relaxed text-muted-foreground">
         Each record pins a page version, its review score and a manifest hash, so an approval always points at exactly
         one build.
       </p>
 
-      <div className="glass-panel mt-6 rounded-2xl px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+      <div className="mt-5 rounded-xl border border-border bg-card px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
         Manifests are prepared here. Pushing to Vercel, Railway, GitHub or Supabase runs once those accounts are
         connected — an approved record is the handoff point, not a live site.
       </div>
@@ -48,12 +47,12 @@ export default function Releases() {
       {loading ? (
         <div className="mt-6 space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="glass-panel h-16 animate-pulse rounded-2xl" />
+            <div key={i} className="h-16 animate-pulse rounded-xl border border-border bg-card" />
           ))}
         </div>
       ) : rows.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-border px-6 py-14 text-center">
-          <p className="display-title text-2xl">Nothing prepared yet</p>
+          <p className="text-[15px] font-medium">Nothing prepared yet</p>
           <p className="mx-auto mt-2 max-w-[44ch] text-[12.5px] leading-relaxed text-muted-foreground">
             Open a project, run a review, then prepare a release from the studio header.
           </p>
@@ -62,7 +61,7 @@ export default function Releases() {
           </Link>
         </div>
       ) : (
-        <div className="glass-panel mt-6 overflow-hidden rounded-2xl">
+        <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
           {rows.map((row) => {
             const meta = META[row.status] || META.blocked;
             const Icon = meta.icon;

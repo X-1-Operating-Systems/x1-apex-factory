@@ -66,21 +66,21 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="display-title text-2xl">New client build</DialogTitle>
-          <DialogDescription>Start from a template. The canvas opens with the structure already composed.</DialogDescription>
+          <DialogTitle className="text-[17px] font-medium">New task</DialogTitle>
+          <DialogDescription>Name the build and pick a starting structure. The canvas opens composed.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={create} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="project-name" className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Project name</Label>
+            <Label htmlFor="project-name" className="text-[11.5px] text-muted-foreground">Project name</Label>
             <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Northline Coatings — website" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="client-name" className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Client</Label>
+            <Label htmlFor="client-name" className="text-[11.5px] text-muted-foreground">Client</Label>
             <Input id="client-name" value={client} onChange={(e) => setClient(e.target.value)} placeholder="Northline Coatings LLC" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="template" className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Starting template</Label>
+            <Label htmlFor="template" className="text-[11.5px] text-muted-foreground">Starting template</Label>
             <select
               id="template"
               value={templateId}

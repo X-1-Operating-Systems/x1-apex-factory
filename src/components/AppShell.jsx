@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Plus, Layers, Rocket, LogOut } from 'lucide-react';
+import { Plus, Layers, Rocket, LogOut, Search } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -26,6 +26,7 @@ export default function AppShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -60,6 +61,16 @@ export default function AppShell() {
             New task
           </button>
 
+          <label className="mt-0.5 flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] text-sidebar-foreground/80 transition-colors focus-within:bg-sidebar-accent hover:bg-sidebar-accent/70">
+            <Search size={15} strokeWidth={1.7} className="shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search"
+              className="w-full bg-transparent outline-none placeholder:text-sidebar-foreground/60"
+            />
+          </label>
+
           <nav className="mt-0.5 space-y-0.5">
             {NAV.map(({ to, label, icon: Icon }) => (
               <NavLink
@@ -81,7 +92,15 @@ export default function AppShell() {
         </div>
 
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
-          <SessionList projects={projects} />
+          <SessionList
+            projects={
+              query.trim()
+                ? projects.filter((p) =>
+                    `${p.name} ${p.client_name || ''}`.toLowerCase().includes(query.trim().toLowerCase())
+                  )
+                : projects
+            }
+          />
         </div>
 
         <div className="shrink-0 border-t border-sidebar-border p-2.5">

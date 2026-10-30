@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import PageCanvas from '@/components/studio/PageCanvas';
-import StudioChat from '@/components/studio/StudioChat';
+import TaskThread from '@/components/studio/TaskThread';
+import TaskComposer from '@/components/studio/TaskComposer';
 import Inspector from '@/components/studio/Inspector';
 import QaPanel from '@/components/studio/QaPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -13,11 +14,10 @@ import { blockHash, uid } from '@/components/studio/blockTheme';
 import {
   ArrowLeft,
   ArrowRight,
-  ExternalLink,
   Loader2,
   Lock,
-  MessageSquare,
   Monitor,
+  PanelRight,
   Rocket,
   RotateCw,
   ShieldCheck,
@@ -51,7 +51,7 @@ export default function Studio() {
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [target, setTarget] = useState('vercel');
-  const [chatOpen, setChatOpen] = useState(false);
+  const [canvasOpen, setCanvasOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
 
   const saveTimer = useRef(null);
@@ -300,6 +300,7 @@ export default function Studio() {
 
   const tokens = { accent: project.accent || '#b4532a', surface: project.surface || 'light', headlineFont: project.headline_font || 'serif' };
   const active = VIEWPORTS.find((v) => v.key === viewport) || VIEWPORTS[0];
+  const siteSlug = `${project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.x1.dev`;
 
   const inspector = (
     <Inspector
@@ -351,119 +352,131 @@ export default function Studio() {
     />
   );
 
+  const canvasPanel = (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <div className="flex h-[46px] shrink-0 items-center gap-2 border-b border-border px-3">
+        <div className="flex shrink-0 items-center gap-1.5 text-muted-foreground/70">
+          <ArrowLeft size={12} />
+          <ArrowRight size={12} />
+          <RotateCw size={11} />
+        </div>
+        <div className="mx-auto flex h-6 min-w-0 max-w-[320px] flex-1 items-center justify-center gap-1.5 rounded-full bg-secondary px-3">
+          <Lock size={9} className="shrink-0 text-muted-foreground" />
+          <span className="truncate text-[10.5px] text-muted-foreground">{siteSlug}</span>
+        </div>
+        <div className="hidden shrink-0 items-center gap-0.5 rounded-full border border-border p-0.5 sm:flex">
+          {VIEWPORTS.map((v) => {
+            const Icon = v.icon;
+            return (
+              <button
+                key={v.key}
+                type="button"
+                onClick={() => setViewport(v.key)}
+                aria-label={v.label}
+                className={`grid h-6 w-6 place-items-center rounded-full transition-colors ${
+                  viewport === v.key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon size={12} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto scroll-thin bg-secondary/40 p-3" onClick={() => setSelectedId(null)}>
+        <div
+          className="mx-auto overflow-hidden rounded-lg border border-border bg-card"
+          style={{ width: '100%', maxWidth: active.width }}
+        >
+          <PageCanvas blocks={page.blocks || []} tokens={tokens} selectedId={selectedId} onSelect={setSelectedId} />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <header className="flex h-[52px] shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 lg:px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <Link to="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" aria-label="Back to tasks">
-            <ArrowLeft size={15} />
-          </Link>
-          <div className="min-w-0 leading-tight">
+    <div className="flex h-full min-h-0 bg-background">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <header className="flex h-[52px] shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 lg:px-5">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              to="/"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label="Back to tasks"
+            >
+              <ArrowLeft size={15} />
+            </Link>
             <p className="truncate text-[13px] font-medium">{project.name}</p>
-            <p className="truncate text-[10.5px] text-muted-foreground">
-              {saving ? 'Saving…' : `Saved · v${page.version}`}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <div className="hidden items-center gap-0.5 rounded-full border border-border p-0.5 md:flex">
-            {VIEWPORTS.map((v) => {
-              const Icon = v.icon;
-              return (
-                <button
-                  key={v.key}
-                  type="button"
-                  onClick={() => setViewport(v.key)}
-                  aria-label={v.label}
-                  className={`grid h-7 w-7 place-items-center rounded-full transition-colors ${
-                    viewport === v.key ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon size={13} />
-                </button>
-              );
-            })}
+            <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
+              {saving ? 'Saving…' : `v${page.version}`}
+            </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setDesignOpen(true)}
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:hidden"
-            aria-label="Design inspector"
-          >
-            <SlidersHorizontal size={14} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setCanvasOpen(true)}
+              aria-label="Open canvas"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:hidden"
+            >
+              <PanelRight size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setDesignOpen(true)}
+              aria-label="Design inspector"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <SlidersHorizontal size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={runQa}
+              disabled={qaBusy}
+              className="flex h-8 items-center gap-1.5 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+            >
+              {qaBusy ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
+              <span className="hidden sm:inline">Review</span>
+            </button>
+            <Button size="sm" className="h-8 gap-1.5 px-3" onClick={() => setReleaseOpen(true)}>
+              <Rocket size={13} /> <span className="hidden sm:inline">Release</span>
+            </Button>
+          </div>
+        </header>
 
-          <button
-            type="button"
-            onClick={runQa}
-            disabled={qaBusy}
-            className="flex h-8 items-center gap-1.5 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
-          >
-            {qaBusy ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
-            <span className="hidden sm:inline">Review</span>
-          </button>
-
-          <Button size="sm" className="h-8 gap-1.5 px-3" onClick={() => setReleaseOpen(true)}>
-            <Rocket size={13} /> <span className="hidden sm:inline">Release</span>
-          </Button>
-
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-background md:hidden"
-            aria-label="Open agent"
-          >
-            <MessageSquare size={14} />
-          </button>
-        </div>
-      </header>
-
-      <div className="flex min-h-0 flex-1">
-        <div className="hidden w-[368px] shrink-0 border-r border-border md:block">
-          <StudioChat messages={messages} busy={busy} onSend={send} />
-        </div>
-
-        <div className="min-w-0 flex-1 overflow-auto scroll-thin bg-secondary/50 p-3 lg:p-5" onClick={() => setSelectedId(null)}>
-          <div
-            className="mx-auto overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-24px_rgba(0,0,0,0.28)]"
-            style={{ width: '100%', maxWidth: active.width }}
-          >
-            <div className="flex items-center gap-2 border-b border-border bg-secondary/60 px-3 py-1.5">
-              <div className="flex items-center gap-1.5 text-muted-foreground/70">
-                <ArrowLeft size={12} />
-                <ArrowRight size={12} />
-                <RotateCw size={11} />
-              </div>
-              <div className="mx-auto flex h-6 min-w-0 max-w-[360px] flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3">
-                <Lock size={9} className="shrink-0 text-muted-foreground" />
-                <span className="truncate text-[10.5px] text-muted-foreground">
-                  {project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.x1.dev
-                </span>
-              </div>
-              <ExternalLink size={12} className="text-muted-foreground/70" />
-            </div>
-            <PageCanvas
-              blocks={page.blocks || []}
-              tokens={tokens}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
+        <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+          <div className="mx-auto w-full max-w-[720px] px-5 pb-40 pt-6">
+            <TaskThread
+              messages={messages}
+              busy={busy}
+              page={page}
+              project={project}
+              onOpenCanvas={() => setCanvasOpen(true)}
+              onReview={runQa}
+              qaBusy={qaBusy}
+              onSend={send}
             />
           </div>
         </div>
 
-        <aside className="hidden w-[288px] shrink-0 border-l border-border bg-card xl:block">{inspector}</aside>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background to-transparent px-4 pb-4 pt-10">
+          <div className="pointer-events-auto mx-auto w-full max-w-[680px]">
+            <TaskComposer onSend={send} busy={busy} />
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+              Attachments are stored publicly — anyone with the link can open them.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-        <SheetContent side="left" className="w-full max-w-md p-0">
+      <div className="hidden w-[46%] max-w-[760px] shrink-0 border-l border-border xl:flex">{canvasPanel}</div>
+
+      <Sheet open={canvasOpen} onOpenChange={setCanvasOpen}>
+        <SheetContent side="right" className="w-full max-w-3xl p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>Studio agent</SheetTitle>
+            <SheetTitle>Page canvas</SheetTitle>
           </SheetHeader>
-          <div className="h-full pt-6">
-            <StudioChat messages={messages} busy={busy} onSend={send} />
-          </div>
+          <div className="h-full">{canvasPanel}</div>
         </SheetContent>
       </Sheet>
 
@@ -481,7 +494,7 @@ export default function Studio() {
       <Dialog open={releaseOpen} onOpenChange={setReleaseOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="display-title text-2xl">Prepare a release</DialogTitle>
+            <DialogTitle className="text-[17px] font-medium">Prepare a release</DialogTitle>
             <DialogDescription>
               The current page version is reviewed, then pinned with a manifest hash and handed to your approval queue.
             </DialogDescription>
@@ -489,7 +502,7 @@ export default function Studio() {
 
           <div className="space-y-3">
             <div>
-              <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">Target</p>
+              <p className="text-[11.5px] text-muted-foreground">Target</p>
               <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                 {['vercel', 'railway', 'docker', 'github_pages'].map((option) => (
                   <button
