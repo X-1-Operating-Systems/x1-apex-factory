@@ -25,6 +25,10 @@
       "type": "number",
       "default": 1
     },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
     "enabled": {
       "type": "boolean",
       "default": true
@@ -42,6 +46,27 @@
     "run_count": {
       "type": "number",
       "default": 0
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at"
+        ]
+      }
     }
   },
   "required": [

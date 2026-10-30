@@ -3,12 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, Plus, Repeat } from 'lucide-react';
 import AutomationCard from '@/components/automations/AutomationCard';
 import AutomationDialog from '@/components/automations/AutomationDialog';
+import AutomationDetailDialog from '@/components/automations/AutomationDetailDialog';
 
 export default function Automations() {
   const [automations, setAutomations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -44,7 +46,10 @@ export default function Automations() {
   const remove = async (automation) => {
     await base44.entities.Automation.delete(automation.id);
     setAutomations((prev) => prev.filter((item) => item.id !== automation.id));
+    if (selectedId === automation.id) setSelectedId(null);
   };
+
+  const selected = automations.find((item) => item.id === selectedId) || null;
 
   return (
     <div className="mx-auto w-full max-w-[1100px] px-5 py-8 lg:px-10 lg:py-10">
@@ -52,8 +57,8 @@ export default function Automations() {
         <div>
           <h1 className="text-[15px] font-medium">Automations</h1>
           <p className="mt-1.5 max-w-xl text-[11.5px] leading-relaxed text-muted-foreground">
-            Recurring agent work. Each automation launches a Manus task on its schedule, so the brief runs without you
-            opening the app.
+            Recurring agent work. Each automation launches a task on its own schedule and time zone, so the brief runs
+            without you opening the app.
           </p>
         </div>
         <button
@@ -89,6 +94,7 @@ export default function Automations() {
               onToggle={toggle}
               onRun={runNow}
               onDelete={remove}
+              onOpen={(item) => setSelectedId(item.id)}
             />
           ))}
         </div>
@@ -98,6 +104,16 @@ export default function Automations() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={(created) => setAutomations((prev) => [created, ...prev])}
+      />
+
+      <AutomationDetailDialog
+        automation={selected}
+        open={Boolean(selected)}
+        onOpenChange={(next) => {
+          if (!next) setSelectedId(null);
+        }}
+        onRun={runNow}
+        busy={busyId === selected?.id}
       />
     </div>
   );

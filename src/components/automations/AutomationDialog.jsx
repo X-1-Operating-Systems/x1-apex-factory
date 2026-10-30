@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { TIMEZONES, detectTimezone } from '@/lib/automationSchedule';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -14,6 +15,7 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
   const [cadence, setCadence] = useState('daily');
   const [hour, setHour] = useState('09:00');
   const [day, setDay] = useState('1');
+  const [timezone, setTimezone] = useState(() => detectTimezone());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -24,6 +26,7 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
     setCadence('daily');
     setHour('09:00');
     setDay('1');
+    setTimezone(detectTimezone());
     setError('');
   }, [open]);
 
@@ -42,6 +45,7 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
         cadence,
         run_hour: Number(hour.slice(0, 2)),
         run_day: Number(day),
+        timezone,
         enabled: true,
       });
       onCreated(created);
@@ -59,7 +63,7 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
         <DialogHeader>
           <DialogTitle className="text-[16px] font-medium">New automation</DialogTitle>
           <DialogDescription>
-            An agent runs this instruction on a schedule, in your Manus account.
+            An agent runs this instruction on a schedule, in the time zone you choose.
           </DialogDescription>
         </DialogHeader>
 
@@ -123,6 +127,20 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
               </select>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="automation-timezone" className="text-[11.5px] text-muted-foreground">Time zone</Label>
+            <select
+              id="automation-timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-foreground"
+            >
+              {TIMEZONES.map((zone) => (
+                <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+          </div>
 
           {error && <p className="text-[12px] text-destructive">{error}</p>}
 
