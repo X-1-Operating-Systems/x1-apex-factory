@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { renderPageHtml } from '../../shared/bundle.ts';
 
 async function digest(value: string) {
   const bytes = new TextEncoder().encode(value);
@@ -50,6 +51,8 @@ export default async function (req: Request): Promise<Response> {
         label: link.label || '',
         site_url: link.site_url || '',
         access: link.access || 'view',
+        deployment_id: link.deployment_id || '',
+        pages: Array.isArray(link.pages) ? link.pages : [],
       });
     }
 
@@ -73,6 +76,75 @@ export default async function (req: Request): Promise<Response> {
           last_viewed_at: item.last_viewed_at || '',
           created_date: item.created_date,
         })),
+      });
+    }
+
+    // Client handoff: renders the released pages to public files and hands the
+    // client one read-only link, so reviewing a build needs no app account.
+    if (action === 'handoff') {
+      const deploymentId = String(body?.deployment_id || '');
+      if (!deploymentId) return Response.json({ error: 'A release is required.' }, { status: 400 });
+
+      const deployment = await base44.entities.Deployment.get(deploymentId).catch((e) =>
+        e.status === 404 ? null : Promise.reject(e)
+      );
+      if (!deployment) return Response.json({ error: 'That release no longer exists.' }, { status: 404 });
+      if (deployment.status === 'blocked' || deployment.status === 'superseded') {
+        return Response.json({ error: 'Only a live release can be handed to a client.' }, { status: 400 });
+      }
+
+      const password = String(body?.password || '');
+      if (password && password.length < 4) {
+        return Response.json({ error: 'Use at least 4 characters for the password.' }, { status: 400 });
+      }
+
+      const [project, pageRows] = await Promise.all([
+        base44.entities.Project.get(deployment.project_id),
+        base44.entities.StudioPage.filter({ project_id: deployment.project_id }, { sort: 'created_date', limit: 50 }),
+      ]);
+      const pages = (pageRows.items || []).filter((row: any) => (row.blocks || []).length);
+      if (!pages.length) {
+        return Response.json({ error: 'Compose at least one section before handing this release off.' }, { status: 400 });
+      }
+
+      const files: { name: string; path: string; url: string }[] = [];
+      for (const row of pages) {
+        const html = renderPageHtml({ project, page: row });
+        const slug = String(row.path || '/').replace(/^\/+|\/+$/g, '') || 'index';
+        const { file_url } = await base44.asServiceRole.integrations.Core.UploadPublicFile({
+          file: new File([html], `${slug.replace(/\//g, '-')}.html`, { type: 'text/html' }),
+        });
+        files.push({ name: row.name, path: row.path || '/', url: file_url });
+      }
+
+      const token = crypto.randomUUID().replace(/-/g, '');
+      const created = await base44.entities.ShareLink.create({
+        token,
+        project_id: deployment.project_id,
+        deployment_id: deploymentId,
+        site_title: deployment.project_name,
+        site_url: deployment.url || '',
+        label: `Release v${deployment.page_version || 1}`,
+        pages: files,
+        access: 'view',
+        password_hash: password ? await digest(`${password}:${token}`) : '',
+        expires_at: expiryFor(Number(body?.expires_in_hours) || 0),
+        revoked: false,
+        view_count: 0,
+      });
+
+      return Response.json({
+        link: {
+          id: created.id,
+          token: created.token,
+          label: created.label || '',
+          site_title: created.site_title || '',
+          pages: created.pages || [],
+          expires_at: created.expires_at || '',
+          revoked: false,
+          has_password: Boolean(created.password_hash),
+          view_count: 0,
+        },
       });
     }
 

@@ -141,6 +141,13 @@ export default function Search() {
         </p>
       )}
 
+      {!loading && (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          This index covers studio tasks, projects, websites, artifacts, files, agents, automations and templates.
+          Runs made on a connected Manus account are listed and filtered in Tasks, not here.
+        </p>
+      )}
+
       {!loading && query && total === 0 && (
         <p className="mt-8 text-[12px] text-muted-foreground">
           Nothing matched “{query}”. Try a shorter term.

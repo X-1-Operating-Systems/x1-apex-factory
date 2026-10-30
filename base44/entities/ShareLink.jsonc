@@ -8,6 +8,33 @@
     "task_id": {
       "type": "string"
     },
+    "project_id": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ]
+      }
+    },
     "website_id": {
       "type": "string"
     },
@@ -48,8 +75,7 @@
     }
   },
   "required": [
-    "token",
-    "task_id"
+    "token"
   ],
   "rls": {
     "read": {

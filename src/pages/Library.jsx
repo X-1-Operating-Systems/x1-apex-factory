@@ -27,6 +27,7 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [moreBusy, setMoreBusy] = useState(false);
   const [error, setError] = useState('');
+  const [narrowed, setNarrowed] = useState(false);
 
   useEffect(() => {
     const id = setTimeout(() => setTerm(query.trim()), 300);
@@ -43,6 +44,7 @@ export default function Library() {
         setTasks(res.tasks || []);
         setCursors({ native: res.native_cursor, manus: res.manus_cursor });
         setHasMore(Boolean(res.has_more));
+        setNarrowed(Boolean(res.manus_narrowed));
       })
       .catch((err) => {
         if (live) setError(err?.response?.data?.error || err.message);
@@ -66,6 +68,7 @@ export default function Library() {
       });
       setCursors({ native: res.native_cursor, manus: res.manus_cursor });
       setHasMore(Boolean(res.has_more));
+      setNarrowed(Boolean(res.manus_narrowed));
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
     } finally {
@@ -115,6 +118,13 @@ export default function Library() {
           </button>
         ))}
       </div>
+
+      {narrowed && (
+        <p className="mt-2.5 text-[11px] leading-relaxed text-muted-foreground">
+          Studio tasks are filtered across the whole library. Connected Manus runs are narrowed to their most recent
+          page, because the Manus API offers no filter or search of its own.
+        </p>
+      )}
 
       {loading ? (
         <div className="mt-6 grid place-items-center py-16">

@@ -105,6 +105,63 @@ export default function SharedView() {
     );
   }
 
+  // A release handoff carries its own rendered pages, so the client needs no
+  // account: each page opens on its own and the whole build is here to review.
+  if (site.pages?.length) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border px-4 py-3">
+          <div className="mx-auto flex w-full max-w-[1080px] flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-medium">{site.title}</p>
+              <p className="text-[10.5px] text-muted-foreground">
+                {site.label ? `${site.label} · ` : ''}
+                {site.pages.length} page{site.pages.length === 1 ? '' : 's'} for review
+              </p>
+            </div>
+            {site.site_url && (
+              <a
+                href={site.site_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11.5px] transition-colors hover:bg-secondary"
+              >
+                Live site <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-[1080px] space-y-4 px-4 py-5">
+          {site.pages.map((page) => (
+            <section key={`${page.path}-${page.url}`} className="overflow-hidden rounded-xl border border-border bg-card">
+              <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-2">
+                <p className="truncate text-[12px] font-medium">
+                  {page.name}
+                  <span className="ml-1.5 text-[10.5px] text-muted-foreground">{page.path}</span>
+                </p>
+                <a
+                  href={page.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Open page <ExternalLink size={10} />
+                </a>
+              </div>
+              <iframe
+                title={page.name}
+                src={page.url}
+                className="h-[440px] w-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+              />
+            </section>
+          ))}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
-import { AlertTriangle, Check, ChevronRight, Clock, Download, ShieldAlert, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Copy, Download, Loader2, Send, ShieldAlert, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 
@@ -20,8 +20,9 @@ const STAGE = {
   skipped: { icon: X, tone: 'text-muted-foreground bg-muted' },
 };
 
-export default function ReleaseRow({ row, onApprove, busy }) {
+export default function ReleaseRow({ row, onApprove, busy, handoff, onHandoff, onRevoke, handingOff, revoking }) {
   const [opening, setOpening] = useState('');
+  const [copied, setCopied] = useState(false);
   const meta = META[row.status] || META.blocked;
   const Icon = meta.icon;
 
@@ -63,6 +64,52 @@ export default function ReleaseRow({ row, onApprove, busy }) {
           >
             Approve
           </Button>
+        )}
+
+        {handoff ? (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-border py-[2px] pl-2 pr-1 text-[10.5px] text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => window.open(`/handoff/${handoff.token}`, '_blank', 'noreferrer')}
+              className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+            >
+              <Send size={9} /> Client link
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard?.writeText(`${window.location.origin}/handoff/${handoff.token}`);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1500);
+              }}
+              aria-label="Copy client link"
+              className="rounded-full px-1 py-0.5 transition-colors hover:text-foreground"
+            >
+              <Copy size={9} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onRevoke(row)}
+              disabled={revoking}
+              aria-label="Turn off client link"
+              className="rounded-full px-1 py-0.5 transition-colors hover:text-destructive disabled:opacity-50"
+            >
+              {revoking ? <Loader2 size={9} className="animate-spin" /> : <X size={9} />}
+            </button>
+            {copied && <span className="pr-1 text-[9.5px]">Copied</span>}
+          </span>
+        ) : (
+          row.status !== 'blocked' &&
+          row.status !== 'superseded' && (
+            <button
+              type="button"
+              onClick={() => onHandoff(row)}
+              disabled={handingOff}
+              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-[3px] text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+            >
+              {handingOff ? <Loader2 size={9} className="animate-spin" /> : <Send size={9} />} Hand off
+            </button>
+          )
         )}
       </div>
 

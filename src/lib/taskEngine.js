@@ -88,6 +88,9 @@ export async function listTasks({ limit = 40, status = 'all', query = '', cursor
     native_cursor: nativeCursor,
     manus_cursor: manusCursor,
     has_more: nativeHasMore || manusHasMore,
+    // Manus exposes no filter or search, so an active filter is only truly
+    // applied to studio tasks; their page is narrowed locally.
+    manus_narrowed: wantManus && (status !== 'all' || Boolean(term)),
   };
 }
 

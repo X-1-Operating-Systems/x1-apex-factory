@@ -9,11 +9,59 @@ export default function Releases() {
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState('');
   const [error, setError] = useState('');
+  const [links, setLinks] = useState({});
+  const [handingOff, setHandingOff] = useState('');
+  const [revoking, setRevoking] = useState('');
 
   const load = async () => {
     const page = await base44.entities.Deployment.filter({}, { sort: '-created_date', limit: 60 });
     setRows(page.items);
     setLoading(false);
+
+    if (page.items.length) {
+      const found = await base44.entities.ShareLink.filter({
+        deployment_id: { $in: page.items.map((row) => row.id) },
+      });
+      const map = {};
+      (found || []).forEach((link) => {
+        if (!link.revoked) map[link.deployment_id] = link;
+      });
+      setLinks(map);
+    } else {
+      setLinks({});
+    }
+  };
+
+  const handOff = async (row) => {
+    setHandingOff(row.id);
+    setError('');
+    try {
+      const res = await base44.functions.invoke('shareLink', { action: 'handoff', deployment_id: row.id });
+      setLinks((prev) => ({ ...prev, [row.id]: res.data.link }));
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+    } finally {
+      setHandingOff('');
+    }
+  };
+
+  const revokeHandoff = async (row) => {
+    const link = links[row.id];
+    if (!link) return;
+    setRevoking(row.id);
+    setError('');
+    try {
+      await base44.functions.invoke('shareLink', { action: 'revoke', id: link.id });
+      setLinks((prev) => {
+        const next = { ...prev };
+        delete next[row.id];
+        return next;
+      });
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+    } finally {
+      setRevoking('');
+    }
   };
 
   useEffect(() => {
@@ -76,7 +124,17 @@ export default function Releases() {
       ) : (
         <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
           {rows.map((row) => (
-            <ReleaseRow key={row.id} row={row} onApprove={approve} busy={approving === row.id} />
+            <ReleaseRow
+              key={row.id}
+              row={row}
+              onApprove={approve}
+              busy={approving === row.id}
+              handoff={links[row.id] || null}
+              onHandoff={handOff}
+              onRevoke={revokeHandoff}
+              handingOff={handingOff === row.id}
+              revoking={revoking === row.id}
+            />
           ))}
         </div>
       )}

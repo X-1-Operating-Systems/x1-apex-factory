@@ -118,13 +118,20 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 | G-24 | closed | src/components/playbooks/PlaybookDialog.jsx | Saving a playbook as an agent now stamps `installed_from` with the playbook key, and opening the dialog looks for an agent by that key **or** by name. When one exists the dialog says **Saved to Agents** and links to the library instead of offering the button, so it can no longer mint duplicates. Verified on real records: a probe agent matched by key, matched by name alone, returned nothing when neither matched, and was deleted afterwards (0 left). Build green. | Deleting the agent in the library makes the playbook offer the save again, so the state stays honest. |
 | G-22 | closed | src/components/AppShell.jsx, src/components/shell/SidebarBody.jsx | The sidebar's sessions and projects are no longer capped at a silent 40. Both lists keep their cursor and page state, and a **Show more** row appears while either one still has a next page, appending without duplicates. Build green. | Tasks opened past the window appear in the flat list or under their project; project counts now grow as more pages load. |
 
+### Batch 16 — the client handoff, and search that says what it covers
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-03 | closed | base44/functions/shareLink/entry.ts, base44/entities/ShareLink.jsonc, src/pages/SharedView.jsx, src/pages/Releases.jsx, src/components/releases/ReleaseRow.jsx, src/App.jsx | A live release can now be **handed off**: one click renders that release's pages to self-contained public files and mints a read-only client link, so a client reviews the build with no account. The release row keeps the link (open, copy, turn off), and turning it off is enforced server-side. ShareLink gained `project_id`, `deployment_id` and `pages`; `task_id` is no longer required so one link model serves websites and releases. Verified on real records: a two-page approved release produced `About/about` and `Home/`, the resolved link carried label `Release v2`, a fetched page returned **200** with its real hero headline, CTA and project accent, revoking it made resolve answer "This link was turned off by its owner.", and every probe record was deleted (0 links, 0 projects left). Build green. | The rendered pages are uploaded **publicly** on purpose — a client has no app account, so the link must open for them; turning the link off stops the handoff page. Blocked and superseded releases cannot be handed off. |
+| G-23 | closed | src/lib/taskEngine.js, src/pages/Library.jsx, src/pages/Search.jsx | Decision: **state the limit**, do not mirror. Mirroring would mean rewriting Manus rows into StudioTask on creation with no way to keep status current (their API has no webhooks and no task search), so the copy would drift and the task list would double-count. Instead `listTasks` returns `manus_narrowed` whenever a filter is active, Tasks says plainly that studio tasks are filtered across the whole library while Manus runs are narrowed to their most recent page, and Search states which surfaces it covers so nobody assumes Manus runs are indexed. Build green. | Recorded here so the choice is not silently revisited. |
+
 ## Register state
 
 | id | sev | state |
 |---|---|---|
 | G-01 | BLOCKER | closed |
 | G-02 | BLOCKER | closed |
-| G-03 | BLOCKER | open — release pipeline ships the operator bundle only; no client handoff path |
+| G-03 | BLOCKER | closed — a release hands off to one read-only client link that renders its own pages |
 | G-04 | BLOCKER | doing — connectors are declared to the engine; auth-backed execution from a run not implemented |
 | G-05 | BLOCKER | closed |
 | G-06 | BLOCKER | closed |
@@ -135,17 +142,18 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 | G-20 | MEDIUM | closed — inbox counts and paging come from the server, in the page and the bell |
 | G-21 | MEDIUM | closed — every search surface pages on its own cursor with Show more |
 | G-22 | MEDIUM | closed — sidebar sessions and projects page with Show more instead of a silent 40 |
-| G-23 | MEDIUM | open — Manus runs cannot be filtered or searched at all (their API exposes neither) |
+| G-23 | MEDIUM | closed — the limit is stated in Tasks and Search, with the decision recorded |
 | G-24 | MEDIUM | closed — one agent per playbook, found by key or name |
 | G-25 | MEDIUM | closed — task detail reruns the same brief and deletes without a leftover |
 
-## Next batch (Batch 16)
+## Next batch (Batch 17)
 
-Only G-23 is left in the register, and it needs your decision before code:
-- **Mirror** every Manus run into StudioTask on creation, so one search and one filter cover both engines (costs a sync path and a way to keep mirror status current), or
-- **State the limit** in the interface: Tasks and Search tell the operator that Manus results are narrowed locally to the fetched page.
+One gap left: the execution half of **G-04** — a run that actually calls the connector it declares (read a thread, list a drive folder, book a slot) instead of only being told one exists. Planned shape, so it stays bounded:
+1. A tool loop in the native engine: the model may ask for one declared connector action per step, the function executes it server-side with `asServiceRole.connectors`, and the result returns to the model.
+2. An allowlist per connector key (method + path pattern), with the record's `access` level and `auto_approve` flag deciding whether a call runs or waits for the operator.
+3. Every call written into the task's events, so the run log shows what was actually invoked.
 
-Then the remaining BLOCKERs: G-03 (client handoff path on release) and the execution half of G-04 (runs that actually call a connector).
+No other register items remain.
 
 ## Blockers needing the operator
 
