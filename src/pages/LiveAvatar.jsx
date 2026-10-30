@@ -3,7 +3,7 @@ import { Radio } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { callVideo, payloadOf } from '@/lib/videoApi';
-import SessionStarter from '@/components/live/SessionStarter';
+import PersistentRoom from '@/components/live/PersistentRoom';
 import SessionHistory from '@/components/live/SessionHistory';
 import CapabilityTable from '@/components/video/CapabilityTable';
 import AdminGate from '@/components/video/AdminGate';
@@ -70,12 +70,7 @@ export default function LiveAvatar() {
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
 
       <div className="mt-3 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
-        <SessionStarter
-          contexts={contexts}
-          avatars={avatars}
-          voices={voices}
-          onChanged={loadSessions}
-        />
+        <PersistentRoom hasOwnAvatar={avatars.length > 0} onChanged={loadSessions} />
         <SessionHistory sessions={sessions} />
       </div>
 

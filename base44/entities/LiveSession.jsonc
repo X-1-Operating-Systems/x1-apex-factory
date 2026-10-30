@@ -40,6 +40,31 @@
     },
     "note": {
       "type": "string"
+    },
+    "livekit_url": {
+      "type": "string"
+    },
+    "client_token": {
+      "type": "string"
+    },
+    "session_token": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_sandbox": {
+      "type": "boolean",
+      "default": false
+    },
+    "persistent": {
+      "type": "boolean",
+      "default": false
+    },
+    "renewals": {
+      "type": "number",
+      "default": 0
     }
   },
   "required": [
