@@ -7,8 +7,6 @@ import SkillFormDialog from '@/components/skills/SkillFormDialog';
 import PersonalizationPanel from '@/components/skills/PersonalizationPanel';
 import { CORE_SKILLS, skillCategoryLabel } from '@/lib/skills';
 
-const bySkillId = (page) => page.items;
-
 export default function Skills() {
   const { toast } = useToast();
   const [skills, setSkills] = useState([]);
@@ -19,7 +17,7 @@ export default function Skills() {
 
   const load = async () => {
     const page = await base44.entities.StudioSkill.list('-created_date', 50);
-    setSkills(bySkillId(page));
+    setSkills(page);
   };
 
   React.useEffect(() => {
