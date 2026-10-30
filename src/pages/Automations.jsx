@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Plus, Repeat } from 'lucide-react';
 import AutomationCard from '@/components/automations/AutomationCard';
@@ -6,6 +7,7 @@ import AutomationDialog from '@/components/automations/AutomationDialog';
 import AutomationDetailDialog from '@/components/automations/AutomationDetailDialog';
 
 export default function Automations() {
+  const navigate = useNavigate();
   const [automations, setAutomations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,8 +36,8 @@ export default function Automations() {
     setError('');
     try {
       const res = await base44.functions.invoke('runAutomations', { automation_id: automation.id });
-      if (res.data?.task_url) window.open(res.data.task_url, '_blank', 'noreferrer');
       await load();
+      if (res.data?.task_id) navigate(`/task/${res.data.task_id}`);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
     } finally {

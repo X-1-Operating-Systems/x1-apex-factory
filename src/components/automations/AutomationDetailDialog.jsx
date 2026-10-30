@@ -1,13 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Loader2, Play, Repeat } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StatusPill from '@/components/manus/StatusPill';
 import { formatRunTime, nextRunLabel, scheduleLabel, zoneOf } from '@/lib/automationSchedule';
 
 export default function AutomationDetailDialog({ automation, open, onOpenChange, onRun, busy }) {
+  const [statuses, setStatuses] = useState({});
+  const runs = automation && Array.isArray(automation.runs) ? automation.runs : [];
+  const taskIds = runs.map((run) => run.task_id).filter(Boolean).join(',');
+
+  useEffect(() => {
+    if (!open || !taskIds) {
+      setStatuses({});
+      return;
+    }
+    let live = true;
+    Promise.all(
+      taskIds.split(',').map((id) =>
+        base44.entities.StudioTask.get(id).catch(() => null)
+      )
+    ).then((tasks) => {
+      if (!live) return;
+      const next = {};
+      for (const task of tasks) if (task) next[task.id] = task.status;
+      setStatuses(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, taskIds]);
+
   if (!automation) return null;
-  const runs = Array.isArray(automation.runs) ? automation.runs : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,7 +95,9 @@ export default function AutomationDetailDialog({ automation, open, onOpenChange,
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {run.status && <StatusPill status={run.status} />}
+                    {(statuses[run.task_id] || run.status) && (
+                      <StatusPill status={statuses[run.task_id] || run.status} />
+                    )}
                     {run.task_id && (
                       <Link
                         to={`/task/${run.task_id}`}

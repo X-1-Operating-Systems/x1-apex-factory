@@ -48,6 +48,7 @@ async function launch(base44: any, automation: any) {
   });
 
   const ranAt = new Date().toISOString();
+  const taskUrl = task.id ? `/task/${task.id}` : '';
   const history = Array.isArray(automation.runs) ? automation.runs : [];
   const runs = [
     { task_id: task.id || '', at: ranAt, status: task.status || 'running' },
@@ -57,12 +58,12 @@ async function launch(base44: any, automation: any) {
   await base44.asServiceRole.entities.Automation.update(automation.id, {
     last_run_at: ranAt,
     last_task_id: task.id || '',
-    last_task_url: '',
+    last_task_url: taskUrl,
     run_count: (automation.run_count || 0) + 1,
     runs,
   });
 
-  return { automation_id: automation.id, task_id: task.id, task_url: '' };
+  return { automation_id: automation.id, task_id: task.id, task_url: taskUrl };
 }
 
 export default async function (req: Request): Promise<Response> {

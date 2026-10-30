@@ -26,7 +26,7 @@
     ]
   },
   "name": "Automation Clock",
-  "description": "Every hour, launches any due agent automations as Manus tasks.",
+  "description": "Every hour, launches any due agent automations as studio tasks.",
   "trigger": {
     "condition": null,
     "config": {
