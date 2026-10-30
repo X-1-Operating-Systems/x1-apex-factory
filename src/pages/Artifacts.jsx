@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Search } from 'lucide-react';
 import ArtifactCard from '@/components/manus/ArtifactCard';
+import { listArtifacts } from '@/lib/taskEngine';
 
 const FILTERS = [
   ['all', 'All'],
@@ -29,11 +30,11 @@ export default function Artifacts() {
     let live = true;
     const load = async () => {
       try {
-        const res = await base44.functions.invoke('manusAgent', { action: 'artifacts', type: 'all', limit: 24 });
+        const res = await listArtifacts({ type: 'all', limit: 24 });
         if (!live) return;
-        setArtifacts(res.data.artifacts || []);
-        setCursor(res.data.next_cursor);
-        setHasMore(Boolean(res.data.has_more));
+        setArtifacts(res.artifacts || []);
+        setCursor(res.next_cursor);
+        setHasMore(Boolean(res.has_more));
       } catch (err) {
         if (live) setError(err?.response?.data?.error || err.message);
       } finally {
@@ -49,10 +50,13 @@ export default function Artifacts() {
   const loadMore = async () => {
     if (!cursor || moreBusy) return;
     setMoreBusy(true);
-    const res = await base44.functions.invoke('manusAgent', { action: 'artifacts', type: 'all', limit: 24, cursor });
-    setArtifacts((prev) => [...prev, ...(res.data.artifacts || [])]);
-    setCursor(res.data.next_cursor);
-    setHasMore(Boolean(res.data.has_more));
+    const res = await listArtifacts({ type: 'all', limit: 24, cursor });
+    setArtifacts((prev) => {
+      const seen = new Set(prev.map((item) => item.id));
+      return [...prev, ...(res.artifacts || []).filter((item) => !seen.has(item.id))];
+    });
+    setCursor(res.next_cursor);
+    setHasMore(Boolean(res.has_more));
     setMoreBusy(false);
   };
 

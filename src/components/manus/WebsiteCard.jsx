@@ -9,9 +9,11 @@ const PUBLISH_TONE = {
   publishing: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
   failed: 'bg-destructive/10 text-destructive border-destructive/30',
   unpublished: 'bg-secondary text-muted-foreground border-border',
+  draft: 'bg-secondary text-muted-foreground border-border',
 };
 
 export default function WebsiteCard({ site }) {
+  const native = site.engine === 'native';
   const [state, setState] = useState(null);
   const [publishing, setPublishing] = useState(false);
 
@@ -22,8 +24,8 @@ export default function WebsiteCard({ site }) {
   };
 
   useEffect(() => {
-    if (site.task_id) read().catch(() => {});
-  }, [site.task_id]);
+    if (!native && site.task_id) read().catch(() => {});
+  }, [site.task_id, native]);
 
   const publish = async () => {
     setPublishing(true);
@@ -39,8 +41,10 @@ export default function WebsiteCard({ site }) {
     }
   };
 
-  const tone = PUBLISH_TONE[state?.publish_status] || PUBLISH_TONE.unpublished;
+  const status = native ? 'draft' : state?.publish_status;
+  const tone = PUBLISH_TONE[status] || PUBLISH_TONE.unpublished;
   const liveUrl = state?.site_url || site.url;
+  const detailPath = native ? `/task/${site.task_id}` : `/websites/${site.task_id}`;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -55,30 +59,35 @@ export default function WebsiteCard({ site }) {
       </div>
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <Link to={`/websites/${site.task_id}`} className="truncate text-[12.5px] font-medium hover:underline">
+          <Link to={detailPath} className="truncate text-[12.5px] font-medium hover:underline">
             {state?.title || site.name}
           </Link>
           <span className={`shrink-0 rounded-full border px-1.5 py-[1px] text-[10px] font-medium ${tone}`}>
-            {state?.publish_status === 'published' ? 'Live' : state?.publish_status || 'Checking'}
+            {native ? 'Studio draft' : status === 'published' ? 'Live' : status || 'Checking'}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">{site.task_title || 'Manus website'}</p>
+        <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+          {native ? 'Built natively with GPT 5.6 Sol' : site.task_title || 'Manus website'}
+        </p>
 
         <div className="mt-2.5 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={publish}
-            disabled={publishing || !site.task_id}
-            className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] transition-colors hover:bg-secondary disabled:opacity-50"
-          >
-            {publishing ? <Loader2 size={10} className="animate-spin" /> : <Rocket size={10} />}
-            {publishing ? 'Deploying' : 'Publish'}
-          </button>
+          {!native && (
+            <button
+              type="button"
+              onClick={publish}
+              disabled={publishing || !site.task_id}
+              className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] transition-colors hover:bg-secondary disabled:opacity-50"
+            >
+              {publishing ? <Loader2 size={10} className="animate-spin" /> : <Rocket size={10} />}
+              {publishing ? 'Deploying' : 'Publish'}
+            </button>
+          )}
           <Link
-            to={`/websites/${site.task_id}`}
+            to={detailPath}
             className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] transition-colors hover:bg-secondary"
           >
-            <History size={10} /> Versions
+            {native ? <History size={10} /> : <History size={10} />}
+            {native ? 'Open build' : 'Versions'}
           </Link>
           {liveUrl && (
             <a

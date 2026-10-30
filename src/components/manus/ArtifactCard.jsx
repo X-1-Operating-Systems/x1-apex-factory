@@ -27,7 +27,12 @@ export default function ArtifactCard({ artifact }) {
 
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20">
-      <a href={artifact.url || '#'} target="_blank" rel="noreferrer" className="block">
+      <a
+        href={artifact.url || (artifact.task_id ? `/task/${artifact.task_id}` : '#')}
+        target={artifact.url ? '_blank' : undefined}
+        rel="noreferrer"
+        className="block"
+      >
         <div className="relative h-32 bg-secondary">
           {artifact.cover_image ? (
             <Image src={artifact.cover_image} alt={artifact.name} fittingType="fill" className="h-32 w-full" />

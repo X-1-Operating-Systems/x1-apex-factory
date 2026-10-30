@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Globe, Loader2 } from 'lucide-react';
 import WebsiteCard from '@/components/manus/WebsiteCard';
+import { listArtifacts } from '@/lib/taskEngine';
 
 export default function Websites() {
   const [sites, setSites] = useState([]);
@@ -15,11 +16,11 @@ export default function Websites() {
     let live = true;
     const load = async () => {
       try {
-        const res = await base44.functions.invoke('manusAgent', { action: 'artifacts', type: 'website', limit: 24 });
+        const res = await listArtifacts({ type: 'website', limit: 24 });
         if (!live) return;
-        setSites(res.data.artifacts || []);
-        setCursor(res.data.next_cursor);
-        setHasMore(Boolean(res.data.has_more));
+        setSites(res.artifacts || []);
+        setCursor(res.next_cursor);
+        setHasMore(Boolean(res.has_more));
       } catch (err) {
         if (live) setError(err?.response?.data?.error || err.message);
       } finally {
@@ -35,10 +36,13 @@ export default function Websites() {
   const loadMore = async () => {
     if (!cursor || moreBusy) return;
     setMoreBusy(true);
-    const res = await base44.functions.invoke('manusAgent', { action: 'artifacts', type: 'website', limit: 24, cursor });
-    setSites((prev) => [...prev, ...(res.data.artifacts || [])]);
-    setCursor(res.data.next_cursor);
-    setHasMore(Boolean(res.data.has_more));
+    const res = await listArtifacts({ type: 'website', limit: 24, cursor });
+    setSites((prev) => {
+      const seen = new Set(prev.map((item) => item.id));
+      return [...prev, ...(res.artifacts || []).filter((item) => !seen.has(item.id))];
+    });
+    setCursor(res.next_cursor);
+    setHasMore(Boolean(res.has_more));
     setMoreBusy(false);
   };
 
@@ -46,8 +50,8 @@ export default function Websites() {
     <div className="mx-auto w-full max-w-[1100px] px-5 py-8 lg:px-10 lg:py-10">
       <h1 className="text-[15px] font-medium">Websites</h1>
       <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-        Sites built by agents in your Manus account. Each one carries its own version history and a hosted URL once
-        deployed.
+        Sites built by your agents. Native builds open straight into their build task; Manus builds also carry version
+        history and a hosted URL once deployed.
       </p>
 
       {loading ? (

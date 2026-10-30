@@ -1,0 +1,124 @@
+{
+  "name": "StudioTask",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "instruction": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "waiting",
+        "stopped",
+        "error"
+      ],
+      "default": "running"
+    },
+    "engine": {
+      "type": "string",
+      "default": "native"
+    },
+    "model": {
+      "type": "string",
+      "default": "gpt_5_6_sol"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "agent_id": {
+      "type": "string"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ]
+      }
+    },
+    "deliverable": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "website",
+            "documents",
+            "slides",
+            "spreadsheets",
+            "images",
+            "others"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "title",
+    "instruction"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

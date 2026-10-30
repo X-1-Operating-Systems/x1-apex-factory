@@ -6,6 +6,8 @@ import StatusPill from '@/components/manus/StatusPill';
 import TaskTimeline from '@/components/task/TaskTimeline';
 import TaskFollowUp from '@/components/task/TaskFollowUp';
 import ComputerPanel from '@/components/task/ComputerPanel';
+import DeliverableNote from '@/components/task/DeliverableNote';
+import { taskDetail, stopTask, sendToTask } from '@/lib/taskEngine';
 
 const when = (ts) => {
   if (!ts) return '';
@@ -31,8 +33,8 @@ export default function TaskDetail() {
   const [busyEarlier, setBusyEarlier] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await base44.functions.invoke('manusAgent', { action: 'detail', task_id: id });
-    setData(res.data);
+    const res = await taskDetail(id);
+    setData(res);
     setError('');
   }, [id]);
 
@@ -84,7 +86,7 @@ export default function TaskDetail() {
   const stop = async () => {
     setStopping(true);
     try {
-      await base44.functions.invoke('manusAgent', { action: 'stop', task_id: id });
+      await stopTask(id);
       await load();
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
@@ -94,7 +96,7 @@ export default function TaskDetail() {
   };
 
   const send = async (message, attachments) => {
-    await base44.functions.invoke('manusAgent', { action: 'send', task_id: id, message, attachments });
+    await sendToTask(id, message, attachments);
     await load();
   };
 
@@ -143,14 +145,16 @@ export default function TaskDetail() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setPanelOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <Monitor size={11} /> Computer
-              {running && <span className="h-1 w-1 rounded-full bg-info" />}
-            </button>
+            {data?.engine !== 'native' && (
+              <button
+                type="button"
+                onClick={() => setPanelOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Monitor size={11} /> Computer
+                {running && <span className="h-1 w-1 rounded-full bg-info" />}
+              </button>
+            )}
             {running && (
               <button
                 type="button"
@@ -178,6 +182,7 @@ export default function TaskDetail() {
       </div>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin pr-1">
+        <DeliverableNote deliverable={task.deliverable} />
         <TaskTimeline
           events={events}
           hasMore={hasEarlier}
@@ -186,7 +191,7 @@ export default function TaskDetail() {
         />
         {running && (
           <p className="flex items-center gap-1.5 py-3 text-[11.5px] text-muted-foreground">
-            <Loader2 size={11} className="animate-spin" /> Manus is working…
+            <Loader2 size={11} className="animate-spin" /> The studio is working…
           </p>
         )}
       </div>

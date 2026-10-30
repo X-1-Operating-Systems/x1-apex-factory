@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ExternalLink, Loader2, Search, Square } from 'lucide-react';
 import StatusPill from '@/components/manus/StatusPill';
+import { listTasks, moreTasks, stopTask } from '@/lib/taskEngine';
 
 const STATES = [
   ['all', 'All'],
@@ -31,11 +32,11 @@ export default function Library() {
     let live = true;
     const load = async () => {
       try {
-        const res = await base44.functions.invoke('manusAgent', { action: 'tasks', limit: 40 });
+        const res = await listTasks({ limit: 40 });
         if (!live) return;
-        setTasks(res.data.tasks || []);
-        setCursor(res.data.next_cursor);
-        setHasMore(Boolean(res.data.has_more));
+        setTasks(res.tasks || []);
+        setCursor(res.next_cursor);
+        setHasMore(Boolean(res.has_more));
       } catch (err) {
         if (live) setError(err?.response?.data?.error || err.message);
       } finally {
@@ -51,15 +52,18 @@ export default function Library() {
   const loadMore = async () => {
     if (!cursor || moreBusy) return;
     setMoreBusy(true);
-    const res = await base44.functions.invoke('manusAgent', { action: 'tasks', limit: 40, cursor });
-    setTasks((prev) => [...prev, ...(res.data.tasks || [])]);
-    setCursor(res.data.next_cursor);
-    setHasMore(Boolean(res.data.has_more));
+    const res = await moreTasks(cursor);
+    setTasks((prev) => {
+      const seen = new Set(prev.map((t) => t.id));
+      return [...prev, ...(res.tasks || []).filter((t) => !seen.has(t.id))];
+    });
+    setCursor(res.next_cursor);
+    setHasMore(Boolean(res.has_more));
     setMoreBusy(false);
   };
 
   const stop = async (id) => {
-    await base44.functions.invoke('manusAgent', { action: 'stop', task_id: id });
+    await stopTask(id);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'stopped' } : t)));
   };
 
@@ -77,7 +81,7 @@ export default function Library() {
     <div className="mx-auto w-full max-w-[1000px] px-5 py-8 lg:px-10 lg:py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-[15px] font-medium">Library</h1>
-        <p className="text-[11.5px] text-muted-foreground">{tasks.length} tasks in your Manus account</p>
+        <p className="text-[11.5px] text-muted-foreground">{tasks.length} tasks across both engines</p>
       </div>
 
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">

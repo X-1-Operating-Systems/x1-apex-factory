@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { base44 } from '@/api/base44Client';
+import { createTask } from '@/lib/taskEngine';
 import { Loader2 } from 'lucide-react';
 
 export default function RunAgentDialog({ open, onOpenChange, agent, onRan }) {
@@ -36,19 +37,19 @@ export default function RunAgentDialog({ open, onOpenChange, agent, onRan }) {
         assignment,
       ].join('\n');
 
-      const res = await base44.functions.invoke('manusAgent', {
-        action: 'create',
+      const res = await createTask({
         instruction,
         title: agent.task_title || `${agent.name} · ${assignment.slice(0, 70)}`,
+        agent_id: agent.id,
       });
 
       await base44.entities.StudioAgent.update(agent.id, {
         run_count: (agent.run_count || 0) + 1,
-        last_task_id: res.data.task_id,
-        last_task_url: res.data.task_url,
+        last_task_id: res.task_id,
+        last_task_url: res.task_url || '',
       });
 
-      setTask(res.data);
+      setTask(res);
       onRan?.();
     } catch (err) {
       setError(err?.response?.data?.error || err.message);

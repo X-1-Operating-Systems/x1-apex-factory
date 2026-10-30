@@ -60,7 +60,7 @@ export default function TaskEvent({ event }) {
         }`}
       >
         <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide opacity-60">
-          {isUser ? 'You' : 'Manus'} · {clock(event.timestamp)}
+          {isUser ? 'You' : 'Studio'} · {clock(event.timestamp || event.ts)}
         </div>
         {isUser ? (
           <p className="whitespace-pre-line text-[12.5px] leading-relaxed">{event.content}</p>

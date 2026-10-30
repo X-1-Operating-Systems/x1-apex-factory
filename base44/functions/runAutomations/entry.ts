@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { manusCall } from '../../shared/manus.ts';
+import { createNativeTask } from '../../shared/native.ts';
 
 const TZ = 'America/New_York';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -35,24 +35,20 @@ async function launch(base44: any, automation: any) {
   const instruction = String(automation.instruction || '').trim();
   if (!instruction) return null;
 
-  const created = await manusCall('/v2/task.create', {
-    method: 'POST',
-    body: {
-      message: { content: instruction },
-      title: String(automation.title || '').slice(0, 120) || undefined,
-      interactive_mode: true,
-      hide_in_task_list: false,
-    },
+  const task = await createNativeTask(base44, {
+    userId: automation.created_by_id,
+    title: String(automation.title || '').slice(0, 120),
+    instruction,
   });
 
   await base44.asServiceRole.entities.Automation.update(automation.id, {
     last_run_at: new Date().toISOString(),
-    last_task_id: created.task_id || '',
-    last_task_url: created.task_url || '',
+    last_task_id: task.id || '',
+    last_task_url: '',
     run_count: (automation.run_count || 0) + 1,
   });
 
-  return { automation_id: automation.id, task_id: created.task_id, task_url: created.task_url };
+  return { automation_id: automation.id, task_id: task.id, task_url: '' };
 }
 
 export default async function (req: Request): Promise<Response> {

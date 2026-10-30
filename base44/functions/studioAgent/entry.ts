@@ -129,6 +129,7 @@ Every block needs a stable, unique id and a fully populated props object for its
     const llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       file_urls: images,
+      model: 'gpt_5_6_sol',
       response_json_schema: RESPONSE_SCHEMA,
     });
 

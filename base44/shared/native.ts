@@ -1,0 +1,147 @@
+export const AI_MODEL = 'gpt_5_6_sol';
+
+const TASK_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    summary: { type: 'string' },
+    steps: { type: 'array', items: { type: 'string' } },
+    reply: { type: 'string' },
+    deliverable: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        type: { type: 'string', enum: ['website', 'documents', 'slides', 'spreadsheets', 'images', 'others'] },
+        detail: { type: 'string' },
+      },
+      required: ['name', 'type', 'detail'],
+    },
+  },
+  required: ['title', 'summary', 'steps', 'reply'],
+};
+
+const SYSTEM = `You are the operator of X1 Apex Factory, an AI studio that plans and ships websites and business deliverables.
+
+For every assignment:
+- restate the goal in one line, then work it through end to end. Never ask the operator to do the work for you.
+- write the actual deliverable content: real headlines, real section copy, real plan of record. No placeholders, no "insert here".
+- keep reply markdown: short paragraphs, a few bolded labels, bullets where they help. Never mention that you are a language model.
+- summary is one plain sentence (max 140 characters).
+- steps are 3-7 short past-tense lines describing what you did, in order.
+- deliverable is what the operator ends up with: name, type and its full content in detail (markdown). Omit it only when the assignment produces no artifact.
+
+The studio's blocks are hero, stats, features, showcase, gallery, pricing, faq, cta, contact, text and footer. When the deliverable is a website, draft it block by block in that vocabulary.`;
+
+export function buildPrompt({ instruction, history = [], followUp = false }) {
+  const lines = [SYSTEM, ''];
+  if (history.length) {
+    lines.push('Conversation so far:');
+    for (const message of history.slice(-8)) {
+      lines.push(`${message.role === 'user' ? 'Operator' : 'Studio'}: ${String(message.content || '').slice(0, 1500)}`);
+    }
+    lines.push('');
+  }
+  lines.push(followUp ? 'New instruction from the operator:' : 'Assignment:', instruction, '');
+  lines.push('Return the JSON envelope only.');
+  return lines.join('\n');
+}
+
+function normalize(envelope: any, fallbackTitle: string) {
+  const value = typeof envelope === 'string' ? JSON.parse(envelope) : envelope || {};
+  const deliverable = value?.deliverable;
+  return {
+    title: String(value?.title || fallbackTitle || 'Studio task').slice(0, 120),
+    summary: String(value?.summary || '').slice(0, 200),
+    steps: Array.isArray(value?.steps) ? value.steps.slice(0, 7).map((step: any) => String(step).slice(0, 400)) : [],
+    reply: String(value?.reply || '').slice(0, 12000),
+    deliverable:
+      deliverable && deliverable.name
+        ? {
+            name: String(deliverable.name).slice(0, 140),
+            type: String(deliverable.type || 'others'),
+            detail: String(deliverable.detail || '').slice(0, 20000),
+          }
+        : null,
+  };
+}
+
+export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false }: any) {
+  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    prompt: buildPrompt({ instruction, history, followUp }),
+    model: AI_MODEL,
+    response_json_schema: TASK_SCHEMA,
+  });
+  return normalize(result, title);
+}
+
+export function userEvent(content: string) {
+  return { role: 'user', content: String(content).slice(0, 6000), ts: Date.now() };
+}
+
+export function outputEvents(out: any) {
+  const now = Date.now();
+  const events: any[] = out.steps.map((step: string) => ({ role: 'agent', content: step, ts: now }));
+  if (out.reply) events.push({ role: 'assistant', content: out.reply, ts: now });
+  return events;
+}
+
+export function errorEvent(message: string) {
+  return { role: 'error', content: String(message || 'The run failed.').slice(0, 600), ts: Date.now() };
+}
+
+export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '' }: any) {
+  const record = await base44.asServiceRole.entities.StudioTask.create({
+    created_by_id: userId,
+    title: String(title || instruction).slice(0, 120),
+    instruction: String(instruction).slice(0, 6000),
+    status: 'running',
+    engine: 'native',
+    model: AI_MODEL,
+    agent_id: agentId || '',
+    events: [userEvent(instruction)],
+  });
+
+  try {
+    const out = await runInstruction(base44, { instruction, title });
+    return await base44.asServiceRole.entities.StudioTask.update(record.id, {
+      title: out.title || record.title,
+      status: 'stopped',
+      summary: out.summary,
+      events: [...record.events, ...outputEvents(out)],
+      deliverable: out.deliverable,
+    });
+  } catch (error: any) {
+    return await base44.asServiceRole.entities.StudioTask.update(record.id, {
+      status: 'error',
+      events: [...record.events, errorEvent(error?.message)],
+    });
+  }
+}
+
+export async function followUpNativeTask(base44: any, { task, message }: any) {
+  const history = (task.events || [])
+    .filter((event: any) => event.role === 'user' || event.role === 'assistant')
+    .map((event: any) => ({ role: event.role, content: event.content }));
+
+  const withMessage = [...(task.events || []), userEvent(message)];
+
+  try {
+    const out = await runInstruction(base44, {
+      instruction: message,
+      title: task.title,
+      history,
+      followUp: true,
+    });
+    return await base44.asServiceRole.entities.StudioTask.update(task.id, {
+      status: 'stopped',
+      summary: out.summary || task.summary,
+      events: [...withMessage, ...outputEvents(out)],
+      deliverable: out.deliverable || task.deliverable,
+    });
+  } catch (error: any) {
+    return await base44.asServiceRole.entities.StudioTask.update(task.id, {
+      status: 'error',
+      events: [...withMessage, errorEvent(error?.message)],
+    });
+  }
+}

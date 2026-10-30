@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import moment from 'moment';
 import { ExternalLink, Loader2, Play, Trash2 } from 'lucide-react';
 
@@ -52,7 +53,7 @@ export default function AutomationCard({ automation, busy, onToggle, onRun, onDe
           {automation.run_count ? ` · ${automation.run_count} runs` : ''}
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          {automation.last_task_url && (
+          {automation.last_task_url ? (
             <a
               href={automation.last_task_url}
               target="_blank"
@@ -62,6 +63,16 @@ export default function AutomationCard({ automation, busy, onToggle, onRun, onDe
             >
               <ExternalLink size={11} />
             </a>
+          ) : (
+            automation.last_task_id && (
+              <Link
+                to={`/task/${automation.last_task_id}`}
+                aria-label="Open the last run"
+                className="rounded-full border border-border p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <ExternalLink size={11} />
+              </Link>
+            )
           )}
           <button
             type="button"
