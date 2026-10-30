@@ -17,6 +17,9 @@ import Dashboard from '@/pages/Dashboard';
 import Studio from '@/pages/Studio';
 import TemplateLibrary from '@/pages/TemplateLibrary';
 import Releases from '@/pages/Releases';
+import Library from '@/pages/Library';
+import Computers from '@/pages/Computers';
+import Agents from '@/pages/Agents';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -56,6 +59,9 @@ const AuthenticatedApp = () => {
           <Route path="/studio/:id" element={<Studio />} />
           <Route path="/templates" element={<TemplateLibrary />} />
           <Route path="/releases" element={<Releases />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/computers" element={<Computers />} />
+          <Route path="/agents" element={<Agents />} />
         </Route>
       </Route>
 
