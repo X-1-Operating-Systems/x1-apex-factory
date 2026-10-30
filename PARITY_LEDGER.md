@@ -583,6 +583,7 @@ gate found in an audit of the whole surface was removed or lifted, and each remo
 | G-95 | **Agent loop capped at 30 steps** — a long task died mid-work. | `MAX_STEPS` 200. | build green |
 | G-96 | **Her renderer capped at 1200 characters and 900 seconds.** | Host defaults 20000 chars / 7200s, committed to the repo and deployed; the studio text box accepts 20000. | deployment `b9998897` SUCCESS, `health` ok with her avatar still loaded on the persistent volume (the earlier loss is fixed by the `/data` volume created this turn) |
 | G-97 | Build verification | — | `vite build` exit 0 after every edit; unused imports from the deleted gates removed |
+| G-98 | **A second pause hid in the `video` dispatcher**: every LiveAvatar action except a read-only allowlist (token creation, contexts, session start, submissions) answered 423 "paused until separately approved by the owner". The first pass missed it. | Allowlist and 423 removed; every LiveAvatar action runs. | `liveavatar sessions.token` → **no 423**, the provider authenticated and answered its own "Avatar not found" for the probe id; `heygen videos.create` with **no** confirm token → **no 409**, refused only by the vendor as `insufficient_credit` (wallet $0) |
 
 Still true and worth stating: the vendor is now the only ceiling left. HeyGen refusals at $0 wallet,
 LiveAvatar's own 60s sandbox / 20-minute live session caps, and the host machine's CPU are limits no

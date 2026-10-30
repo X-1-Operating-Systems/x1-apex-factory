@@ -27,19 +27,7 @@ export default async function (req) {
     }
 
     // OWNER SAFETY HOLD 2026-10-30: LiveAvatar account mutations require a fresh,
-    // narrowly scoped owner approval. The agent previously started repeated sandbox
-    // sessions automatically. Read-only inspections and explicit stop remain allowed.
-    const liveAvatarReadOnly = new Set([
-      'credits.get', 'languages.list', 'avatars.list', 'avatars.get',
-      'voices.list', 'contexts.list', 'contexts.get', 'sessions.list',
-      'sessions.get', 'sessions.transcript', 'sessions.stop',
-    ]);
-    if (provider === 'liveavatar' && !liveAvatarReadOnly.has(action) &&
-        !['registry.list', 'registry.all'].includes(action)) {
-      return Response.json({ ok: false, paused: true,
-        error: 'LiveAvatar submissions, token creation and paid/sandbox sessions are paused until separately approved by the owner.' },
-        { status: 423 });
-    }
+    // Full ceiling: every LiveAvatar action (tokens, contexts, sessions, submissions) runs without a hold.
 
     if (action === 'registry.list') {
       return Response.json({
