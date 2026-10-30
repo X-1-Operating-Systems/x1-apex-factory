@@ -342,3 +342,13 @@ Fixed in one place: `liveSession` now resolves from the newest successful `sessi
 | id | state | files changed | verification (live, this turn) |
 |---|---|---|---|
 | G-59 | closed | src/pages/AdminControl.jsx | Probe run `1d7455d2-cff7-4bb9-b2d7-3a531a451cbf` ("open https://example.com and tell me the headline") on the owned host: `runs.create` returned no session, then the very first `runs.get` poll returned `status: COMPLETED` with a real `session_id` and 3 steps — the exact field the panel now reads, so the frame appears during the run instead of an empty state. The session was released (`COMPLETED`) and the probe run and its session record deleted: 0 runs, 0 sessions left. Build green. |
+
+### Batch 28 — a live run can be stopped from its own card
+
+The audit moved from what the panel shows to what the thread lets you do. Every registry action was reachable from chat, but one of them mattered more than that: `runs.stop`. A run that is live keeps the host busy and burns browser minutes, and the only way to end it was to copy its id out of the card, type "stop run <id>" into the composer, and hope the resolver mapped it. The card itself, the surface that shows the run, had no stop at all.
+
+`RunStopButton` now sits on the run card while the run is `RUNNING`, `PENDING` or `QUEUED`, and is absent once it is terminal. It is two-step on purpose, because `runs.stop` is a destructive action in the registry and the function demands the confirm token: **Stop** arms it, **Confirm stop** sends `runs.stop` with `confirm: true`, **Keep running** walks away. The handler rides the existing thread path (`ControlThread` -> `ResultCard` -> `RunCard` -> `chat.run`), so the stop lands in the thread as a normal action card with its result, and no second execution path was invented.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-60 | closed | src/components/admin/RunStopButton.jsx (new), src/components/admin/RunCard.jsx, src/components/admin/ResultCard.jsx, src/components/admin/ControlThread.jsx, src/pages/AdminControl.jsx | Probe run `c70dd17c-d657-403c-8ba8-657db17afac7` ("open example.com, then describe the page in detail") was polled once while live, then stopped with exactly the call the button makes: `runs.stop` with `confirm: true`. The run came back `STOPPED` with an `ended_at` and **4 steps** — advanced, then ended early, not completed — and its session was released (`released`). The same call **without** the confirm token was refused with `409 needs_confirmation`, so the two-step gate is real and not decoration. Probe run and session records deleted: 0 runs left. Build green. |

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import StepFrame from '@/components/admin/StepFrame';
+import RunStopButton from '@/components/admin/RunStopButton';
+
+const LIVE = ['RUNNING', 'PENDING', 'QUEUED'];
 
 const STATUS_TONE = {
   COMPLETED: 'text-foreground',
@@ -12,13 +15,14 @@ const STATUS_TONE = {
   STOPPED: 'text-muted-foreground',
 };
 
-export default function RunCard({ action, data }) {
+export default function RunCard({ action, data, onAction }) {
   const [open, setOpen] = useState(false);
   const runId = data && (data.runId || data.id || data.run_id);
   const status = (data && (data.status || data.state)) || 'unknown';
   const output = data && (data.output || data.result);
   const steps = data && Array.isArray(data.steps) ? data.steps : [];
   const framed = steps.filter((step) => step.frame_uri).length;
+  const Live = LIVE.includes(String(status).toUpperCase());
 
   return (
     <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5">
@@ -27,9 +31,12 @@ export default function RunCard({ action, data }) {
           <p className="text-[11px] font-medium">Browser run</p>
           <p className="truncate font-mono text-[10px] text-muted-foreground">{runId || 'starting'}</p>
         </div>
-        <span className={`shrink-0 text-[10px] uppercase tracking-[0.06em] ${STATUS_TONE[status] || 'text-muted-foreground'}`}>
-          {status}
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className={`text-[10px] uppercase tracking-[0.06em] ${STATUS_TONE[status] || 'text-muted-foreground'}`}>
+            {status}
+          </span>
+          {Live && runId && onAction && <RunStopButton runId={runId} onAction={onAction} />}
+        </div>
       </div>
 
       {output && (

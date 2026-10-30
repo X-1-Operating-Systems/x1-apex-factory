@@ -86,6 +86,7 @@ export default function AdminControl() {
               busy={chat.busy}
               onConfirm={chat.confirm}
               onCancel={chat.cancel}
+              onAction={chat.run}
             />
           </div>
           <div className="shrink-0 border-t border-border px-3 py-2 xl:hidden">

@@ -15,7 +15,7 @@ function GenericCard({ action, data }) {
   );
 }
 
-export default function ResultCard({ action, result }) {
+export default function ResultCard({ action, result, onAction }) {
   if (!result || result.needs_confirmation) return null;
 
   if (!result.ok) {
@@ -41,7 +41,7 @@ export default function ResultCard({ action, result }) {
     return <GenericCard action={action} data={data} />;
   }
   if (action.startsWith('sessions.')) return <SessionCard action={action} data={data} />;
-  if (action.startsWith('runs.')) return <RunCard action={action} data={data} />;
+  if (action.startsWith('runs.')) return <RunCard action={action} data={data} onAction={onAction} />;
   if (action === 'usage.get') return <UsageCard data={data} />;
   return <GenericCard action={action} data={data} />;
 }

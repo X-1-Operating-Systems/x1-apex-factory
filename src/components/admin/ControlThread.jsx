@@ -2,7 +2,7 @@ import React from 'react';
 import ResultCard from './ResultCard';
 import ConfirmChip from './ConfirmChip';
 
-export default function ControlThread({ messages, busy, onConfirm, onCancel }) {
+export default function ControlThread({ messages, busy, onConfirm, onCancel, onAction }) {
   if (!messages.length) {
     return (
       <div className="mx-auto flex max-w-[620px] flex-col gap-3 px-1 py-12 text-center">
@@ -66,7 +66,7 @@ export default function ControlThread({ messages, busy, onConfirm, onCancel }) {
                 <span className="text-[11px] text-muted-foreground">Running {message.action}</span>
               </div>
             ) : (
-              <ResultCard action={message.action} result={message.result} />
+              <ResultCard action={message.action} result={message.result} onAction={onAction} />
             )}
           </div>
         );
