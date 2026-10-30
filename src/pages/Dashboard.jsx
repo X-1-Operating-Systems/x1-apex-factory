@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Composer from '@/components/dashboard/Composer';
 import NewProjectDialog from '@/components/NewProjectDialog';
@@ -33,6 +34,18 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-full flex-col items-center px-5 pb-16 pt-12 sm:pt-20">
       <div className="w-full max-w-[680px]">
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11.5px] transition-colors hover:bg-secondary"
+          >
+            apex 2.0 Lite <ChevronDown size={11} className="text-muted-foreground" />
+          </button>
+          <span className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
+            <Sparkles size={11} /> 0
+          </span>
+        </div>
+
         <h1 className="mb-6 text-center font-heading text-[28px] font-normal tracking-[-0.02em] sm:text-[34px]">
           What can I do for you?
         </h1>
@@ -86,6 +99,10 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        <p className="mt-10 text-center text-[10.5px] leading-relaxed text-muted-foreground">
+          X1 is an AI agent and can make mistakes. Please double-check before use.
+        </p>
       </div>
 
       <NewProjectDialog

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
 import DeliverableCard from '@/components/studio/DeliverableCard';
+import ManusRun from '@/components/studio/ManusRun';
 
 const SUGGESTIONS = [
   'Make the hero copy tighter and more premium',
@@ -104,6 +105,7 @@ export default function TaskThread({ messages, busy, page, project, onOpenCanvas
               </button>
             ))}
           </div>
+          <ManusRun project={project} page={page} />
         </div>
       )}
     </div>
