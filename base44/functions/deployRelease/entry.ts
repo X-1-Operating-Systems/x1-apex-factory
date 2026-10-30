@@ -20,28 +20,46 @@ export default async function (req: Request): Promise<Response> {
       const project = await base44.entities.Project.get(projectId);
       const target = TARGETS.includes(String(body?.target)) ? String(body.target) : project.deploy_target || 'vercel';
 
-      const pages = await base44.entities.StudioPage.filter({ project_id: projectId }, { sort: '-updated_date', limit: 1 });
-      const page = pages.items[0];
-      if (!page || !(page.blocks || []).length) {
+      const pageResult = await base44.entities.StudioPage.filter({ project_id: projectId }, { sort: 'created_date', limit: 50 });
+      const pages = (pageResult.items || []).filter((row: any) => (row.blocks || []).length);
+      if (!pages.length) {
         return Response.json({ error: 'Compose at least one section before preparing a release.' }, { status: 400 });
       }
 
-      const audit = auditPage(page);
-      const hash = await manifestHash(page.blocks);
-      const html = renderPageHtml({ project, page });
+      const rank: any = { pass: 0, review: 1, block: 2 };
+      const audits = pages.map((row: any) => ({ page: row, audit: auditPage(row) }));
+      const worst = audits.reduce(
+        (acc: any, row: any) => (rank[row.audit.verdict] > rank[acc.audit.verdict] ? row : acc),
+        audits[0]
+      );
+      const verdict = worst.audit.verdict;
+      const score = Math.round(audits.reduce((sum: number, row: any) => sum + row.audit.score, 0) / audits.length);
+      const findings = audits.flatMap((row: any) => row.audit.findings).slice(0, 12);
+      const version = Math.max(...pages.map((row: any) => row.version || 1));
+
+      const hash = await manifestHash(
+        pages.map((row: any) => ({ path: row.path, version: row.version, blocks: row.blocks }))
+      );
+      const rendered = pages.map((row: any) => ({
+        name: row.name,
+        path: row.path || '/',
+        html: renderPageHtml({ project, page: row }),
+      }));
       const manifest = {
         project: project.name,
-        page: page.name,
-        path: page.path || '/',
-        version: page.version || 1,
-        manifest_hash: hash,
         target,
-        sections: (page.blocks || []).map((block: any) => ({ id: block.id, type: block.type })),
-        qa: { verdict: audit.verdict, score: audit.score },
+        manifest_hash: hash,
+        pages: pages.map((row: any) => ({
+          name: row.name,
+          path: row.path || '/',
+          version: row.version || 1,
+          sections: (row.blocks || []).map((block: any) => ({ id: block.id, type: block.type })),
+        })),
+        qa: { verdict, score },
         generated_at: new Date().toISOString(),
       };
 
-      const files = targetFiles(target, html, manifest);
+      const files = targetFiles(target, rendered, manifest);
       const artifacts: { name: string; file_uri: string; bytes: number }[] = [];
       for (const file of files) {
         const { file_uri } = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
@@ -50,19 +68,19 @@ export default async function (req: Request): Promise<Response> {
         artifacts.push({ name: file.name, file_uri, bytes: file.content.length });
       }
 
-      const blocked = audit.verdict === 'block';
+      const blocked = verdict === 'block';
       const stages = [
         {
           key: 'freeze',
-          label: 'Freeze page',
+          label: 'Freeze pages',
           status: 'pass',
-          detail: `v${page.version || 1} · ${(page.blocks || []).length} sections · ${hash}`,
+          detail: `${pages.length} page${pages.length === 1 ? '' : 's'} · v${version} · ${hash}`,
         },
         {
           key: 'review',
           label: 'Release review',
-          status: blocked ? 'fail' : audit.verdict === 'review' ? 'warn' : 'pass',
-          detail: `${audit.score}/100 · ${audit.verdict}`,
+          status: blocked ? 'fail' : verdict === 'review' ? 'warn' : 'pass',
+          detail: `${score}/100 · ${verdict}${worst.audit.verdict !== 'pass' ? ` · ${worst.page.name}` : ''}`,
         },
         { key: 'bundle', label: `Bundle · ${target}`, status: 'pass', detail: `${files.length} files packaged` },
         {
@@ -79,14 +97,14 @@ export default async function (req: Request): Promise<Response> {
         target,
         status: blocked ? 'blocked' : 'ready_for_approval',
         manifest_hash: hash,
-        page_version: page.version || 1,
-        qa_score: audit.score,
-        qa_verdict: audit.verdict,
+        page_version: version,
+        qa_score: score,
+        qa_verdict: verdict,
         stages,
         artifacts,
         notes: blocked
-          ? `Blocked by release review: ${audit.findings[0] || 'see findings'}`
-          : `Build ${hash} packaged for ${target}. ${audit.findings[0] || 'No outstanding findings.'}`,
+          ? `Blocked by release review: ${findings[0] || 'see findings'}`
+          : `Build ${hash} packaged for ${target} across ${pages.length} page${pages.length === 1 ? '' : 's'}. ${findings[0] || 'No outstanding findings.'}`,
       });
 
       const pending = await base44.entities.Deployment.filter(
@@ -101,11 +119,11 @@ export default async function (req: Request): Promise<Response> {
       await base44.entities.QaRun.create({
         project_id: projectId,
         project_name: project.name,
-        verdict: audit.verdict,
-        score: audit.score,
-        page_version: page.version || 1,
-        checks: audit.checks,
-        findings: audit.findings,
+        verdict,
+        score,
+        page_version: version,
+        checks: worst.audit.checks,
+        findings,
       });
 
       const updatedProject = await base44.entities.Project.update(projectId, {
@@ -113,7 +131,11 @@ export default async function (req: Request): Promise<Response> {
         deploy_target: target,
       });
 
-      return Response.json({ deployment, audit, project: updatedProject });
+      return Response.json({
+        deployment,
+        audit: { verdict, score, findings, checks: worst.audit.checks, pages: pages.length },
+        project: updatedProject,
+      });
     }
 
     if (action === 'approve') {

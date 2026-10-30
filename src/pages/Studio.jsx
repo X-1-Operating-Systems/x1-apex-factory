@@ -8,6 +8,7 @@ import TaskComposer from '@/components/studio/TaskComposer';
 import Inspector from '@/components/studio/Inspector';
 import QaPanel from '@/components/studio/QaPanel';
 import ProjectSettingsDialog from '@/components/studio/ProjectSettingsDialog';
+import PageSwitcher from '@/components/studio/PageSwitcher';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,8 @@ export default function Studio() {
   const { toast } = useToast();
 
   const [project, setProject] = useState(null);
-  const [page, setPage] = useState(null);
+  const [pages, setPages] = useState([]);
+  const [pageId, setPageId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,16 +61,17 @@ export default function Studio() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const saveTimer = useRef(null);
+  const page = pages.find((entry) => entry.id === pageId) || pages[0] || null;
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       try {
         const record = await base44.entities.Project.get(id);
-        const pageResult = await base44.entities.StudioPage.filter({ project_id: id }, { sort: 'created_date', limit: 1 });
-        let current = pageResult.items[0];
-        if (!current) {
-          current = await base44.entities.StudioPage.create({
+        const pageResult = await base44.entities.StudioPage.filter({ project_id: id }, { sort: 'created_date', limit: 50 });
+        let list = pageResult.items || [];
+        if (!list.length) {
+          const first = await base44.entities.StudioPage.create({
             project_id: id,
             name: 'Home',
             path: '/',
@@ -77,11 +80,14 @@ export default function Studio() {
             seo_title: record.name,
             seo_description: record.description || '',
           });
+          list = [first];
         }
+        const current = list[0];
         const messageResult = await base44.entities.StudioMessage.filter({ project_id: id }, { sort: 'created_date', limit: 200 });
         if (!alive) return;
         setProject(record);
-        setPage({ ...current, blocks: current.blocks || [] });
+        setPages(list.map((entry) => ({ ...entry, blocks: entry.blocks || [] })));
+        setPageId(current.id);
         setMessages(messageResult.items);
         setSelectedId(current.blocks?.[0]?.id || null);
         setTarget(record.deploy_target || 'vercel');
@@ -100,7 +106,7 @@ export default function Studio() {
   }, [id]);
 
   const queueSave = (next) => {
-    setPage(next);
+    setPages((prev) => prev.map((entry) => (entry.id === next.id ? next : entry)));
     setSaving(true);
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
@@ -117,6 +123,47 @@ export default function Studio() {
   const changeTokens = async (patch) => {
     setProject((prev) => ({ ...prev, ...patch }));
     await base44.entities.Project.update(project.id, patch);
+  };
+
+  const selectPage = (nextId) => {
+    const next = pages.find((entry) => entry.id === nextId);
+    if (!next) return;
+    clearTimeout(saveTimer.current);
+    setSaving(false);
+    setPageId(next.id);
+    setSelectedId((next.blocks || [])[0]?.id || null);
+  };
+
+  const createPage = async ({ name, path }) => {
+    const created = await base44.entities.StudioPage.create({
+      project_id: id,
+      name,
+      path,
+      version: 1,
+      blocks: [],
+      seo_title: `${project.name} · ${name}`,
+      seo_description: '',
+    });
+    const entry = { ...created, blocks: created.blocks || [] };
+    setPages((prev) => [...prev, entry]);
+    setPageId(entry.id);
+    setSelectedId(null);
+  };
+
+  const savePageMeta = async (nextId, patch) => {
+    await base44.entities.StudioPage.update(nextId, patch);
+    setPages((prev) => prev.map((entry) => (entry.id === nextId ? { ...entry, ...patch } : entry)));
+  };
+
+  const deletePage = async (nextId) => {
+    if (pages.length < 2) return;
+    await base44.entities.StudioPage.delete(nextId);
+    const rest = pages.filter((entry) => entry.id !== nextId);
+    setPages(rest);
+    if (nextId === pageId) {
+      setPageId(rest[0].id);
+      setSelectedId((rest[0].blocks || [])[0]?.id || null);
+    }
   };
 
   const send = async (text, attachments) => {
@@ -146,6 +193,7 @@ export default function Studio() {
           seo_description: page.seo_description,
         },
         instruction: text,
+        siblings: pages.filter((entry) => entry.id !== page.id).map((entry) => `${entry.name} (${entry.path || '/'})`),
         attachment_urls: (attachments || []).map((a) => a.file_url),
         history: messages.slice(-8).map((m) => ({ role: m.role, content: m.content })),
       });
@@ -166,13 +214,19 @@ export default function Studio() {
         seo_description: data.seo?.description || page.seo_description || '',
       });
 
-      setPage((prev) => ({
-        ...prev,
-        blocks,
-        version: nextVersion,
-        seo_title: data.seo?.title || prev.seo_title,
-        seo_description: data.seo?.description || prev.seo_description,
-      }));
+      setPages((prev) =>
+        prev.map((entry) =>
+          entry.id === page.id
+            ? {
+                ...entry,
+                blocks,
+                version: nextVersion,
+                seo_title: data.seo?.title || entry.seo_title,
+                seo_description: data.seo?.description || entry.seo_description,
+              }
+            : entry
+        )
+      );
       setSelectedId(blocks[0]?.id || null);
 
       const projectPatch = {
@@ -352,7 +406,10 @@ export default function Studio() {
         </div>
         <div className="mx-auto flex h-6 min-w-0 max-w-[320px] flex-1 items-center justify-center gap-1.5 rounded-full bg-secondary px-3">
           <Lock size={9} className="shrink-0 text-muted-foreground" />
-          <span className="truncate text-[10.5px] text-muted-foreground">{siteSlug}</span>
+          <span className="truncate text-[10.5px] text-muted-foreground">
+            {siteSlug}
+            {page.path === '/' ? '' : page.path}
+          </span>
         </div>
         <div className="hidden shrink-0 items-center gap-0.5 rounded-full border border-border p-0.5 sm:flex">
           {VIEWPORTS.map((v) => {
@@ -404,6 +461,14 @@ export default function Studio() {
             >
               {project.name}
             </button>
+            <PageSwitcher
+              pages={pages}
+              current={page}
+              onSelect={selectPage}
+              onCreate={createPage}
+              onSave={savePageMeta}
+              onDelete={deletePage}
+            />
             <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
               {saving ? 'Saving…' : `v${page.version}`}
             </span>
@@ -508,7 +573,7 @@ export default function Studio() {
           <DialogHeader>
             <DialogTitle className="text-[17px] font-medium">Prepare a release</DialogTitle>
             <DialogDescription>
-              The current page version is reviewed, then pinned with a manifest hash and handed to your approval queue.
+              Every page in this project is reviewed together, then pinned with one manifest hash and handed to your approval queue.
             </DialogDescription>
           </DialogHeader>
 
@@ -532,7 +597,9 @@ export default function Studio() {
             </div>
 
             <div className="rounded-lg bg-accent px-3 py-2 text-[11.5px] leading-relaxed text-muted-foreground">
-              Version {page.version} · {page.blocks?.length || 0} sections · manifest {blockHash(page.blocks || [])}
+              {pages.length} page{pages.length === 1 ? '' : 's'} ·{' '}
+              {pages.reduce((sum, entry) => sum + (entry.blocks?.length || 0), 0)} sections · manifest{' '}
+              {blockHash(pages.map((entry) => ({ path: entry.path, blocks: entry.blocks })))}
             </div>
 
             <Button className="w-full" onClick={prepareRelease} disabled={releasing}>

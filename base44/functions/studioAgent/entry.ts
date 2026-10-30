@@ -70,7 +70,7 @@ export default async function (req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { project, page, instruction, attachment_urls, history } = body;
+    const { project, page, instruction, attachment_urls, history, siblings } = body;
 
     if (!instruction || typeof instruction !== 'string' || !instruction.trim()) {
       return Response.json({ error: 'An instruction is required.' }, { status: 400 });
@@ -94,6 +94,14 @@ CLIENT
 Project: ${String(project?.name || 'Untitled').slice(0, 120)}
 Client: ${String(project?.client_name || 'Unspecified').slice(0, 120)}
 Page: ${String(page.name || 'Home').slice(0, 60)} (${String(page.path || '/').slice(0, 60)})
+${
+  Array.isArray(siblings) && siblings.length
+    ? `Other pages in this site (context only, never merge their content into this page): ${siblings
+        .slice(0, 8)
+        .map((entry: any) => String(entry).slice(0, 80))
+        .join(', ')}`
+    : ''
+}
 
 CURRENT TOKENS
 accent: ${String(project?.accent || '#b4532a')}

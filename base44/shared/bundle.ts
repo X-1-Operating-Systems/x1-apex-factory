@@ -260,10 +260,33 @@ const GITHUB_WORKFLOW = [
   '        uses: actions/deploy-pages@v4',
 ].join('\n');
 
-export function targetFiles(target: string, html: string, manifest: any) {
-  const files: { name: string; content: string; type: string }[] = [
-    { name: 'index.html', content: html, type: 'text/html' },
-  ];
+function pageFileName(path: string) {
+  const clean = String(path || '/')
+    .trim()
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+  if (!clean) return 'index.html';
+  if (/\.[a-z0-9]{2,5}$/i.test(clean)) return clean;
+  return `${clean}/index.html`;
+}
+
+export function targetFiles(
+  target: string,
+  pages: { name: string; path: string; html: string }[],
+  manifest: any
+) {
+  const used = new Set<string>();
+  const files: { name: string; content: string; type: string }[] = [];
+  for (const page of pages) {
+    let name = pageFileName(page.path);
+    if (used.has(name)) {
+      const stamp = used.size + 1;
+      name = name === 'index.html' ? `page-${stamp}.html` : name.replace(/\.html$/, `-${stamp}.html`);
+    }
+    used.add(name);
+    files.push({ name, content: page.html, type: 'text/html' });
+  }
+  if (!files.length) files.push({ name: 'index.html', content: '', type: 'text/html' });
 
   if (target === 'vercel') {
     files.push({
