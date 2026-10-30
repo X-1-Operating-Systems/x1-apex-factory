@@ -3,6 +3,7 @@ import { advanceJob, MODEL } from '../../shared/autopilot.ts';
 
 const ACTIVE = ['queued', 'running'];
 const TICK_BUDGET_MS = 200000;
+// Browser verification is dispatched through the browser service (base44/functions/browserbase).
 
 export default async function (req: Request): Promise<Response> {
   try {

@@ -1,5 +1,4 @@
 import { auditPage } from './qa.ts';
-import { hostRequest } from './browserHost.ts';
 
 // One command in, a built and validated site out. Every stage is one unit of work so a
 // scheduled tick or an open page can carry the job forward without holding a request open.
@@ -307,23 +306,32 @@ async function shipStage(base44: any, job: any) {
 
 async function verifyStage(base44: any, job: any) {
   if (!job.browser_run_id) {
-    const created = await hostRequest('runs.create', {
-      task: `Open ${job.live_url} and report the main headline, whether the page loaded a hero section, and whether a contact route is present.`,
-      max_steps: 8,
+    // Browser runs live in the browser service, not the host client, so the run is started there.
+    const created = await base44.asServiceRole.functions.invoke('browserbase', {
+      action: 'runs.create',
+      params: {
+        task: `Open ${job.live_url} and report the main headline, whether the page loaded a hero section, and whether a contact route is present.`,
+        max_steps: 8,
+      },
     });
-    const runId = created?.data?.run_id || created?.data?.id || '';
-    if (!created?.ok || !runId) {
-      step(job, 'verify', 'Cloud browser unavailable', 'skipped', created?.error || 'No run id came back.');
-      return { stage: 'done', status: 'done', browser_note: created?.error || 'The browser host did not accept the run.' };
+    const runId = created?.data?.data?.run_id || '';
+    if (!runId) {
+      const message = created?.data?.error || 'The browser service did not accept the run.';
+      step(job, 'verify', 'Cloud browser unavailable', 'skipped', message);
+      return { stage: 'done', status: 'done', browser_note: message };
     }
     return { browser_run_id: runId, browser_note: 'Running a real browser against the live site.' };
   }
 
-  const read = await hostRequest('runs.get', { run_id: job.browser_run_id });
-  const data = read?.data || {};
+  const read = await base44.asServiceRole.functions.invoke('browserbase', {
+    action: 'runs.get',
+    params: { run_id: job.browser_run_id },
+  });
+  const result = read?.data || {};
+  const data = result?.data || {};
   const status = String(data.status || '').toUpperCase();
-  if (!read?.ok) {
-    return { stage: 'done', status: 'done', browser_note: read?.error || 'The browser run could not be read.' };
+  if (!result?.ok) {
+    return { stage: 'done', status: 'done', browser_note: result?.error || 'The browser run could not be read.' };
   }
   if (status !== 'COMPLETED' && status !== 'SUCCEEDED' && status !== 'FAILED' && status !== 'ERROR') {
     return { browser_note: `Browser run ${status || 'in progress'}.` };
