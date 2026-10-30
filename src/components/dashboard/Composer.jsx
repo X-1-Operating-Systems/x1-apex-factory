@@ -66,7 +66,7 @@ export default function Composer({ onSubmit, onPickTemplate }) {
       <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
         <button
           type="button"
-          onClick={() => onSubmit('')}
+          onClick={onPickTemplate}
           className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] text-foreground transition-colors hover:bg-secondary"
         >
           <Rocket size={12} className="text-muted-foreground" /> Build website

@@ -24,6 +24,7 @@ function Wordmark() {
 export default function AppShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -33,8 +34,12 @@ export default function AppShell() {
 
   useEffect(() => {
     const load = async () => {
-      const page = await base44.entities.Project.filter({}, { sort: '-updated_date', limit: 60 });
-      setProjects(page.items);
+      const [taskPage, projectPage] = await Promise.all([
+        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: 40 }),
+        base44.entities.Project.filter({}, { sort: '-updated_date', limit: 40 }),
+      ]);
+      setTasks(taskPage.items);
+      setProjects(projectPage.items);
     };
     load();
   }, []);
@@ -65,7 +70,7 @@ export default function AppShell() {
           <ThemeToggle compact />
         </div>
 
-        <SidebarBody projects={projects} />
+        <SidebarBody tasks={tasks} projects={projects} />
 
         <div className="shrink-0 border-t border-sidebar-border p-2.5">
           <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5">
@@ -108,7 +113,11 @@ export default function AppShell() {
                   <Wordmark />
                   <ThemeToggle compact />
                 </div>
-                <SidebarBody projects={projects} onNavigate={() => setMobileOpen(false)} />
+                <SidebarBody
+                  tasks={tasks}
+                  projects={projects}
+                  onNavigate={() => setMobileOpen(false)}
+                />
               </SheetContent>
             </Sheet>
             <Wordmark />

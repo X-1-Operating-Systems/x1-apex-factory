@@ -24,10 +24,18 @@ export async function setEngine(engine) {
   return engineInfo();
 }
 
-export async function createTask({ title, instruction, agent_id, model, effort }) {
+export async function createTask({ title, instruction, agent_id, model, effort, project_id }) {
   const { engine } = await engineInfo();
   const fn = engine === 'manus' ? 'manusAgent' : 'nativeTask';
-  const res = await base44.functions.invoke(fn, { action: 'create', title, instruction, agent_id, model, effort });
+  const res = await base44.functions.invoke(fn, {
+    action: 'create',
+    title,
+    instruction,
+    agent_id,
+    model,
+    effort,
+    project_id: project_id || '',
+  });
   return { ...res.data, engine };
 }
 

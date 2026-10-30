@@ -9,6 +9,7 @@ import {
   buildContent,
   summarizeRun,
 } from '../../shared/manus.ts';
+import { projectBrief } from '../../shared/projects.ts';
 
 const TASK_ID = /^[A-Za-z0-9_-]{4,80}$/;
 
@@ -104,10 +105,11 @@ export default async function (req: Request): Promise<Response> {
 
       const title = String(body?.title || '').trim().slice(0, 120);
       const files = await signFiles(base44, body?.attachments);
+      const brief = await projectBrief(base44, body?.project_id);
       const created = await call('/v2/task.create', {
         method: 'POST',
         body: {
-          message: { content: buildContent(instruction, files) },
+          message: { content: buildContent(brief ? `${brief}\n\n${instruction}` : instruction, files) },
           title: title || undefined,
           interactive_mode: true,
           hide_in_task_list: false,

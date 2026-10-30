@@ -13,6 +13,7 @@ function shape(task: any, includeEvents = false) {
     engine: 'native',
     model: task.model || AI_MODEL,
     effort: task.effort || 'standard',
+    project_id: task.project_id || '',
     created_at: created,
     updated_at: new Date(task.updated_date || task.created_date || Date.now()).getTime() / 1000,
     task_url: '',
@@ -56,6 +57,7 @@ export default async function (req: Request): Promise<Response> {
         model: body?.model,
         effort: body?.effort,
         attachments: Array.isArray(body?.attachments) ? body.attachments : [],
+        projectId: String(body?.project_id || ''),
       });
 
       if (task.status === 'error') {

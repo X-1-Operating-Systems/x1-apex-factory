@@ -8,6 +8,9 @@
     "instruction": {
       "type": "string"
     },
+    "project_id": {
+      "type": "string"
+    },
     "status": {
       "type": "string",
       "enum": [

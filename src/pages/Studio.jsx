@@ -7,6 +7,7 @@ import TaskThread from '@/components/studio/TaskThread';
 import TaskComposer from '@/components/studio/TaskComposer';
 import Inspector from '@/components/studio/Inspector';
 import QaPanel from '@/components/studio/QaPanel';
+import ProjectSettingsDialog from '@/components/studio/ProjectSettingsDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import {
   Lock,
   Monitor,
   PanelRight,
+  Plus,
   Rocket,
   RotateCw,
   ShieldCheck,
@@ -53,6 +55,8 @@ export default function Studio() {
   const [target, setTarget] = useState('vercel');
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const saveTimer = useRef(null);
 
@@ -392,7 +396,14 @@ export default function Studio() {
             >
               <ArrowLeft size={15} />
             </Link>
-            <p className="truncate text-[13px] font-medium">{project.name}</p>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              title="Project settings and master instruction"
+              className="max-w-[46vw] truncate rounded-md px-1 py-0.5 text-[13px] font-medium transition-colors hover:bg-secondary"
+            >
+              {project.name}
+            </button>
             <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
               {saving ? 'Saving…' : `v${page.version}`}
             </span>
@@ -415,6 +426,14 @@ export default function Studio() {
             >
               <SlidersHorizontal size={14} />
             </button>
+            <Link
+              to={`/new?project=${project.id}`}
+              title="Run a task inside this project"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Plus size={13} />
+              <span className="hidden sm:inline">Task</span>
+            </Link>
             <button
               type="button"
               onClick={runQa}
@@ -476,6 +495,13 @@ export default function Studio() {
       </Sheet>
 
       <QaPanel open={qaOpen} onOpenChange={setQaOpen} run={run} />
+
+      <ProjectSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        project={project}
+        onSaved={(patch) => setProject((prev) => ({ ...prev, ...patch }))}
+      />
 
       <Dialog open={releaseOpen} onOpenChange={setReleaseOpen}>
         <DialogContent className="max-w-md">

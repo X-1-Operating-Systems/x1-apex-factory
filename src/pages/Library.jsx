@@ -130,7 +130,7 @@ export default function Library() {
                   <StatusPill status={task.status} />
                 </div>
                 <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-                  {task.type.replace('_', ' ')} · {when(task.created_at)}
+                  {String(task.type || 'task').replace('_', ' ')} · {when(task.created_at)}
                 </p>
               </Link>
               {(task.status === 'running' || task.status === 'waiting') && (

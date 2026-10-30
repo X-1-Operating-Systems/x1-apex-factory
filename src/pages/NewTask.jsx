@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ModelPicker from '@/components/composer/ModelPicker';
@@ -15,6 +15,9 @@ const EXAMPLES = [
 
 export default function NewTask() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const projectId = params.get('project') || '';
+  const [project, setProject] = useState(null);
   const areaRef = useRef(null);
   const [draft, setDraft] = useState('');
   const [options, setOptions] = useState(loadTaskOptions);
@@ -29,7 +32,12 @@ export default function NewTask() {
       setRecent(page.items);
     };
     load();
-  }, []);
+    if (projectId) {
+      base44.entities.Project.get(projectId)
+        .then(setProject)
+        .catch(() => setProject(null));
+    }
+  }, [projectId]);
 
   const update = (next) => {
     setOptions(next);
@@ -42,7 +50,12 @@ export default function NewTask() {
     setBusy(true);
     setError('');
     try {
-      const res = await createTask({ instruction, model: options.model, effort: options.effort });
+      const res = await createTask({
+        instruction,
+        model: options.model,
+        effort: options.effort,
+        project_id: projectId,
+      });
       navigate(`/task/${res.task_id}`);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
@@ -52,10 +65,17 @@ export default function NewTask() {
 
   return (
     <div className="mx-auto w-full max-w-[720px] px-5 pb-16 pt-10 sm:pt-16">
-      <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">New task</p>
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+        {project ? `New task · ${project.name}` : 'New task'}
+      </p>
       <h1 className="mt-1.5 font-heading text-[26px] leading-tight tracking-[-0.02em] sm:text-[30px]">
         What should I work on?
       </h1>
+      {project?.master_instruction && (
+        <p className="mt-2 line-clamp-2 rounded-lg bg-secondary px-3 py-2 text-[11.5px] leading-relaxed text-muted-foreground">
+          {project.master_instruction}
+        </p>
+      )}
 
       <div className="mt-5 rounded-[18px] border border-border bg-card px-3.5 pb-2.5 pt-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_14px_34px_-26px_rgba(0,0,0,0.35)]">
         <textarea

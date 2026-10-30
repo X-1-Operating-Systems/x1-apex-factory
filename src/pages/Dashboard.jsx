@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Composer from '@/components/dashboard/Composer';
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist';
 import NewProjectDialog from '@/components/NewProjectDialog';
 import PageCanvas from '@/components/studio/PageCanvas';
+import StatusPill from '@/components/manus/StatusPill';
+import { createTask } from '@/lib/taskEngine';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [recent, setRecent] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [brief, setBrief] = useState('');
   const [templateId, setTemplateId] = useState('');
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const load = async () => {
-      const [templatePage, projectPage] = await Promise.all([
+      const [templatePage, taskPage] = await Promise.all([
         base44.entities.Template.filter({}, { sort: 'display_order', limit: 60 }),
-        base44.entities.Project.filter({}, { sort: '-updated_date', limit: 5 }),
+        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: 5 }),
       ]);
       setTemplates(templatePage.items);
-      setRecent(projectPage.items);
+      setRecent(taskPage.items);
     };
     load();
   }, []);
@@ -30,6 +35,20 @@ export default function Dashboard() {
     setBrief(text || '');
     setTemplateId(tplId || '');
     setDialogOpen(true);
+  };
+
+  const start = async (text) => {
+    const instruction = String(text || '').trim();
+    if (!instruction || starting) return;
+    setStarting(true);
+    setError('');
+    try {
+      const res = await createTask({ instruction });
+      navigate(`/task/${res.task_id}`);
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+      setStarting(false);
+    }
   };
 
   return (
@@ -51,7 +70,10 @@ export default function Dashboard() {
           What can I do for you?
         </h1>
 
-        <Composer onSubmit={(text) => open(text)} onPickTemplate={() => open('')} />
+        <Composer onSubmit={start} onPickTemplate={() => open('')} />
+
+        {starting && <p className="mt-2 text-[11.5px] text-muted-foreground">Starting the run…</p>}
+        {error && <p className="mt-2 text-[11.5px] text-destructive">{error}</p>}
 
         <OnboardingChecklist />
 
@@ -89,14 +111,14 @@ export default function Dashboard() {
           <div className="mt-10">
             <p className="mb-2 text-[12.5px] text-muted-foreground">Recent tasks</p>
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-              {recent.map((p) => (
+              {recent.map((task) => (
                 <Link
-                  key={p.id}
-                  to={`/studio/${p.id}`}
+                  key={task.id}
+                  to={`/task/${task.id}`}
                   className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[12.5px] transition-colors hover:bg-secondary"
                 >
-                  <span className="truncate">{p.name}</span>
-                  <span className="shrink-0 text-[10.5px] capitalize text-muted-foreground">{p.status}</span>
+                  <span className="truncate">{task.title || 'Untitled task'}</span>
+                  <StatusPill status={task.status} />
                 </Link>
               ))}
             </div>

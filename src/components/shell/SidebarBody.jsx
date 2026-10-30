@@ -18,6 +18,7 @@ import {
   Settings,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
+import ProjectList from '@/components/shell/ProjectList';
 import NotificationBell from '@/components/shell/NotificationBell';
 import UsageMeter from '@/components/shell/UsageMeter';
 
@@ -36,7 +37,7 @@ const NAV = [
   { to: '/plugins', label: 'Connectors', icon: Plug },
 ];
 
-export default function SidebarBody({ projects, onNavigate }) {
+export default function SidebarBody({ tasks, projects, onNavigate }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
 
@@ -99,7 +100,10 @@ export default function SidebarBody({ projects, onNavigate }) {
       </div>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
-        <SessionList projects={projects} />
+        <ProjectList projects={projects} />
+        <div className="mt-4">
+          <SessionList tasks={tasks} />
+        </div>
       </div>
 
       <div className="shrink-0 px-2.5 pb-1">

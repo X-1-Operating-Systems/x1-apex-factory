@@ -161,7 +161,7 @@ export default function TaskDetail() {
             <p className="mt-1 text-[11px] text-muted-foreground">
               {data?.engine === 'native'
                 ? `${modelLabel(task.model)} · ${effortLabel(task.effort)}`
-                : task.type.replace('_', ' ')}{' '}
+                : String(task.type || 'task').replace('_', ' ')}{' '}
               · created {when(task.created_at)}
               {task.credit_usage ? ` · ${task.credit_usage} credits` : ''}
             </p>

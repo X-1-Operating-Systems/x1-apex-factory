@@ -13,16 +13,16 @@ function groupOf(date) {
 
 const ORDER = ['Today', 'Yesterday', 'Previous 7 days', 'Earlier'];
 
-export default function SessionList({ projects }) {
+export default function SessionList({ tasks }) {
   const groups = useMemo(() => {
     const map = {};
-    projects.forEach((p) => {
-      const key = groupOf(p.updated_date || p.created_date);
+    (tasks || []).forEach((task) => {
+      const key = groupOf(task.created_date || task.updated_date);
       if (!map[key]) map[key] = [];
-      map[key].push(p);
+      map[key].push(task);
     });
     return ORDER.filter((k) => map[k]?.length).map((k) => [k, map[k]]);
-  }, [projects]);
+  }, [tasks]);
 
   if (groups.length === 0) {
     return <p className="px-2.5 py-2 text-[11.5px] text-muted-foreground">No tasks yet</p>;
@@ -36,20 +36,26 @@ export default function SessionList({ projects }) {
             {label}
           </p>
           <div className="space-y-0.5">
-            {items.map((p) => (
+            {items.map((task) => (
               <NavLink
-                key={p.id}
-                to={`/studio/${p.id}`}
-                title={p.name}
+                key={task.id}
+                to={`/task/${task.id}`}
+                title={task.title || 'Untitled task'}
                 className={({ isActive }) =>
-                  `session-row block truncate rounded-lg px-2.5 py-[7px] text-[12.5px] leading-tight transition-colors ${
+                  `session-row flex items-center gap-1.5 rounded-lg px-2.5 py-[7px] text-[12.5px] leading-tight transition-colors ${
                     isActive
                       ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
                   }`
                 }
               >
-                {p.name}
+                <span className="min-w-0 flex-1 truncate">{task.title || 'Untitled task'}</span>
+                {task.status === 'running' && (
+                  <span className="h-1 w-1 shrink-0 animate-pulse rounded-full bg-info" aria-label="Running" />
+                )}
+                {task.status === 'error' && (
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-destructive" aria-label="Failed" />
+                )}
               </NavLink>
             ))}
           </div>

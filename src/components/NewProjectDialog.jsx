@@ -10,6 +10,7 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [client, setClient] = useState('');
+  const [instruction, setInstruction] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -18,6 +19,7 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
     if (open) {
       setName(initialName || '');
       setClient('');
+      setInstruction('');
       setError('');
       setTemplateId(initialTemplateId || templates?.[0]?.id || '');
     }
@@ -36,6 +38,7 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
       const project = await base44.entities.Project.create({
         name: name.trim(),
         client_name: client.trim(),
+        master_instruction: instruction.trim(),
         description: tpl?.tagline || '',
         template_id: tpl?.id || '',
         template_name: tpl?.name || 'Blank canvas',
@@ -78,6 +81,19 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
           <div className="space-y-1.5">
             <Label htmlFor="client-name" className="text-[11.5px] text-muted-foreground">Client</Label>
             <Input id="client-name" value={client} onChange={(e) => setClient(e.target.value)} placeholder="Northline Coatings LLC" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="master-instruction" className="text-[11.5px] text-muted-foreground">
+              Master instruction
+            </Label>
+            <textarea
+              id="master-instruction"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              rows={4}
+              placeholder="Standing rules every task in this project follows: voice, audience, constraints."
+              className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-[12.5px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-foreground"
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="template" className="text-[11.5px] text-muted-foreground">Starting template</Label>
