@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Plus, Layers, Rocket, LogOut, Search, Library as LibraryIcon, Monitor, Bot } from 'lucide-react';
+import { Plus, Layers, Rocket, LogOut, Search, Library as LibraryIcon, Monitor, Bot, Globe, Plug } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -10,6 +10,8 @@ const NAV = [
   { to: '/computers', label: 'Computers', icon: Monitor },
   { to: '/agents', label: 'Agents', icon: Bot },
   { to: '/library', label: 'Library', icon: LibraryIcon },
+  { to: '/websites', label: 'Websites', icon: Globe },
+  { to: '/plugins', label: 'Plugins', icon: Plug },
   { to: '/templates', label: 'Templates', icon: Layers },
   { to: '/releases', label: 'Releases', icon: Rocket },
 ];

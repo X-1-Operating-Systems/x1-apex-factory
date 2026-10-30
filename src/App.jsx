@@ -20,6 +20,8 @@ import Releases from '@/pages/Releases';
 import Library from '@/pages/Library';
 import Computers from '@/pages/Computers';
 import Agents from '@/pages/Agents';
+import Websites from '@/pages/Websites';
+import Plugins from '@/pages/Plugins';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -62,6 +64,8 @@ const AuthenticatedApp = () => {
           <Route path="/library" element={<Library />} />
           <Route path="/computers" element={<Computers />} />
           <Route path="/agents" element={<Agents />} />
+          <Route path="/websites" element={<Websites />} />
+          <Route path="/plugins" element={<Plugins />} />
         </Route>
       </Route>
 

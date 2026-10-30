@@ -108,6 +108,80 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ ok: true });
     }
 
+    if (action === 'artifacts') {
+      const type = String(body?.type || 'all');
+      const allowed = ['all', 'website', 'mobile_app', 'game', 'documents', 'slides', 'spreadsheets', 'images', 'videos', 'audio', 'others'];
+      if (!allowed.includes(type)) return Response.json({ error: 'Unknown artifact type.' }, { status: 400 });
+
+      const listed = await manusCall('/v2/artifact.list', {
+        query: { type, limit: Math.min(60, Math.max(1, Number(body?.limit) || 24)), cursor: body?.cursor || undefined },
+      });
+      return Response.json({
+        artifacts: (listed.data || []).map((item: any) => ({
+          id: item.id,
+          task_id: item.task_id || '',
+          task_title: item.task_title || '',
+          name: item.display_name || item.filename || 'Artifact',
+          type: item.type || 'others',
+          url: item.url || '',
+          cover_image: item.cover_image || '',
+          favorite: Boolean(item.favorite),
+          updated_at: item.updated_at || 0,
+        })),
+        next_cursor: listed.next_cursor || null,
+        has_more: Boolean(listed.has_more),
+      });
+    }
+
+    if (action === 'connectors') {
+      const listed = await manusCall('/v2/connector.list');
+      return Response.json({
+        connectors: (listed.data || []).map((connector: any) => ({
+          id: connector.id,
+          name: connector.name || 'Connector',
+          type: connector.type || 'builtin',
+          description: connector.description || '',
+          category: connector.category || 'other',
+        })),
+      });
+    }
+
+    if (action === 'website') {
+      const taskId = String(body?.task_id || '');
+      const websiteId = String(body?.website_id || '');
+      if (!TASK_ID.test(taskId) && !TASK_ID.test(websiteId)) {
+        return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
+      }
+      const site = await manusCall('/v2/website.status', {
+        query: { task_id: taskId || undefined, website_id: websiteId || undefined },
+      });
+      return Response.json({
+        website_id: site.website_id || websiteId,
+        title: site.title || '',
+        publish_status: site.publish_status || 'unpublished',
+        visibility: site.visibility || 'public',
+        site_url: (site.site_urls || [])[0] || '',
+        published_version_id: site.published_version_id || '',
+      });
+    }
+
+    if (action === 'publish') {
+      const taskId = String(body?.task_id || '');
+      const websiteId = String(body?.website_id || '');
+      if (!TASK_ID.test(taskId) && !TASK_ID.test(websiteId)) {
+        return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
+      }
+      const published = await manusCall('/v2/website.publish', {
+        method: 'POST',
+        body: {
+          task_id: taskId || undefined,
+          website_id: websiteId || undefined,
+          visibility: String(body?.visibility || 'public'),
+        },
+      });
+      return Response.json({ website_id: published.website_id || websiteId, version_id: published.version_id || '' });
+    }
+
     return Response.json({ error: 'Unknown action.' }, { status: 400 });
   } catch (error: any) {
     return Response.json({ error: error?.message || 'Manus request failed.' }, { status: error?.status || 500 });
