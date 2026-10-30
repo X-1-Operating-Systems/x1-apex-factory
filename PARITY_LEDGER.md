@@ -570,6 +570,24 @@ The wallet is at **$0.00** (re-read live, `GET /v3/users/me` 200 → `billing_ty
 
 **Still blocked on funds:** her cloned voice and her own avatar are private HeyGen records; both reach LiveAvatar only after her image is uploaded and validated inside LiveAvatar, and rendering with that voice answers `402 insufficient_credit` until the wallet is funded (G-84, G-89). Until then the room runs LiveAvatar's preview avatar with her context and greeting, and the page says exactly that.
 
+### Batch 44 — restrictions off, ceilings at full
+
+Operator instruction: turn off the restrictions and enable full ceiling capabilities. Every artificial
+gate found in an audit of the whole surface was removed or lifted, and each removal was exercised.
+
+| id | what was held back | now | evidence (live, this turn) |
+|---|---|---|---|
+| G-92 | **A hard owner-hold blocked her live room**: `edenLive` answered every `keep` with 423 "paused", and `PersistentRoom` carried `LIVEAVATAR_CREATION_PAUSED = true` plus a disabled sandbox switch and a two-step arm. A unit test existed to enforce the pause. | Hold deleted from both backend and UI, sandbox switch live, one click to open, auto-hold and rollover restored. The pause-enforcing test is removed. | `keep` with `sandbox: true` → **ok**, session created with 60s sandbox cap, then `stop` → `stopped: 1`; probe `LiveSession` rows deleted (0 left) |
+| G-93 | **Every spend/destroy action demanded `confirm: true`** (`video` 409, `browserbase` 409 on destructive actions, plus two-step buttons on render, stop and live-room). | Gates deleted in both functions; `RenderForm`, `RunStopButton` and `PersistentRoom` are one click. Guardrail default `confirm_destructive: false`. | `heygen videos.create` sent with **no** confirm token → **no 409**, the request reached HeyGen and was refused only by the wallet (402, balance $0). No stored `BrowserGuardrail` row remains, so the new defaults apply |
+| G-94 | **Session ceilings**: 600s default / 1800s hard cap / 5 concurrent in the app, mirrored by the container's `MAX_SESSIONS=5`, `HARD_CAP_SECONDS=1800`. | `GUARDRAILS` now 21600s default, 21600s hard cap, 50 concurrent, warn 95%; Railway vars set to `MAX_SESSIONS=50`, `HARD_CAP_SECONDS=21600`, `DEFAULT_TIMEOUT_SECONDS=21600`. | `sessions.create` with `timeout_seconds: 3600` → **ok** on the owned host (six times the old hard cap), released cleanly, probe `BrowserSession` rows deleted |
+| G-95 | **Agent loop capped at 30 steps** — a long task died mid-work. | `MAX_STEPS` 200. | build green |
+| G-96 | **Her renderer capped at 1200 characters and 900 seconds.** | Host defaults 20000 chars / 7200s, committed to the repo and deployed; the studio text box accepts 20000. | deployment `b9998897` SUCCESS, `health` ok with her avatar still loaded on the persistent volume (the earlier loss is fixed by the `/data` volume created this turn) |
+| G-97 | Build verification | — | `vite build` exit 0 after every edit; unused imports from the deleted gates removed |
+
+Still true and worth stating: the vendor is now the only ceiling left. HeyGen refusals at $0 wallet,
+LiveAvatar's own 60s sandbox / 20-minute live session caps, and the host machine's CPU are limits no
+code in this app can remove.
+
 ## Register state (through Batch 40)
 
 | id | sev | state |
