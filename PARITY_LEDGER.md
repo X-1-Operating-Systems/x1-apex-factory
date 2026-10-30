@@ -146,14 +146,17 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 | G-24 | MEDIUM | closed — one agent per playbook, found by key or name |
 | G-25 | MEDIUM | closed — task detail reruns the same brief and deletes without a leftover |
 
-## Next batch (Batch 17)
+### Batch 17 — runs that call the connector they declare (G-04 closed)
 
-One gap left: the execution half of **G-04** — a run that actually calls the connector it declares (read a thread, list a drive folder, book a slot) instead of only being told one exists. Planned shape, so it stays bounded:
-1. A tool loop in the native engine: the model may ask for one declared connector action per step, the function executes it server-side with `asServiceRole.connectors`, and the result returns to the model.
-2. An allowlist per connector key (method + path pattern), with the record's `access` level and `auto_approve` flag deciding whether a call runs or waits for the operator.
-3. Every call written into the task's events, so the run log shows what was actually invoked.
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-04 | closed | base44/shared/connectorTools.ts (new), base44/shared/connectors.ts, base44/shared/native.ts, src/components/task/TaskEvent.jsx | The native engine invokes connectors mid-run through a hard allowlist: fixed host, method and URL shape per action, parameters validated and encoded, 15s timeout, 3.5k truncation. Every call is written to `task.events` as a `tool` event. Writes require access above read-only AND auto-approve. Verified on real records: a Gmail search was dispatched and honestly reported "No active connection found", a Calendar write on a read-only connector returned `gated` with nothing sent, and after the gate fix the same call cost one attempt in 6.5s. Probes deleted. Build green. | A repeated identical call is refused without touching the network; a gate ends the call phase immediately. |
 
-No other register items remain.
+### Batch 18 — the connection layer, live
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-28 | closed | base44/shared/connectorTools.ts, src/lib/connectorCatalog.js | Nine Google products are now runnable actions under one connection: Gmail search/read/send, Calendar list/create, Drive search/read-export, Docs read, Sheets read/append, Contacts search — plus Supabase `list_projects` / `query_readonly` and GitHub `list_pull_requests` / `create_issue` on top of the existing repo and issue reads. `googleworkspace` was added to the connector catalogue so it installs like any other tool. Three connectors authorized for the app and installed as StudioConnector records, each token proven live with a real API call: Drive 200, Gmail profile 200, GitHub /user 200, Supabase projects 200. Build green. | Token lookup fails soft and yields an honest "not connected" message instead of throwing. Writes stay gated behind access above read-only plus auto-approve. Authorizations are builder-level, so runs act on the operator's own accounts; Supabase was granted read-only scopes, so SQL is SELECT-only. |
 
 ## Blockers needing the operator
 
