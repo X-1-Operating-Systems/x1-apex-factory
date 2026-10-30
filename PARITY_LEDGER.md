@@ -332,3 +332,13 @@ Fixed by taking the panel out of the page into `ComputerPanel` (frame + caption,
 | id | state | files changed | verification |
 |---|---|---|---|
 | G-58 | closed | src/pages/AdminControl.jsx, src/components/admin/ComputerPanel.jsx (new) | The panel renders at every width from one shared component, so the two placements cannot drift; the wide column keeps its 300px frame and the stacked one uses 200px so the composer stays in view. Build green. |
+
+### Batch 27 — the panel follows the browser that is actually running
+
+Now that the live view is visible at every width, the next audit question was what it shows. It only ever followed a `sessions.create` result from the thread. Ask the plane to "open example.com and tell me the headline" and a run opens its own browser — and the panel said **No live session yet** for the whole run, because the session belonged to a run, not to a `sessions.create` message. Reloading the page lost a running browser the same way, since the panel's only source was the in-memory thread.
+
+Fixed in one place: `liveSession` now resolves from the newest successful `sessions.create` **or** any `runs.*` payload's `session_id`, skips any session the thread has since released, and — when the thread has nothing to offer — falls back to the newest `RUNNING` `BrowserSession` record, so a reload reattaches to the browser the host is actually holding.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-59 | closed | src/pages/AdminControl.jsx | Probe run `1d7455d2-cff7-4bb9-b2d7-3a531a451cbf` ("open https://example.com and tell me the headline") on the owned host: `runs.create` returned no session, then the very first `runs.get` poll returned `status: COMPLETED` with a real `session_id` and 3 steps — the exact field the panel now reads, so the frame appears during the run instead of an empty state. The session was released (`COMPLETED`) and the probe run and its session record deleted: 0 runs, 0 sessions left. Build green. |

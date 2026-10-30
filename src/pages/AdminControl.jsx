@@ -14,6 +14,7 @@ export default function AdminControl() {
   const chat = useBrowserChat();
   const [guardrail, setGuardrail] = useState(null);
   const [minutes, setMinutes] = useState(null);
+  const [openSession, setOpenSession] = useState(null);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
@@ -28,17 +29,29 @@ export default function AdminControl() {
         if (payload.ok && payload.data) setMinutes(Number(payload.data.browserMinutes) || 0);
       })
       .catch(() => {});
+    base44.entities.BrowserSession
+      .filter({ status: 'RUNNING' }, { sort: '-created_date', limit: 1 })
+      .then((page) => setOpenSession(page.items[0]?.session_id || null))
+      .catch(() => {});
   }, [user]);
 
+  // the panel follows whichever browser is live: a session opened from the thread, or the
+  // session an agent run opened for itself, and it lets go as soon as that session is released
   const liveSession = useMemo(() => {
-    for (let index = chat.messages.length - 1; index >= 0; index -= 1) {
-      const message = chat.messages[index];
-      if (message.action === 'sessions.create' && message.result && message.result.ok) {
-        return (message.result.data && message.result.data.id) || null;
-      }
+    const released = new Set();
+    for (const message of chat.messages) {
+      const id = message.params?.session_id || message.result?.data?.session_id;
+      if (message.action === 'sessions.release' && id) released.add(id);
     }
-    return null;
-  }, [chat.messages]);
+    for (let index = chat.messages.length - 1; index >= 0; index -= 1) {
+      const { action, result } = chat.messages[index];
+      if (!result || !result.ok || !result.data || typeof action !== 'string') continue;
+      const id =
+        action === 'sessions.create' ? result.data.id : action.startsWith('runs.') ? result.data.session_id : null;
+      if (id && !released.has(id)) return id;
+    }
+    return openSession && !released.has(openSession) ? openSession : null;
+  }, [chat.messages, openSession]);
 
   if (user && user.role !== 'admin') {
     return (
