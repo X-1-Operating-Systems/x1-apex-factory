@@ -33,19 +33,16 @@ async function railwayQuery(query, variables) {
 }
 
 async function fromRailway() {
+  // The service's own environment carries both halves: the token it enforces and the public domain
+  // Railway assigned it. Reading them here means nothing has to be pasted into app secrets.
   const result = await railwayQuery(
-    `query($p:String!,$e:String!,$s:String!){
-      variables(projectId:$p, environmentId:$e, serviceId:$s)
-      project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } }
-    }`,
+    `query($p:String!,$e:String!,$s:String!){ variables(projectId:$p, environmentId:$e, serviceId:$s) }`,
     { p: AVATAR_RAILWAY.projectId, e: AVATAR_RAILWAY.environmentId, s: AVATAR_RAILWAY.serviceId }
   );
   if (!result.ok) return null;
-  const token = (result.data.variables || {}).HOST_TOKEN;
-  const domains = (result.data.project?.services?.edges || [])
-    .filter((edge) => edge.node.id === AVATAR_RAILWAY.serviceId)
-    .flatMap((edge) => (edge.node.serviceInstances?.edges || []).flatMap((i) => i.node?.domains?.serviceDomains || []));
-  const domain = domains[0]?.domain;
+  const vars = result.data.variables || {};
+  const token = vars.HOST_TOKEN;
+  const domain = vars.RAILWAY_PUBLIC_DOMAIN || String(vars.RAILWAY_STATIC_URL || "").replace(/^https?:\/\//, "");
   if (!token || !domain) return null;
   return { url: `https://${domain}`.replace(/\/+$/, ""), token: String(token), source: "railway" };
 }
@@ -115,7 +112,6 @@ export async function avatarJson(path, init = {}) {
 
 /** Send her still to the host exactly as it arrived — no re-encode on the way in. */
 export async function uploadAvatar(bytes, contentType) {
-  const headers = { Authorization: `Bearer ${token()}`, "Content-Type": contentType || "application/octet-stream" };
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: contentType || "application/octet-stream" }), "her.png");
   const response = await fetch(`${baseUrl()}/avatar`, {
