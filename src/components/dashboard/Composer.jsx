@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUp, Layers, Plus, Rocket } from 'lucide-react';
+import { ArrowUp, Layers, Loader2, Rocket } from 'lucide-react';
+import AttachmentPicker from '@/components/task/AttachmentPicker';
 
-export default function Composer({ onSubmit, onPickTemplate }) {
+export default function Composer({ onSubmit, onPickTemplate, attachments = [], onAttachmentsChange, busy }) {
   const [draft, setDraft] = useState('');
   const areaRef = useRef(null);
 
   const submit = () => {
-    if (!draft.trim()) return;
+    if (!draft.trim() || busy) return;
     onSubmit(draft.trim());
     setDraft('');
   };
@@ -26,20 +27,17 @@ export default function Composer({ onSubmit, onPickTemplate }) {
             }
           }}
           rows={2}
-          placeholder="Assign a task or type / for more"
+          placeholder="Assign a task, attach a file, or pick a template"
           className="w-full resize-none bg-transparent px-1 py-1 text-[13.5px] leading-relaxed outline-none placeholder:text-muted-foreground"
         />
 
-        <div className="flex items-end justify-between pt-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => areaRef.current?.focus()}
-              aria-label="Add context"
-              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <Plus size={16} />
-            </button>
+        <div className="flex items-end justify-between gap-2 pt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <AttachmentPicker
+              files={attachments}
+              onChange={onAttachmentsChange}
+              disabled={busy}
+            />
             <button
               type="button"
               onClick={onPickTemplate}
@@ -52,13 +50,13 @@ export default function Composer({ onSubmit, onPickTemplate }) {
           <button
             type="button"
             onClick={submit}
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || busy}
             aria-label="Send task"
-            className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${
-              draft.trim() ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground'
+            className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors ${
+              draft.trim() && !busy ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground'
             }`}
           >
-            <ArrowUp size={15} strokeWidth={2.2} />
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={15} strokeWidth={2.2} />}
           </button>
         </div>
       </div>

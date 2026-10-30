@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Composer from '@/components/dashboard/Composer';
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist';
 import NewProjectDialog from '@/components/NewProjectDialog';
+import ModelPicker from '@/components/composer/ModelPicker';
 import PageCanvas from '@/components/studio/PageCanvas';
 import StatusPill from '@/components/manus/StatusPill';
 import { createTask } from '@/lib/taskEngine';
+import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -18,6 +20,9 @@ export default function Dashboard() {
   const [templateId, setTemplateId] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+  const [options, setOptions] = useState(() => loadTaskOptions());
+  const [attachments, setAttachments] = useState([]);
+  const [runCount, setRunCount] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -29,7 +34,13 @@ export default function Dashboard() {
       setRecent(taskPage.items);
     };
     load();
+    base44.entities.StudioTask.count().then(setRunCount).catch(() => setRunCount(0));
   }, []);
+
+  const changeOptions = (next) => {
+    setOptions(next);
+    saveTaskOptions(next);
+  };
 
   const open = (text, tplId) => {
     setBrief(text || '');
@@ -43,7 +54,13 @@ export default function Dashboard() {
     setStarting(true);
     setError('');
     try {
-      const res = await createTask({ instruction });
+      const res = await createTask({
+        instruction,
+        model: options.model,
+        effort: options.effort,
+        attachments,
+      });
+      setAttachments([]);
       navigate(`/task/${res.task_id}`);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
@@ -55,14 +72,13 @@ export default function Dashboard() {
     <div className="flex min-h-full flex-col items-center px-5 pb-16 pt-12 sm:pt-20">
       <div className="w-full max-w-[680px]">
         <div className="mb-6 flex items-center justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11.5px] transition-colors hover:bg-secondary"
+          <ModelPicker options={options} onChange={changeOptions} disabled={starting} />
+          <span
+            title="Tasks run in this studio"
+            aria-label="Tasks run in this studio"
+            className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground"
           >
-            apex 2.0 Lite <ChevronDown size={11} className="text-muted-foreground" />
-          </button>
-          <span className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
-            <Sparkles size={11} /> 0
+            <Sparkles size={11} /> {runCount === null ? '·' : runCount}
           </span>
         </div>
 
@@ -70,7 +86,13 @@ export default function Dashboard() {
           What can I do for you?
         </h1>
 
-        <Composer onSubmit={start} onPickTemplate={() => open('')} />
+        <Composer
+          onSubmit={start}
+          onPickTemplate={() => open('')}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          busy={starting}
+        />
 
         {starting && <p className="mt-2 text-[11.5px] text-muted-foreground">Starting the run…</p>}
         {error && <p className="mt-2 text-[11.5px] text-destructive">{error}</p>}

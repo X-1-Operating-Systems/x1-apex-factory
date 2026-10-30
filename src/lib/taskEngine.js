@@ -24,7 +24,7 @@ export async function setEngine(engine) {
   return engineInfo();
 }
 
-export async function createTask({ title, instruction, agent_id, model, effort, project_id }) {
+export async function createTask({ title, instruction, agent_id, model, effort, project_id, attachments = [] }) {
   const { engine } = await engineInfo();
   const fn = engine === 'manus' ? 'manusAgent' : 'nativeTask';
   const res = await base44.functions.invoke(fn, {
@@ -34,6 +34,7 @@ export async function createTask({ title, instruction, agent_id, model, effort, 
     agent_id,
     model,
     effort,
+    attachments,
     project_id: project_id || '',
   });
   return { ...res.data, engine };

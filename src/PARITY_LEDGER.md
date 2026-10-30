@@ -22,12 +22,18 @@ Legend: open · doing · closed · blocked
 | G-06 | closed | base44/entities/Automation.jsonc, base44/entities/StudioTask.jsonc, base44/shared/automations.ts, base44/functions/runAutomations/entry.ts, base44/functions/automationEvents/entry.ts, base44/workflows/Task Finished Automations.jsonc, src/lib/automationSchedule.js, src/components/automations/AutomationDialog.jsx, src/components/automations/AutomationCard.jsx, src/components/automations/AutomationDetailDialog.jsx | Live probe: an event automation fired on a finished task, produced a real run, recorded run_count 1 and one history entry, and stamped `automation_id` on the spawned task. Scheduled mode still filters `trigger_mode: schedule` only. Build green. | Entity trigger on StudioTask update → workflow → `automationEvents` (admin-only). Self-trigger guard: a run the automation started never fires itself. |
 | G-04 | doing | base44/shared/connectors.ts, base44/shared/native.ts | Every native run now receives the operator's installed connectors, their access level and their approval gate, plus an explicit no-claim rule so the engine plans the exact action instead of pretending it ran one. | Live connector execution needs an authorized app connector (none authorized yet) and a per-service call path. Not claimed as done. |
 
+### Batch 3 — home composer tells the truth (G-02)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-02 | closed | src/components/dashboard/Composer.jsx, src/pages/Dashboard.jsx, src/lib/taskEngine.js | The dead "apex 2.0 Lite" pill is now the real model + effort picker (choice persists and is sent to the run); the hardcoded `0` is the live task count for the studio; the dead `+` is the attachment control, uploading privately and registering in Files, with the files sent into the run on both engines. Send button shows the in-flight state and blocks a double submit. Build green. | `createTask` now forwards attachments to nativeTask and manusAgent, both of which already accept them. |
+
 ## Register state
 
 | id | sev | state |
 |---|---|---|
 | G-01 | BLOCKER | closed |
-| G-02 | BLOCKER | open — composer fake model pill, hardcoded 0 credits, dead `+` |
+| G-02 | BLOCKER | closed — model picker, live run count, working attachments |
 | G-03 | BLOCKER | open |
 | G-04 | BLOCKER | doing — connector context live; execution blocked on connector authorization |
 | G-05 | BLOCKER | closed (G-05b open) |
@@ -46,9 +52,9 @@ Legend: open · doing · closed · blocked
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 3)
+## Next batch (Batch 4)
 
-G-02 composer truth (model pill, credits, attachment control) and G-03.
+G-03 and G-08/G-09 (the next open blockers and high gaps, in register order).
 
 ## Blockers needing the operator
 
