@@ -4,27 +4,27 @@
   "properties": {
     "max_session_seconds": {
       "type": "number",
-      "default": 600
+      "default": 21600
     },
     "hard_cap_seconds": {
       "type": "number",
-      "default": 1800
+      "default": 21600
     },
     "max_concurrent": {
       "type": "number",
-      "default": 5
+      "default": 50
     },
     "warn_percent": {
       "type": "number",
-      "default": 80
+      "default": 95
     },
     "confirm_destructive": {
       "type": "boolean",
-      "default": true
+      "default": false
     },
     "enabled": {
       "type": "boolean",
-      "default": true
+      "default": false
     }
   },
   "required": [],
