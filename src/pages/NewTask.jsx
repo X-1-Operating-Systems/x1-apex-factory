@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ModelPicker from '@/components/composer/ModelPicker';
+import AttachmentPicker from '@/components/task/AttachmentPicker';
 import StatusPill from '@/components/manus/StatusPill';
 import { createTask } from '@/lib/taskEngine';
 import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
@@ -20,6 +21,7 @@ export default function NewTask() {
   const [project, setProject] = useState(null);
   const areaRef = useRef(null);
   const [draft, setDraft] = useState('');
+  const [files, setFiles] = useState([]);
   const [options, setOptions] = useState(loadTaskOptions);
   const [recent, setRecent] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -46,16 +48,18 @@ export default function NewTask() {
 
   const submit = async () => {
     const instruction = draft.trim();
-    if (!instruction || busy) return;
+    if ((!instruction && !files.length) || busy) return;
     setBusy(true);
     setError('');
     try {
       const res = await createTask({
-        instruction,
+        instruction: instruction || 'Work with the attached files.',
         model: options.model,
         effort: options.effort,
         project_id: projectId,
+        attachments: files,
       });
+      setFiles([]);
       navigate(`/task/${res.task_id}`);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
@@ -94,11 +98,14 @@ export default function NewTask() {
         />
 
         <div className="flex items-center justify-between gap-2 pt-2">
-          <ModelPicker options={options} onChange={update} disabled={busy} />
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
+            <ModelPicker options={options} onChange={update} disabled={busy} />
+          </div>
           <button
             type="button"
             onClick={submit}
-            disabled={busy || !draft.trim()}
+            disabled={busy || (!draft.trim() && !files.length)}
             aria-label="Start task"
             className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${
               draft.trim() && !busy ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground'

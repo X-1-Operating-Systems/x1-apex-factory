@@ -80,8 +80,11 @@ export default function Library() {
   return (
     <div className="mx-auto w-full max-w-[1000px] px-5 py-8 lg:px-10 lg:py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-[15px] font-medium">Library</h1>
-        <p className="text-[11.5px] text-muted-foreground">{tasks.length} tasks across both engines</p>
+        <h1 className="text-[15px] font-medium">Tasks</h1>
+        <p className="text-[11.5px] text-muted-foreground">
+          {tasks.length}
+          {hasMore ? '+' : ''} tasks across both engines
+        </p>
       </div>
 
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">

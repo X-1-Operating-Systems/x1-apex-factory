@@ -9,22 +9,27 @@ import UsageBreakdowns from '@/components/usage/UsageBreakdowns';
 import CoverageCard from '@/components/usage/CoverageCard';
 
 export default function SettingsUsage() {
-  const [tasks, setTasks] = useState([]);
+  const [recent, setRecent] = useState([]);
+  const [windowTasks, setWindowTasks] = useState([]);
   const [counts, setCounts] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let live = true;
+    const since = moment().subtract(13, 'days').startOf('day').toISOString();
     const load = async () => {
-      const [taskPage, automations, deployments, projects] = await Promise.all([
-        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: 100 }),
+      const [total, windowPage, recentPage, automations, deployments, projects] = await Promise.all([
+        base44.entities.StudioTask.count(),
+        base44.entities.StudioTask.filter({ created_date: { $gte: since } }, { sort: '-created_date', limit: 500 }),
+        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: 8 }),
         base44.entities.Automation.count(),
         base44.entities.Deployment.count(),
         base44.entities.Project.count(),
       ]);
       if (!live) return;
-      setTasks(taskPage.items);
-      setCounts({ automations, deployments, projects });
+      setWindowTasks(windowPage.items);
+      setRecent(recentPage.items);
+      setCounts({ total, automations, deployments, projects });
       setLoading(false);
     };
     load();
@@ -39,12 +44,12 @@ export default function SettingsUsage() {
       return { key: day.format('YYYY-MM-DD'), label: day.format('D'), count: 0 };
     });
     const index = Object.fromEntries(buckets.map((b) => [b.key, b]));
-    tasks.forEach((task) => {
+    windowTasks.forEach((task) => {
       const key = moment(task.created_date).format('YYYY-MM-DD');
       if (index[key]) index[key].count += 1;
     });
     return buckets;
-  }, [tasks]);
+  }, [windowTasks]);
 
   const peak = Math.max(1, ...days.map((d) => d.count));
 
@@ -57,7 +62,7 @@ export default function SettingsUsage() {
   }
 
   const stats = [
-    ['Sessions', tasks.length],
+    ['Sessions', counts.total],
     ['Projects', counts.projects],
     ['Scheduled runs', counts.automations],
     ['Releases', counts.deployments],
@@ -74,7 +79,7 @@ export default function SettingsUsage() {
         ))}
       </div>
 
-      <UsageBreakdowns tasks={tasks} />
+      <UsageBreakdowns tasks={windowTasks} />
 
       <SettingsCard title="Sessions, last 14 days" description="Where your studio time went.">
         <div className="flex h-[104px] items-end gap-1.5">
@@ -94,11 +99,11 @@ export default function SettingsUsage() {
       <CoverageCard />
 
       <SettingsCard title="Recent sessions" description="Latest runs across both engines.">
-        {tasks.length === 0 ? (
+        {recent.length === 0 ? (
           <p className="text-[11.5px] text-muted-foreground">No sessions yet. Start one from New task.</p>
         ) : (
           <div className="divide-y divide-border">
-            {tasks.slice(0, 8).map((task) => (
+            {recent.map((task) => (
               <Link key={task.id} to={`/task/${task.id}`} className="flex items-center gap-2 py-2">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12px] font-medium">{task.title || 'Untitled task'}</span>

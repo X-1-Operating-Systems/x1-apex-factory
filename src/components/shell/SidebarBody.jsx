@@ -22,19 +22,37 @@ import ProjectList from '@/components/shell/ProjectList';
 import NotificationBell from '@/components/shell/NotificationBell';
 import UsageMeter from '@/components/shell/UsageMeter';
 
-const NAV = [
-  { to: '/library', label: 'All tasks', icon: LayoutList },
-  { to: '/agents', label: 'Agents', icon: Bot },
-  { to: '/skills', label: 'Skills', icon: Sparkles },
-  { to: '/automations', label: 'Scheduled', icon: Repeat },
-  { to: '/computers', label: 'Computers', icon: Monitor },
-  { to: '/artifacts', label: 'Library', icon: FileStack },
-  { to: '/files', label: 'Files', icon: FolderOpen },
-  { to: '/websites', label: 'Websites', icon: Globe },
-  { to: '/templates', label: 'Templates', icon: Layers },
-  { to: '/playbooks', label: 'Playbooks', icon: BookOpen },
-  { to: '/releases', label: 'Releases', icon: Rocket },
-  { to: '/plugins', label: 'Connectors', icon: Plug },
+const NAV_SECTIONS = [
+  {
+    label: 'Workspace',
+    items: [
+      { to: '/library', label: 'Tasks', icon: LayoutList },
+      { to: '/artifacts', label: 'Artifacts', icon: FileStack },
+      { to: '/files', label: 'Files', icon: FolderOpen },
+    ],
+  },
+  {
+    label: 'Build',
+    items: [
+      { to: '/templates', label: 'Templates', icon: Layers },
+      { to: '/playbooks', label: 'Playbooks', icon: BookOpen },
+      { to: '/websites', label: 'Websites', icon: Globe },
+      { to: '/releases', label: 'Releases', icon: Rocket },
+    ],
+  },
+  {
+    label: 'Agents',
+    items: [
+      { to: '/agents', label: 'Agents', icon: Bot },
+      { to: '/skills', label: 'Skills', icon: Sparkles },
+      { to: '/automations', label: 'Scheduled', icon: Repeat },
+      { to: '/computers', label: 'Computers', icon: Monitor },
+    ],
+  },
+  {
+    label: 'Connect',
+    items: [{ to: '/plugins', label: 'Connectors', icon: Plug }],
+  },
 ];
 
 export default function SidebarBody({ tasks, projects, onNavigate }) {
@@ -78,23 +96,30 @@ export default function SidebarBody({ tasks, projects, onNavigate }) {
           </label>
         </form>
 
-        <nav className="mt-0.5 space-y-0.5">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                `nav-row flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
-                  isActive
-                    ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
-                }`
-              }
-            >
-              <Icon size={15} strokeWidth={1.7} className="text-muted-foreground" />
-              {label}
-            </NavLink>
+        <nav className="mt-1 space-y-2.5">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label} className="space-y-0.5">
+              <p className="px-2.5 pb-0.5 text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground/70">
+                {section.label}
+              </p>
+              {section.items.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    `nav-row flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
+                      isActive
+                        ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
+                    }`
+                  }
+                >
+                  <Icon size={15} strokeWidth={1.7} className="text-muted-foreground" />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
       </div>

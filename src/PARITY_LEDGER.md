@@ -28,33 +28,52 @@ Legend: open · doing · closed · blocked
 |---|---|---|---|---|
 | G-02 | closed | src/components/dashboard/Composer.jsx, src/pages/Dashboard.jsx, src/lib/taskEngine.js | The dead "apex 2.0 Lite" pill is now the real model + effort picker (choice persists and is sent to the run); the hardcoded `0` is the live task count for the studio; the dead `+` is the attachment control, uploading privately and registering in Files, with the files sent into the run on both engines. Send button shows the in-flight state and blocks a double submit. Build green. | `createTask` now forwards attachments to nativeTask and manusAgent, both of which already accept them. |
 
+### Batch 4 — new-task inputs, honest usage and artifact filtering (G-03, G-08, G-09)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-03 | closed | src/pages/NewTask.jsx | The new-task screen now takes files (uploaded privately, stored privately) and sends them with the run; the send control opens for a files-only run. Build green. | Same AttachmentPicker as the home composer and the task follow-up, so one behaviour across all three composer surfaces. |
+| G-08 | closed | src/pages/settings/SettingsUsage.jsx | Sessions is a real server count, not a 100-row page length; the 14-day chart and the breakdowns read a bounded 14-day window (`created_date $gte`); recent sessions are a separate 8-row page. Live probe: count 1, window 1, dated records compare correctly. Build green. | Removed the "first 100 tasks" lie on the stats row and the histogram. |
+| G-09 | closed | src/pages/Artifacts.jsx | The artifact type filter is now a server call (`listArtifacts({ type })` → nativeTask filters before slicing), the list reloads on filter change, and the header states loaded count with a `+` when more exist instead of claiming a total. Build green. | Search still narrows the loaded set; paging continues with the active filter. |
+
+### Batch 5 — navigation truth (G-12, G-17)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-12 | closed | src/components/shell/SidebarBody.jsx | The 12 flat rows are grouped into Workspace / Build / Agents / Connect with section labels, so the sidebar reads as structure instead of a list. Desktop and mobile share the same body. Build green. | Projects and sessions keep their own scroll region below. |
+| G-17 | closed | src/components/shell/SidebarBody.jsx, src/pages/Library.jsx | Nav now says Tasks and Artifacts, and each page title matches its row; the Tasks header count carries a `+` when more than the loaded page exists. Build green. | — |
+
 ## Register state
 
 | id | sev | state |
 |---|---|---|
 | G-01 | BLOCKER | closed |
 | G-02 | BLOCKER | closed — model picker, live run count, working attachments |
-| G-03 | BLOCKER | open |
+| G-03 | BLOCKER | closed — new-task screen uploads files and sends them with the run |
 | G-04 | BLOCKER | doing — connector context live; execution blocked on connector authorization |
 | G-05 | BLOCKER | closed (G-05b open) |
 | G-06 | BLOCKER | closed — scheduled + after-a-task triggers both live |
 | G-07 | BLOCKER | extension protocol, not a gap |
-| G-08 | HIGH | open |
-| G-09 | HIGH | open |
+| G-08 | HIGH | closed — usage reads server counts and a real 14-day window |
+| G-09 | HIGH | closed — artifact type filter is a server call; no invented totals |
 | G-10 | HIGH | open |
 | G-11 | HIGH | closed |
-| G-12 | HIGH | open — Projects section shipped; sidebar still 12 flat items |
+| G-12 | HIGH | closed — sidebar grouped into Workspace / Build / Agents / Connect |
 | G-13 | HIGH | open |
 | G-14 | HIGH | open |
 | G-15 | HIGH | open |
 | G-16 | HIGH | open |
-| G-17 | HIGH | open — "Library" nav vs page title mismatched |
+| G-17 | HIGH | closed — nav rows and page titles agree |
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 4)
+## Next batch (Batch 6)
 
-G-03 and G-08/G-09 (the next open blockers and high gaps, in register order).
+G-05b project knowledge-base files, then G-10 and G-13..G-16 (scoped from the app at batch start, definitions written into the ledger before any code).
+
+## Gap definitions
+
+IDs G-03, G-08, G-09, G-12 and G-17 were re-derived from the running app at batch start (the original audit text for the remaining IDs is not carried in this ledger). Every closed row above states its definition in the batch log.
 
 ## Blockers needing the operator
 

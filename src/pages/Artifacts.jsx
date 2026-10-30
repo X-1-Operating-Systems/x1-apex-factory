@@ -31,8 +31,9 @@ export default function Artifacts() {
   useEffect(() => {
     let live = true;
     const load = async () => {
+      setLoading(true);
       try {
-        const res = await listArtifacts({ type: 'all', limit: 24 });
+        const res = await listArtifacts({ type, limit: 24 });
         if (!live) return;
         setArtifacts(res.artifacts || []);
         setCursor(res.next_cursor);
@@ -47,12 +48,12 @@ export default function Artifacts() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [type]);
 
   const loadMore = async () => {
     if (!cursor || moreBusy) return;
     setMoreBusy(true);
-    const res = await listArtifacts({ type: 'all', limit: 24, cursor });
+    const res = await listArtifacts({ type, limit: 24, cursor });
     setArtifacts((prev) => {
       const seen = new Set(prev.map((item) => item.id));
       return [...prev, ...(res.artifacts || []).filter((item) => !seen.has(item.id))];
@@ -66,9 +67,8 @@ export default function Artifacts() {
     () =>
       artifacts.filter(
         (item) =>
-          (type === 'all' || item.type === type) &&
-          (!query.trim() ||
-            `${item.name} ${item.task_title || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
+          !query.trim() ||
+          `${item.name} ${item.task_title || ''}`.toLowerCase().includes(query.trim().toLowerCase())
       ),
     [artifacts, type, query]
   );
@@ -77,7 +77,10 @@ export default function Artifacts() {
     <div className="mx-auto w-full max-w-[1100px] px-5 py-8 lg:px-10 lg:py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-[15px] font-medium">Artifacts</h1>
-        <p className="text-[11.5px] text-muted-foreground">{artifacts.length} deliverables loaded</p>
+        <p className="text-[11.5px] text-muted-foreground">
+          {artifacts.length}
+          {hasMore ? '+' : ''} {type === 'all' ? 'deliverables' : FILTERS.find(([key]) => key === type)?.[1]?.toLowerCase()}
+        </p>
       </div>
       <p className="mt-1.5 max-w-[62ch] text-[11.5px] leading-relaxed text-muted-foreground">
         Everything your agents produced — sites, documents, decks, sheets, images and files, each one tied back to the
