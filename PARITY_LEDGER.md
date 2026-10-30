@@ -428,7 +428,18 @@ Two of the three unexercised buttons were then actually run, because a button no
 |---|---|---|
 | G-64 | closed | `supabase.migrate` → ok, project `ykmzbphanuhcswqetsez`, all four ledger tables present, counts `session 8 · run 10 · usage 1 · audit 139` (idempotent DDL, re-runnable). `verify.all` → **ok, 7 of 7 steps**: health (40 min, 0 running, cap 5) → `sessions.create` `90f684d4-2161-49d0-9ab9-2aa09b966d64` → `goto example.com` → read the page's real text ("This domain is for use in documentation examples…") → **live view frame served** → release `COMPLETED` → usage moved 57→59 actions and 20→21 sessions. The probe released its own session, so nothing is left running. `railway.up` was deliberately **not** fired: it redeploys the live host and blocks 45s, and `status` already reads the same deployment id it would produce — recorded as wired-not-fired rather than claimed. Cleanup: one probe project left over from Batch 32's earlier attempts (`Probe Release 1793395545295`) plus its blocked deployment, QA run and page were found and deleted — 0 probe projects, 0 deployments, 0 runs remain. |
 
-## Register state (through Batch 33)
+### Batch 34 — the two remaining surfaces nobody had read a real answer from
+
+Closing the invocation audit. Every backend function the client can reach was checked against the actions it dispatches, and two that had never been read back from a real call were exercised: the custom-domain check and the page audit.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-65 | closed | `siteDomain` takes `{hostname, target}` — exactly the payload `DomainPanel` sends — so the one call the client makes matches the function's contract, and the panel's create → verify → delete path writes `SiteDomain` itself. Resolution is a real DNS read of CNAME/A/AAAA with a `matches` verdict, not a stub. Not fired against a live hostname: that would need a domain the operator owns pointing at a target, which is the very action the panel guides. |
+| G-66 | closed | `qaAudit` was invoked the way Studio invokes it, against two pages built from the real block contract. Strong page → **84/100 `review`**, 12 checks, specific findings ("No imagery on the page yet", "209 words on the page"). Thin page → **38/100 `block`** naming the defects ("Title tag: 0 characters (target 20-65)", "Meta description: 0 characters", "Conversion path: No contact route or contact details"). Two pages, two different honest verdicts — the gate measures the page rather than returning a constant. |
+
+**Invocation audit, final state:** client → `manusAgent` (26 calls, ten actions), `shareLink` (handoff, list, resolve, revoke), `browserbase` (registry actions), `nativeTask` (create, list, detail, send, stop, artifacts), `deployRelease` (run, approve), `studioAgent`, `qaAudit`, `siteDomain`, `runAutomations`, `hostProvision` (four actions), `browserbaseChat` — every call resolves to a handled branch. `automationEvents` and `seedTemplates` are reached by workflows and seeding rather than the client, which is correct. No function unreachable, no invocation unhandled.
+
+## Register state (through Batch 34)
 
 | id | sev | state |
 |---|---|---|
