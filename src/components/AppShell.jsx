@@ -24,6 +24,8 @@ function Wordmark() {
   );
 }
 
+const SIDEBAR_PAGE = 40;
+
 export default function AppShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +35,9 @@ export default function AppShell() {
   const [aiOpen, setAiOpen] = useState(false);
   const [chatOptions, setChatOptions] = useState(() => loadTaskOptions());
   const chat = useStudioChat({ model: chatOptions.model, effort: chatOptions.effort });
+  const [taskPage, setTaskPage] = useState({ cursor: null, hasMore: false });
+  const [projectPage, setProjectPage] = useState({ cursor: null, hasMore: false });
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const changeChatOptions = (next) => {
     setChatOptions(next);
@@ -45,15 +50,48 @@ export default function AppShell() {
 
   useEffect(() => {
     const load = async () => {
-      const [taskPage, projectPage] = await Promise.all([
-        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: 40 }),
-        base44.entities.Project.filter({}, { sort: '-updated_date', limit: 40 }),
+      const [tPage, pPage] = await Promise.all([
+        base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: SIDEBAR_PAGE }),
+        base44.entities.Project.filter({}, { sort: '-updated_date', limit: SIDEBAR_PAGE }),
       ]);
-      setTasks(taskPage.items);
-      setProjects(projectPage.items);
+      setTasks(tPage.items);
+      setProjects(pPage.items);
+      setTaskPage({ cursor: tPage.next_cursor, hasMore: Boolean(tPage.has_more) });
+      setProjectPage({ cursor: pPage.next_cursor, hasMore: Boolean(pPage.has_more) });
     };
     load();
   }, []);
+
+  // The sidebar shows a window on the whole workspace, not a fixed first page.
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const [tPage, pPage] = await Promise.all([
+        taskPage.hasMore
+          ? base44.entities.StudioTask.filter({}, { sort: '-created_date', limit: SIDEBAR_PAGE, cursor: taskPage.cursor })
+          : null,
+        projectPage.hasMore
+          ? base44.entities.Project.filter({}, { sort: '-updated_date', limit: SIDEBAR_PAGE, cursor: projectPage.cursor })
+          : null,
+      ]);
+      const merge = (prev, page) => {
+        if (!page) return prev;
+        const seen = new Set(prev.map((item) => item.id));
+        return [...prev, ...page.items.filter((item) => !seen.has(item.id))];
+      };
+      if (tPage) {
+        setTasks((prev) => merge(prev, tPage));
+        setTaskPage({ cursor: tPage.next_cursor, hasMore: Boolean(tPage.has_more) });
+      }
+      if (pPage) {
+        setProjects((prev) => merge(prev, pPage));
+        setProjectPage({ cursor: pPage.next_cursor, hasMore: Boolean(pPage.has_more) });
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const onKey = (event) => {
@@ -85,7 +123,13 @@ export default function AppShell() {
           <ThemeToggle compact />
         </div>
 
-        <SidebarBody tasks={tasks} projects={projects} />
+        <SidebarBody
+          tasks={tasks}
+          projects={projects}
+          hasMore={taskPage.hasMore || projectPage.hasMore}
+          onLoadMore={loadMore}
+          loadingMore={loadingMore}
+        />
 
         <div className="shrink-0 border-t border-sidebar-border p-2.5">
           <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5">
@@ -132,6 +176,9 @@ export default function AppShell() {
                   tasks={tasks}
                   projects={projects}
                   onNavigate={() => setMobileOpen(false)}
+                  hasMore={taskPage.hasMore || projectPage.hasMore}
+                  onLoadMore={loadMore}
+                  loadingMore={loadingMore}
                 />
               </SheetContent>
             </Sheet>

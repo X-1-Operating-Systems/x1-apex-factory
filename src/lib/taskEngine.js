@@ -130,6 +130,23 @@ export async function stopTask(id) {
   }
 }
 
+/** Starts a fresh run from a task's own brief, model and effort. */
+export async function rerunTask(task) {
+  const res = await base44.functions.invoke('nativeTask', {
+    action: 'create',
+    title: task.title,
+    instruction: task.instruction || '',
+    model: task.model,
+    effort: task.effort,
+    project_id: task.project_id || '',
+  });
+  return res.data;
+}
+
+export async function deleteTask(id) {
+  await base44.entities.StudioTask.delete(id);
+}
+
 export async function listArtifacts({ type = 'all', limit = 24, cursor } = {}) {
   const nativeRes = await base44.functions.invoke('nativeTask', { action: 'artifacts', type, limit }).catch(() => null);
   const native = nativeRes?.data?.artifacts || [];

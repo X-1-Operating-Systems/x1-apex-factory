@@ -11,6 +11,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import DeliverableNote from '@/components/task/DeliverableNote';
 import { taskDetail, stopTask, sendToTask } from '@/lib/taskEngine';
 import { effortLabel, modelLabel } from '@/lib/taskOptions';
+import TaskActions from '@/components/task/TaskActions';
 
 const when = (ts) => {
   if (!ts) return '';
@@ -191,6 +192,7 @@ export default function TaskDetail() {
                 {stopping ? <Loader2 size={11} className="animate-spin" /> : <Square size={10} />} Stop
               </button>
             )}
+            <TaskActions task={task} engine={data?.engine} onError={setError} />
             {task.task_url && (
               <a
                 href={task.task_url}

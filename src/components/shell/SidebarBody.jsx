@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
+  ChevronDown,
+  Loader2,
   LayoutList,
   Bot,
   Sparkles,
@@ -55,7 +57,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-export default function SidebarBody({ tasks, projects, onNavigate }) {
+export default function SidebarBody({ tasks, projects, onNavigate, hasMore, onLoadMore, loadingMore }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
 
@@ -129,6 +131,16 @@ export default function SidebarBody({ tasks, projects, onNavigate }) {
         <div className="mt-4">
           <SessionList tasks={tasks} projects={projects} onNavigate={onNavigate} />
         </div>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground disabled:opacity-50"
+          >
+            {loadingMore ? <Loader2 size={11} className="animate-spin" /> : <ChevronDown size={11} />} Show more
+          </button>
+        )}
       </div>
 
       <div className="shrink-0 px-2.5 pb-1">
