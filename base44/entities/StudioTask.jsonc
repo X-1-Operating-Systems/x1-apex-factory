@@ -11,6 +11,9 @@
     "project_id": {
       "type": "string"
     },
+    "automation_id": {
+      "type": "string"
+    },
     "status": {
       "type": "string",
       "enum": [

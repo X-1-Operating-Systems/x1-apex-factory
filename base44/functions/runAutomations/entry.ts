@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { createNativeTask } from '../../shared/native.ts';
+import { launchAutomation, triggerMode } from '../../shared/automations.ts';
 
 const DEFAULT_TZ = 'America/New_York';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -37,39 +37,10 @@ function ranTooRecently(automation: any) {
   return minutes < window;
 }
 
-async function launch(base44: any, automation: any) {
-  const instruction = String(automation.instruction || '').trim();
-  if (!instruction) return null;
-
-  const task = await createNativeTask(base44, {
-    userId: automation.created_by_id,
-    title: String(automation.title || '').slice(0, 120),
-    instruction,
-  });
-
-  const ranAt = new Date().toISOString();
-  const taskUrl = task.id ? `/task/${task.id}` : '';
-  const history = Array.isArray(automation.runs) ? automation.runs : [];
-  const runs = [
-    { task_id: task.id || '', at: ranAt, status: task.status || 'running' },
-    ...history,
-  ].slice(0, 12);
-
-  await base44.asServiceRole.entities.Automation.update(automation.id, {
-    last_run_at: ranAt,
-    last_task_id: task.id || '',
-    last_task_url: taskUrl,
-    run_count: (automation.run_count || 0) + 1,
-    runs,
-  });
-
-  return { automation_id: automation.id, task_id: task.id, task_url: taskUrl };
-}
-
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+    const user = await base44.auth.me().catch((e: any) => (e.status === 401 ? null : Promise.reject(e)));
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
@@ -80,9 +51,10 @@ export default async function (req: Request): Promise<Response> {
       const list = await base44.asServiceRole.entities.Automation.filter({ enabled: true });
       const launched = [];
       for (const automation of list) {
+        if (triggerMode(automation) !== 'schedule') continue;
         const now = localNow(automation.timezone);
         if (!isDue(automation, now) || ranTooRecently(automation)) continue;
-        const result = await launch(base44, automation);
+        const result = await launchAutomation(base44, automation);
         if (result) launched.push(result);
       }
       return Response.json({ ran: launched.length, launched });
@@ -97,7 +69,7 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const result = await launch(base44, automation);
+    const result = await launchAutomation(base44, automation);
     if (!result) return Response.json({ error: 'This automation has no instruction.' }, { status: 400 });
     return Response.json(result);
   } catch (error: any) {

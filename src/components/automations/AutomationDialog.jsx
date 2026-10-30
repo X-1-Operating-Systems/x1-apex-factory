@@ -12,6 +12,8 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 export default function AutomationDialog({ open, onOpenChange, onCreated }) {
   const [title, setTitle] = useState('');
   const [instruction, setInstruction] = useState('');
+  const [triggerMode, setTriggerMode] = useState('schedule');
+  const [eventWhen, setEventWhen] = useState('any');
   const [cadence, setCadence] = useState('daily');
   const [hour, setHour] = useState('09:00');
   const [day, setDay] = useState('1');
@@ -23,6 +25,8 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
     if (!open) return;
     setTitle('');
     setInstruction('');
+    setTriggerMode('schedule');
+    setEventWhen('any');
     setCadence('daily');
     setHour('09:00');
     setDay('1');
@@ -42,6 +46,8 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
       const created = await base44.entities.Automation.create({
         title: title.trim(),
         instruction: instruction.trim(),
+        trigger_mode: triggerMode,
+        event_when: triggerMode === 'event' ? eventWhen : 'any',
         cadence,
         run_hour: Number(hour.slice(0, 2)),
         run_day: Number(day),
@@ -63,7 +69,7 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
         <DialogHeader>
           <DialogTitle className="text-[16px] font-medium">New automation</DialogTitle>
           <DialogDescription>
-            An agent runs this instruction on a schedule, in the time zone you choose.
+            An agent runs this instruction on a schedule, or right after one of your tasks finishes.
           </DialogDescription>
         </DialogHeader>
 
@@ -90,57 +96,98 @@ export default function AutomationDialog({ open, onOpenChange, onCreated }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="automation-cadence" className="text-[11.5px] text-muted-foreground">Repeats</Label>
-              <select
-                id="automation-cadence"
-                value={cadence}
-                onChange={(e) => setCadence(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm capitalize outline-none focus:border-foreground"
+          <div className="inline-flex rounded-full border border-border p-0.5">
+            {[
+              { value: 'schedule', label: 'On a schedule' },
+              { value: 'event', label: 'After a task' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTriggerMode(option.value)}
+                className={`rounded-full px-3 py-1 text-[11.5px] transition-colors ${
+                  triggerMode === option.value
+                    ? 'bg-foreground font-medium text-background'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <option value="hourly">Every hour</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </div>
-            {cadence !== 'hourly' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="automation-hour" className="text-[11.5px] text-muted-foreground">Around</Label>
-                <Input id="automation-hour" type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
-              </div>
-            )}
+                {option.label}
+              </button>
+            ))}
           </div>
 
-          {cadence === 'weekly' && (
+          {triggerMode === 'event' ? (
             <div className="space-y-1.5">
-              <Label htmlFor="automation-day" className="text-[11.5px] text-muted-foreground">Day</Label>
+              <Label htmlFor="automation-event" className="text-[11.5px] text-muted-foreground">Runs</Label>
               <select
-                id="automation-day"
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
+                id="automation-event"
+                value={eventWhen}
+                onChange={(e) => setEventWhen(e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-foreground"
               >
-                {WEEKDAYS.map((label, index) => (
-                  <option key={label} value={index}>{label}</option>
-                ))}
+                <option value="any">After any of my tasks finishes</option>
+                <option value="done">After a task succeeds</option>
+                <option value="failed">After a task fails</option>
               </select>
+              <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+                Fires on your own tasks, once per task, and never on a run this automation started.
+              </p>
             </div>
-          )}
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="automation-cadence" className="text-[11.5px] text-muted-foreground">Repeats</Label>
+                  <select
+                    id="automation-cadence"
+                    value={cadence}
+                    onChange={(e) => setCadence(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm capitalize outline-none focus:border-foreground"
+                  >
+                    <option value="hourly">Every hour</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </div>
+                {cadence !== 'hourly' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="automation-hour" className="text-[11.5px] text-muted-foreground">Around</Label>
+                    <Input id="automation-hour" type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
+                  </div>
+                )}
+              </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="automation-timezone" className="text-[11.5px] text-muted-foreground">Time zone</Label>
-            <select
-              id="automation-timezone"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-foreground"
-            >
-              {TIMEZONES.map((zone) => (
-                <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>
-              ))}
-            </select>
-          </div>
+              {cadence === 'weekly' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="automation-day" className="text-[11.5px] text-muted-foreground">Day</Label>
+                  <select
+                    id="automation-day"
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-foreground"
+                  >
+                    {WEEKDAYS.map((label, index) => (
+                      <option key={label} value={index}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="automation-timezone" className="text-[11.5px] text-muted-foreground">Time zone</Label>
+                <select
+                  id="automation-timezone"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-foreground"
+                >
+                  {TIMEZONES.map((zone) => (
+                    <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {error && <p className="text-[12px] text-destructive">{error}</p>}
 

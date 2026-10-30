@@ -1,5 +1,6 @@
 import { loadStudioContext } from './personalization.ts';
 import { projectBrief, joinContext } from './projects.ts';
+import { loadConnectorContext } from './connectors.ts';
 
 export const AI_MODEL = 'gpt_5_6_sol';
 
@@ -134,7 +135,7 @@ export function errorEvent(message: string) {
   return { role: 'error', content: String(message || 'The run failed.').slice(0, 600), ts: Date.now() };
 }
 
-export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort, attachments = [], projectId = '' }: any) {
+export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort, attachments = [], projectId = '', automationId = '' }: any) {
   const chosenModel = pickModel(model);
   const chosenEffort = pickEffort(effort);
   const files = await saveAttachments(base44, attachments);
@@ -144,6 +145,7 @@ export async function createNativeTask(base44: any, { userId, title, instruction
     title: String(title || instruction).slice(0, 120),
     instruction: String(instruction).slice(0, 6000),
     project_id: String(projectId || ''),
+    automation_id: String(automationId || ''),
     status: 'running',
     engine: 'native',
     model: chosenModel,
@@ -153,7 +155,10 @@ export async function createNativeTask(base44: any, { userId, title, instruction
   });
 
   try {
-    const context = joinContext(await projectBrief(base44, projectId), await loadStudioContext(base44, userId));
+    const context = joinContext(
+      await projectBrief(base44, projectId),
+      joinContext(await loadStudioContext(base44, userId), await loadConnectorContext(base44, userId))
+    );
     const out = await runInstruction(base44, {
       instruction,
       title,
@@ -186,7 +191,10 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
   const withMessage = [...(task.events || []), userEvent(message, files)];
 
   try {
-    const context = joinContext(await projectBrief(base44, task.project_id), await loadStudioContext(base44, task.created_by_id));
+    const context = joinContext(
+      await projectBrief(base44, task.project_id),
+      joinContext(await loadStudioContext(base44, task.created_by_id), await loadConnectorContext(base44, task.created_by_id))
+    );
     const out = await runInstruction(base44, {
       instruction: message,
       title: task.title,

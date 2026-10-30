@@ -138,7 +138,19 @@ export function shortZone(timeZone) {
   }
 }
 
+export function isEventAutomation(automation) {
+  return automation?.trigger_mode === 'event';
+}
+
+export function eventLabel(automation) {
+  const when = automation?.event_when || 'any';
+  if (when === 'done') return 'After a task succeeds';
+  if (when === 'failed') return 'After a task fails';
+  return 'After any task finishes';
+}
+
 export function scheduleLabel(automation) {
+  if (isEventAutomation(automation)) return eventLabel(automation);
   const cadence = automation?.cadence || 'daily';
   const zone = shortZone(zoneOf(automation));
   const hour = `${String(automation?.run_hour ?? 9).padStart(2, '0')}:00`;
@@ -152,6 +164,7 @@ export function scheduleLabel(automation) {
 export function nextRunLabel(automation) {
   if (!automation) return '';
   if (automation.enabled === false) return 'Paused';
+  if (isEventAutomation(automation)) return 'Waiting for a task to finish';
   const next = nextRun(automation);
   if (!next) return 'Scheduled';
   const stamp = new Intl.DateTimeFormat(undefined, {

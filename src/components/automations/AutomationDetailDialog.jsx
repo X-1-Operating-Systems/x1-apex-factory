@@ -4,7 +4,7 @@ import { Clock, Loader2, Play, Repeat } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StatusPill from '@/components/manus/StatusPill';
-import { formatRunTime, nextRunLabel, scheduleLabel, zoneOf } from '@/lib/automationSchedule';
+import { formatRunTime, isEventAutomation, nextRunLabel, scheduleLabel, zoneOf } from '@/lib/automationSchedule';
 
 export default function AutomationDetailDialog({ automation, open, onOpenChange, onRun, busy }) {
   const [statuses, setStatuses] = useState({});
@@ -43,12 +43,14 @@ export default function AutomationDetailDialog({ automation, open, onOpenChange,
 
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-border px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Schedule</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Trigger</p>
             <p className="mt-0.5 text-[11.5px]">{scheduleLabel(automation)}</p>
-            <p className="mt-0.5 text-[10.5px] text-muted-foreground">{zoneOf(automation)}</p>
+            {!isEventAutomation(automation) && (
+              <p className="mt-0.5 text-[10.5px] text-muted-foreground">{zoneOf(automation)}</p>
+            )}
           </div>
           <div className="rounded-lg border border-border px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Next run</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Next fire</p>
             <p className="mt-0.5 flex items-center gap-1 text-[11.5px]">
               <Clock size={11} className="text-muted-foreground" /> {nextRunLabel(automation)}
             </p>

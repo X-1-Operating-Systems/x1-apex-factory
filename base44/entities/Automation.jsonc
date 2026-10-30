@@ -8,6 +8,23 @@
     "instruction": {
       "type": "string"
     },
+    "trigger_mode": {
+      "type": "string",
+      "enum": [
+        "schedule",
+        "event"
+      ],
+      "default": "schedule"
+    },
+    "event_when": {
+      "type": "string",
+      "enum": [
+        "any",
+        "done",
+        "failed"
+      ],
+      "default": "any"
+    },
     "cadence": {
       "type": "string",
       "enum": [

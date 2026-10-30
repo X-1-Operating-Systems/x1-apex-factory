@@ -1,0 +1,40 @@
+{
+  "name": "Task Finished Automations",
+  "description": "Runs automations configured to fire after a task finishes, whether it succeeded or failed.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "StudioTask",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ (.trigger.changed_fields // []) | index(\"status\") != null and (.trigger.data.status == \"stopped\" or .trigger.data.status == \"error\") }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "task_finished_automations",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "fire_event_automations": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "automationEvents",
+            "args": {
+              "task_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Fire event automations",
+            "description": "Starts automations waiting on this task"
+          }
+        }
+      }
+    ]
+  }
+}
