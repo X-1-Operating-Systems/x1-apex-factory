@@ -121,15 +121,18 @@ export async function runInstruction(
 ) {
   const prompt = buildPrompt({ instruction, history, followUp, effort, context });
   const calls: any[] = [];
+  let gated = false;
 
   for (let step = 0; step <= MAX_CONNECTOR_CALLS; step += 1) {
-    const canCall = connections.length > 0 && calls.length < MAX_CONNECTOR_CALLS;
+    const canCall = connections.length > 0 && calls.length < MAX_CONNECTOR_CALLS && !gated;
     const transcript = calls.length
       ? ['Connector results so far:', ...calls.map((call, index) => `Call ${index + 1} — ${call.key}.${call.tool}: ${call.status}. ${call.message}`), ''].join('\n')
       : '';
     const closing = canCall
       ? ''
-      : 'No further connector calls are available in this run. Return the final JSON envelope now, without connector_call.';
+      : gated
+        ? 'A connector action was refused by the operator settings and nothing was sent. Return the final JSON envelope now, stating exactly what the operator must change.'
+        : 'No further connector calls are available in this run. Return the final JSON envelope now, without connector_call.';
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: [prompt, transcript, closing].filter(Boolean).join('\n'),
@@ -170,6 +173,7 @@ export async function runInstruction(
       connected: Boolean(connection?.connected),
     });
     calls.push({ ...hit, signature, reason: String(requested.reason || '').slice(0, 300) });
+    if (hit.status === 'gated') gated = true;
   }
 
   return { envelope: normalize(null, title), calls };
