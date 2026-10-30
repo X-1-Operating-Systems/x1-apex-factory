@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { callVideo, payloadOf, SANDBOX_AVATAR_ID } from '@/lib/videoApi';
 import AvatarStage from '@/components/live/AvatarStage';
+import AvatarPortrait, { EDEN_SKYE_PORTRAIT } from '@/components/live/AvatarPortrait';
 
 export default function SessionStarter({ contexts = [], avatars = [], voices = [], onChanged }) {
   const [avatarId, setAvatarId] = useState(SANDBOX_AVATAR_ID);
@@ -92,6 +93,12 @@ export default function SessionStarter({ contexts = [], avatars = [], voices = [
         </label>
       </div>
 
+      {!session && (
+        <div className="mt-2">
+          <AvatarPortrait note={`${mode} · ${sandbox ? 'sandbox' : 'live'}`} />
+        </div>
+      )}
+
       <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
         <select
           value={avatarId}
@@ -177,6 +184,7 @@ export default function SessionStarter({ contexts = [], avatars = [], voices = [
             url={session.livekit_url}
             token={session.livekit_client_token}
             mode={session.mode || mode}
+            poster={EDEN_SKYE_PORTRAIT}
             onLeave={onChanged}
           />
           <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1.5">

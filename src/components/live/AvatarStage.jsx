@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Room, RoomEvent } from 'livekit-client';
 import { Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Image } from '@/components/ui/image';
 
 // The avatar is published into a LiveKit room, so this component is the player: it joins the
 // room with the client token the session returned, renders the avatar's video and audio tracks,
 // and publishes the microphone when you want the avatar to answer you.
-export default function AvatarStage({ url, token, mode = 'FULL', onLeave }) {
+export default function AvatarStage({ url, token, mode = 'FULL', poster, onLeave }) {
   const videoHostRef = useRef(null);
   const audioHostRef = useRef(null);
   const roomRef = useRef(null);
@@ -129,6 +130,13 @@ export default function AvatarStage({ url, token, mode = 'FULL', onLeave }) {
       <div className="relative aspect-video w-full">
         <div ref={videoHostRef} className="absolute inset-0" />
         <div ref={audioHostRef} className="hidden" />
+
+        {!avatarOnline && poster && (
+          <>
+            <Image src={poster} alt="" className="absolute inset-0 h-full w-full" fittingType="fill" />
+            <div className="absolute inset-0 bg-black/45" />
+          </>
+        )}
 
         {!avatarOnline && (
           <div className="absolute inset-0 grid place-items-center text-center">

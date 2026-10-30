@@ -8,7 +8,7 @@ export default function AvatarPicker({ groups = [], value, onChange }) {
   }
 
   return (
-    <div className="grid max-h-[340px] grid-cols-2 gap-2 overflow-y-auto scroll-thin pr-1 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid max-h-[360px] grid-cols-2 gap-2 overflow-y-auto scroll-thin pr-1 sm:grid-cols-3 xl:grid-cols-4">
       {groups.map((group) => {
         const active = value === group.id;
         return (
@@ -24,7 +24,7 @@ export default function AvatarPicker({ groups = [], value, onChange }) {
             <Image
               src={group.preview_image_url}
               alt={group.name}
-              className="block aspect-[3/4] w-full bg-secondary object-cover object-top"
+              className="block aspect-video w-full bg-secondary object-cover object-top"
               fittingType="fill"
               focalPointY={0.3}
             />

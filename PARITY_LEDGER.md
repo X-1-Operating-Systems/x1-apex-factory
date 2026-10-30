@@ -526,7 +526,17 @@ Verification (live): `keyStatus` answered `ok` with every secret present today a
 | G-85 | closed | key presence and per-surface readiness read from one function; every dependent screen shows the instruction instead of an error |
 | G-86 | closed | Computers skips the Manus call when its key is absent and says so, so the page never reads as broken |
 
-## Register state (through Batch 39)
+### Batch 40 — the avatar artwork drives the card shape, and the live session is proven again
+
+Two defects behind "the images look bunched up": HeyGen's avatar previews are 1920×1080 chest-framed portraits, but the picker drew them into 54px-tall strips in a four-column grid, and the Live avatar studio showed no face at all because LiveAvatar's avatar list is empty on this account.
+
+The reference artwork (`EDEN_SKYE_LIVEAVATAR_CHEST_VISIBLE_1920x1080.png`, fetched 200 · `image/png`) now sets the card contract: `AvatarPicker` renders 2 columns on phone, 3 from `sm`, 4 at `xl`, each card `aspect-video` with a selected tick, so a preview is never squashed. `AvatarPortrait` (new) shows the workspace's own Eden Skye persona as a 16:9 card in the Live avatar studio, and the same artwork is the stage backdrop while a room is joining, so the panel is a face instead of a black box. HeyGen returns all 20 avatar groups with live preview URLs (Dante 283 KB, Brody 250 KB, Hayes 2.0 MB, all 200 `image/jpeg`).
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-87 | closed | a sandbox session was opened with exactly the calls the page makes: `sessions.token` ok (1011-char session token) → `sessions.start` ok with `livekit_url` `wss://heygen-feapbkvq.livekit.cloud`, a **3-segment 449-char client JWT** and `max_session_duration` 60 → `sessions.stop` ok, the stored `LiveSession` read back `status: ended`, `mode: FULL`, `ended_at` set. Probe record deleted (0 sessions left). Build green. |
+
+## Register state (through Batch 40)
 
 | id | sev | state |
 |---|---|---|
