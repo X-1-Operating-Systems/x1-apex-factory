@@ -3,6 +3,8 @@ import { Clapperboard } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { callVideo, listOf, payloadOf } from '@/lib/videoApi';
+import { EDEN_PERSONA } from '@/lib/edenPersona';
+import { EDEN_SKYE_PORTRAIT } from '@/components/live/AvatarPortrait';
 import BalanceCard from '@/components/video/BalanceCard';
 import RenderForm from '@/components/video/RenderForm';
 import JobRow from '@/components/video/JobRow';
@@ -15,6 +17,8 @@ export default function VideoStudio() {
   const [account, setAccount] = useState(null);
   const [groups, setGroups] = useState([]);
   const [voices, setVoices] = useState([]);
+  // Eden's approved clone lives outside the public catalogue page, so it is resolved by id.
+  const [persona, setPersona] = useState({ avatar: null, voice: null });
   const [jobs, setJobs] = useState([]);
   const [capabilities, setCapabilities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,16 +32,23 @@ export default function VideoStudio() {
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
     (async () => {
-      const [accountRes, avatarRes, voiceRes, capRes] = await Promise.all([
+      const [accountRes, avatarRes, voiceRes, capRes, personaAvatarRes, personaVoiceRes] = await Promise.all([
         callVideo('heygen', 'account.me'),
         callVideo('heygen', 'avatars.list', { limit: 50 }),
         callVideo('heygen', 'voices.list', { limit: 50 }),
         callVideo('heygen', 'registry.list'),
+        callVideo('heygen', 'avatars.get', { avatar_id: EDEN_PERSONA.avatar_id }),
+        callVideo('heygen', 'voices.get', { voice_id: EDEN_PERSONA.voice_id }),
       ]);
       if (accountRes.ok) setAccount(payloadOf(accountRes));
       if (!avatarRes.ok) setError(avatarRes.error || 'HeyGen did not answer.');
       setGroups(listOf(avatarRes));
       setVoices(listOf(voiceRes));
+      setPersona({
+        // HeyGen's preview link is signed and expires, so her card uses the stored artwork.
+        avatar: personaAvatarRes.ok ? { ...payloadOf(personaAvatarRes), preview_image_url: EDEN_SKYE_PORTRAIT } : null,
+        voice: personaVoiceRes.ok ? payloadOf(personaVoiceRes) : null,
+      });
       setCapabilities(payloadOf(capRes) || []);
       await loadJobs().catch(() => {});
     })().finally(() => setLoading(false));
@@ -81,7 +92,7 @@ export default function VideoStudio() {
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
 
       <div className="mt-3 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
-        <RenderForm groups={groups} voices={voices} onCreated={loadJobs} />
+        <RenderForm groups={groups} voices={voices} persona={persona} onCreated={loadJobs} />
 
         <section className="rounded-lg border border-border bg-card">
           <header className="border-b border-border px-3.5 py-2.5">

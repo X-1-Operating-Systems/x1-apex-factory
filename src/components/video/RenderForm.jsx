@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import AvatarPicker from '@/components/video/AvatarPicker';
 import VoicePicker from '@/components/video/VoicePicker';
 import { callVideo, RATIOS } from '@/lib/videoApi';
+import { EDEN_PERSONA } from '@/lib/edenPersona';
 
-export default function RenderForm({ groups, voices, onCreated }) {
-  const [avatarId, setAvatarId] = useState('');
-  const [voiceId, setVoiceId] = useState('');
+export default function RenderForm({ groups, voices, persona, onCreated }) {
+  // Her approved clone is the default, so a render speaks in her voice unless it is changed.
+  const [avatarId, setAvatarId] = useState(EDEN_PERSONA.avatar_id);
+  const [voiceId, setVoiceId] = useState(EDEN_PERSONA.voice_id);
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
   const [ratio, setRatio] = useState('16:9');
@@ -62,13 +64,26 @@ export default function RenderForm({ groups, voices, onCreated }) {
 
       <p className="mt-2.5 text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground">Avatar</p>
       <div className="mt-1">
-        <AvatarPicker groups={groups} value={avatarId} onChange={pickAvatar} />
+        <AvatarPicker
+          groups={groups}
+          pinned={persona?.avatar ? [persona.avatar] : []}
+          value={avatarId}
+          onChange={pickAvatar}
+        />
       </div>
 
       <p className="mt-2.5 text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground">Voice</p>
       <div className="mt-1">
-        <VoicePicker voices={voices} value={voiceId} onChange={setVoiceId} />
+        <VoicePicker
+          voices={voices}
+          pinned={persona?.voice ? [persona.voice] : []}
+          value={voiceId}
+          onChange={setVoiceId}
+        />
       </div>
+      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+        {EDEN_PERSONA.voice_name} is selected by default — approved {EDEN_PERSONA.approved_on}.
+      </p>
 
       <div className="mt-2.5 flex gap-1.5">
         <input

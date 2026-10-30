@@ -2,15 +2,21 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 
-export default function AvatarPicker({ groups = [], value, onChange }) {
-  if (!groups.length) {
+export default function AvatarPicker({ groups = [], pinned = [], value, onChange }) {
+  // Her own avatar is resolved by id, so it leads the grid even though the catalogue
+  // page does not carry it.
+  const extra = pinned.filter((group) => group?.id && !groups.some((item) => item.id === group.id));
+  const list = [...extra, ...groups];
+
+  if (!list.length) {
     return <p className="text-[11px] text-muted-foreground">No avatars came back from HeyGen.</p>;
   }
 
   return (
     <div className="grid max-h-[360px] grid-cols-2 gap-2 overflow-y-auto scroll-thin pr-1 sm:grid-cols-3 xl:grid-cols-4">
-      {groups.map((group) => {
+      {list.map((group) => {
         const active = value === group.id;
+        const approved = extra.some((item) => item.id === group.id);
         return (
           <button
             key={group.id}
@@ -29,6 +35,11 @@ export default function AvatarPicker({ groups = [], value, onChange }) {
               focalPointY={0.3}
             />
             <span className="block truncate px-1.5 py-1.5 text-[10.5px] leading-tight">{group.name}</span>
+            {approved && (
+              <span className="absolute left-1 top-1 rounded-full bg-background/95 px-1.5 py-[1px] text-[9px] font-medium text-foreground">
+                Approved
+              </span>
+            )}
             {active && (
               <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-foreground text-background">
                 <Check size={9} />

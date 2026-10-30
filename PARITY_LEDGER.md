@@ -536,6 +536,19 @@ The reference artwork (`EDEN_SKYE_LIVEAVATAR_CHEST_VISIBLE_1920x1080.png`, fetch
 |---|---|---|
 | G-87 | closed | a sandbox session was opened with exactly the calls the page makes: `sessions.token` ok (1011-char session token) → `sessions.start` ok with `livekit_url` `wss://heygen-feapbkvq.livekit.cloud`, a **3-segment 449-char client JWT** and `max_session_duration` 60 → `sessions.stop` ok, the stored `LiveSession` read back `status: ended`, `mode: FULL`, `ended_at` set. Probe record deleted (0 sessions left). Build green. |
 
+### Batch 41 — her approved clone voice is the studio default
+
+The release gate's canonical ids were resolved against the live account before anything was wired, and that is exactly why the voice was invisible: both of her records are **private**, so neither appears in the public catalogue page 'voices.list' / 'avatars.list' return. GET /v3/voices/e1e3b90a… **200** → "Eden Skye - Original 81s Voice Clone 20261030", female, English, status complete; GET /v3/avatars/401be319… **200** → group "Eden Skye", 63 looks, whose default_voice_id is that same clone.
+
+Built: two registry actions ('voices.get', 'avatars.get', both verified 200 through the function) · src/lib/edenPersona.js holding the canonical pair and its approval date · Video studio resolves the pair by id alongside the catalogues · RenderForm opens with her avatar and her voice selected · AvatarPicker and VoicePicker merge the private records in by id (her card leads the grid, marked **Approved**, her voice reads "· approved") · her card uses the stored 16:9 artwork because HeyGen's preview link is a signed URL that expires.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-88 | closed | voices.get 200 and avatars.get 200 through the app's own function, both verified: true; her group's default_voice_id matches the approved voice_id; build green |
+| G-89 | blocked on funds | speech.create with her clone returned **402 insufficient_credit** — authentication and the voice id resolve, and the request is refused only at the wallet. Same standing blocker as G-84 |
+
+**Not done on purpose:** nothing was pushed into LiveAvatar. The gate records LiveAvatar's identity, private voice and source-voice mapping as NOT_VERIFIED, and LITE external-PCM bridging is a separate build that needs bounded paid-session authorisation.
+
 ## Register state (through Batch 40)
 
 | id | sev | state |

@@ -45,10 +45,22 @@ export const HEYGEN_ACTIONS = {
     path: (i) => `/v3/avatars?limit=${limitOf(i, 20, 50)}`,
     describe: "Avatar groups and looks available to the account.",
   },
+  "avatars.get": {
+    method: "GET",
+    path: (i) => `/v3/avatars/${encodeURIComponent(String(i.avatar_id))}`,
+    requires: ["avatar_id"],
+    describe: "One avatar group by id, including a clone the catalogue page does not list.",
+  },
   "voices.list": {
     method: "GET",
     path: (i) => `/v3/voices?limit=${limitOf(i, 20, 50)}`,
     describe: "Voices with ids, languages and previews.",
+  },
+  "voices.get": {
+    method: "GET",
+    path: (i) => `/v3/voices/${encodeURIComponent(String(i.voice_id))}`,
+    requires: ["voice_id"],
+    describe: "One voice by id, including a private clone the catalogue page does not list.",
   },
   "videos.create": {
     method: "POST",
@@ -174,7 +186,7 @@ export const HEYGEN_ACTIONS = {
 
 // Routes proven against the live account. Everything else still calls the real API and reports
 // the vendor's own error, but its shape has not been confirmed here yet.
-const VERIFIED = ["account.me", "avatars.list", "voices.list"];
+const VERIFIED = ["account.me", "avatars.list", "voices.list", "avatars.get", "voices.get"];
 for (const name of VERIFIED) {
   if (HEYGEN_ACTIONS[name]) HEYGEN_ACTIONS[name].verified = true;
 }

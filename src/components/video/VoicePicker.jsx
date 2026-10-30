@@ -1,8 +1,11 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 
-export default function VoicePicker({ voices = [], value, onChange }) {
-  const current = voices.find((voice) => voice.voice_id === value) || null;
+export default function VoicePicker({ voices = [], pinned = [], value, onChange }) {
+  // A private clone is not in the catalogue page, so the approved voice is merged in by id.
+  const extra = pinned.filter((voice) => voice?.voice_id && !voices.some((item) => item.voice_id === voice.voice_id));
+  const pool = [...extra, ...voices];
+  const current = pool.find((voice) => voice.voice_id === value) || null;
 
   const preview = () => {
     if (!current?.preview_audio_url) return;
@@ -17,9 +20,11 @@ export default function VoicePicker({ voices = [], value, onChange }) {
         className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-[11.5px] outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="">Avatar&apos;s default voice</option>
-        {voices.map((voice) => (
+        {pool.map((voice) => (
           <option key={voice.voice_id} value={voice.voice_id}>
-            {voice.name} · {voice.language}
+            {extra.some((item) => item.voice_id === voice.voice_id)
+              ? `${voice.name} · approved`
+              : `${voice.name} · ${voice.language}`}
           </option>
         ))}
       </select>
