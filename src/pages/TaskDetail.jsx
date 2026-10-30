@@ -6,6 +6,8 @@ import StatusPill from '@/components/manus/StatusPill';
 import TaskTimeline from '@/components/task/TaskTimeline';
 import TaskFollowUp from '@/components/task/TaskFollowUp';
 import ComputerPanel from '@/components/task/ComputerPanel';
+import ComputerPane from '@/components/task/ComputerPane';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import DeliverableNote from '@/components/task/DeliverableNote';
 import { taskDetail, stopTask, sendToTask } from '@/lib/taskEngine';
 import { effortLabel, modelLabel } from '@/lib/taskOptions';
@@ -33,6 +35,7 @@ export default function TaskDetail() {
   const [earlier, setEarlier] = useState({ events: [], cursor: null, hasMore: false });
   const [busyEarlier, setBusyEarlier] = useState(false);
   const [options, setOptions] = useState(null);
+  const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
 
   const load = useCallback(async () => {
     const res = await taskDetail(id);
@@ -56,6 +59,14 @@ export default function TaskDetail() {
       (prev) => prev || { model: task.model || 'gpt_5_6_sol', effort: task.effort || 'standard' }
     );
   }, [task]);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsWide(mql.matches);
+    mql.addEventListener('change', onChange);
+    setIsWide(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!running) return undefined;
@@ -131,7 +142,7 @@ export default function TaskDetail() {
   const hasEarlier = earlier.events.length > 0 ? earlier.hasMore : Boolean(data?.has_more);
   const waiting = data?.digest?.waiting;
 
-  return (
+  const thread = (
     <div className="mx-auto flex h-full w-full max-w-[900px] flex-col px-5 py-6 lg:px-10">
       <div className="shrink-0">
         <Link
@@ -157,16 +168,19 @@ export default function TaskDetail() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            {data?.engine !== 'native' && (
-              <button
-                type="button"
-                onClick={() => setPanelOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Monitor size={11} /> Computer
-                {running && <span className="h-1 w-1 rounded-full bg-info" />}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setPanelOpen((open) => !open)}
+              aria-pressed={panelOpen}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${
+                panelOpen
+                  ? 'border-foreground/20 bg-secondary text-foreground'
+                  : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              <Monitor size={11} /> Computer
+              {running && <span className="h-1 w-1 animate-pulse rounded-full bg-info" />}
+            </button>
             {running && (
               <button
                 type="button"
@@ -217,7 +231,50 @@ export default function TaskDetail() {
         />
       </div>
 
-      <ComputerPanel run={data?.run} open={panelOpen} onClose={() => setPanelOpen(false)} />
+    </div>
+  );
+
+  if (!isWide) {
+    return (
+      <div className="h-full">
+        {thread}
+        <ComputerPanel
+          task={task}
+          events={events}
+          run={data?.run}
+          engine={data?.engine}
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full">
+      <ResizablePanelGroup
+        key={panelOpen ? 'split' : 'solo'}
+        direction="horizontal"
+        className="h-full"
+      >
+        <ResizablePanel minSize={40} className="min-w-0">
+          {thread}
+        </ResizablePanel>
+        {panelOpen && (
+          <>
+            <ResizableHandle withHandle className="bg-border" />
+            <ResizablePanel defaultSize={34} minSize={22} maxSize={55} className="min-w-0">
+              <ComputerPane
+                task={task}
+                events={events}
+                run={data?.run}
+                engine={data?.engine}
+                onClose={() => setPanelOpen(false)}
+              />
+            </ResizablePanel>
+          </>
+        )}
+      </ResizablePanelGroup>
     </div>
   );
 }
