@@ -124,6 +124,18 @@ export async function saveAttachments(base44: any, attachments: any[] = []) {
   return saved;
 }
 
+export async function loadProjectFiles(base44: any, projectId: any) {
+  const id = String(projectId || '').trim();
+  if (!id) return [];
+  const { items } = await base44.asServiceRole.entities.StudioFile
+    .filter({ project_id: id }, { sort: '-created_date', limit: 4 })
+    .catch(() => ({ items: [] }));
+  return saveAttachments(
+    base44,
+    items.map((file: any) => ({ name: file.name, file_uri: file.file_uri, mime_type: file.mime_type }))
+  );
+}
+
 export function outputEvents(out: any) {
   const now = Date.now();
   const events: any[] = out.steps.map((step: string) => ({ role: 'agent', content: step, ts: now }));
@@ -138,7 +150,10 @@ export function errorEvent(message: string) {
 export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort, attachments = [], projectId = '', automationId = '' }: any) {
   const chosenModel = pickModel(model);
   const chosenEffort = pickEffort(effort);
-  const files = await saveAttachments(base44, attachments);
+  const files = [
+    ...(await saveAttachments(base44, attachments)),
+    ...(await loadProjectFiles(base44, projectId)),
+  ];
 
   const record = await base44.asServiceRole.entities.StudioTask.create({
     created_by_id: userId,
@@ -188,6 +203,7 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
     .map((event: any) => ({ role: event.role, content: event.content }));
 
   const files = await saveAttachments(base44, attachments);
+  const projectFiles = await loadProjectFiles(base44, task.project_id);
   const withMessage = [...(task.events || []), userEvent(message, files)];
 
   try {
@@ -203,7 +219,7 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
       model: model || task.model,
       effort: effort || task.effort,
       context,
-      fileUrls: files.map((f: any) => f.url).filter(Boolean),
+      fileUrls: [...files, ...projectFiles].map((f: any) => f.url).filter(Boolean).slice(0, 6),
     });
     return await base44.asServiceRole.entities.StudioTask.update(task.id, {
       status: 'stopped',

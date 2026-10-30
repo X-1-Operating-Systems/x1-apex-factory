@@ -24,7 +24,7 @@ export async function removeFile(id) {
   return base44.entities.StudioFile.delete(id);
 }
 
-export async function registerFiles(files, { task, source = 'task' } = {}) {
+export async function registerFiles(files, { task, source = 'task', project_id = '' } = {}) {
   if (!files?.length) return [];
   return base44.entities.StudioFile.bulkCreate(
     files.map((file) => ({
@@ -34,9 +34,15 @@ export async function registerFiles(files, { task, source = 'task' } = {}) {
       size: Number(file.size) || 0,
       task_id: task?.id || '',
       task_title: task?.title || '',
+      project_id: project_id || '',
       source,
     }))
   );
+}
+
+export async function listProjectFiles(projectId, limit = 20) {
+  if (!projectId) return { items: [] };
+  return base44.entities.StudioFile.filter({ project_id: projectId }, { sort: '-created_date', limit });
 }
 
 export function prettySize(bytes) {

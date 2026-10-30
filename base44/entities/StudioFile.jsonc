@@ -20,6 +20,9 @@
     "task_title": {
       "type": "string"
     },
+    "project_id": {
+      "type": "string"
+    },
     "source": {
       "type": "string",
       "enum": [

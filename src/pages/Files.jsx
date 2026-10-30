@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import FileRow from '@/components/files/FileRow';
+import FileUploadButton from '@/components/files/FileUploadButton';
 import { countFiles, listFiles } from '@/lib/files';
 
 export default function Files() {
@@ -62,7 +63,15 @@ export default function Files() {
     <div className="mx-auto w-full max-w-[900px] px-5 py-8 lg:px-10 lg:py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-[15px] font-medium">Files</h1>
-        <p className="text-[11.5px] text-muted-foreground">{total} uploaded</p>
+        <div className="flex items-center gap-2.5">
+          <p className="text-[11.5px] text-muted-foreground">{total} uploaded</p>
+          <FileUploadButton
+            onUploaded={(created) => {
+              setFiles((prev) => [...created, ...prev]);
+              setTotal((n) => n + created.length);
+            }}
+          />
+        </div>
       </div>
       <p className="mt-1.5 max-w-[62ch] text-[11.5px] leading-relaxed text-muted-foreground">
         Everything you have handed the studio — references, briefs, screenshots and data files, stored privately and tied

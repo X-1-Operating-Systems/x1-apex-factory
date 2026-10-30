@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import ProjectFiles from '@/components/studio/ProjectFiles';
 
 export default function ProjectSettingsDialog({ open, onOpenChange, project, onSaved }) {
   const [name, setName] = useState('');
@@ -81,6 +82,8 @@ export default function ProjectSettingsDialog({ open, onOpenChange, project, onS
               className="text-[12.5px] leading-relaxed"
             />
           </div>
+
+          {project?.id && <ProjectFiles project={project} />}
 
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>

@@ -8,6 +8,13 @@ export async function projectBrief(base44: any, projectId: any) {
   if (project.master_instruction) {
     lines.push(`Project master instruction (always apply): ${String(project.master_instruction).slice(0, 2000)}`);
   }
+  const { items } = await base44.asServiceRole.entities.StudioFile
+    .filter({ project_id: id }, { sort: '-created_date', limit: 12 })
+    .catch(() => ({ items: [] }));
+  const names = items.map((file: any) => file.name).filter(Boolean);
+  if (names.length) {
+    lines.push(`Project knowledge-base files (attached to every run in this project): ${names.join(', ')}`);
+  }
   return lines.length > 1 ? lines.join('\n') : '';
 }
 
