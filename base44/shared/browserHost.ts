@@ -149,6 +149,17 @@ export async function signedFrameUrl(sessionId, seconds = 900) {
   return `${baseUrl()}/sessions/${sessionId}/frame.jpg?exp=${exp}&sig=${sig}`;
 }
 
+/** The page as it looks right now, as JPEG bytes. Binary, so it never goes through the text trim. */
+export async function frameBytes(sessionId) {
+  const response = await fetch(`${baseUrl()}/sessions/${String(sessionId)}/frame.jpg`, {
+    headers: { Authorization: `Bearer ${token()}` },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!response.ok) return null;
+  const buffer = new Uint8Array(await response.arrayBuffer());
+  return buffer.byteLength > 0 ? buffer : null;
+}
+
 function enc(value) {
   if (value === undefined || value === null || value === "") throw new Error("A record id is required for this action");
   return encodeURIComponent(String(value));

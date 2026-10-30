@@ -43,6 +43,9 @@
           },
           "text": {
             "type": "string"
+          },
+          "frame_uri": {
+            "type": "string"
           }
         },
         "required": [

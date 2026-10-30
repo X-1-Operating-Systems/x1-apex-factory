@@ -285,3 +285,16 @@ Fixed while bringing it up: Railway's GraphQL query had an unbalanced brace so h
 
 - ~~Deploy `browser-host/`~~ — done. `BROWSER_HOST_URL` / `BROWSER_HOST_TOKEN` are no longer required: the host resolves from `RAILWAY_API_KEY` at runtime.
 - The dashboard security scan is an operator action.
+
+### Batch 23 — every run step keeps its frame (G-36 half: replay evidence, without a recorder)
+
+The vendor never exposed recording, and an owned recorder would have been a screencast nobody asked for. What a run actually needs is evidence: the page as it looked at each step, re-openable later. That is now stored per step.
+
+Built: `captureFrame` in `base44/shared/browserAgentLoop.ts` (fetches the host's current frame as raw JPEG bytes through the new `frameBytes` helper, uploads it privately, returns the `file_uri`) attached to the goto, action and done steps · `BrowserRun.steps[].frame_uri` declared in the schema · `src/components/admin/StepFrame.jsx` (signs a frame on demand and shows it inline) · run card shows a framed-step count and a **Frame** control per step.
+
+A real defect surfaced here and was fixed at the right layer: the host clips text responses at 9k characters, so the base64 screenshot action could never survive a round trip. Frames are now pulled as binary from the existing signed `/frame.jpg` route, which never touches the text trimmer; the app's own `hostRequest` trim is untouched.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-36 (evidence half) | closed | run `74d96299-0043-4390-8e8e-2d5505a08b95` on the owned host: `goto` and `done` steps both carry a `frame_uri`; the done frame signed and fetched **200, `image/jpeg`, 38 970 bytes, JPEG magic bytes present**. Build green after fixing a missing default export on the image component. Probe runs (5) and sessions (4) released and deleted, leaving 0 runs, 1 session, 1 ledger row |
+| G-36 (video replay) | dropped on purpose | unchanged: no screencast recorder is built, and no UI claims one |

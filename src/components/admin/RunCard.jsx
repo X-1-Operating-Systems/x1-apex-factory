@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import StepFrame from '@/components/admin/StepFrame';
 
 const STATUS_TONE = {
   COMPLETED: 'text-foreground',
@@ -17,6 +18,7 @@ export default function RunCard({ action, data }) {
   const status = (data && (data.status || data.state)) || 'unknown';
   const output = data && (data.output || data.result);
   const steps = data && Array.isArray(data.steps) ? data.steps : [];
+  const framed = steps.filter((step) => step.frame_uri).length;
 
   return (
     <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5">
@@ -44,13 +46,17 @@ export default function RunCard({ action, data }) {
             className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
             {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {steps.length} steps
+            {framed > 0 && <span className="text-[9.5px]">· {framed} framed</span>}
           </button>
           {open && (
-            <div className="mt-1 space-y-1">
+            <div className="mt-1 space-y-1.5">
               {steps.map((step, index) => (
-                <p key={`${step.at}-${index}`} className="text-[10.5px] leading-relaxed text-muted-foreground">
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.06em]">{step.kind}</span> {step.text}
-                </p>
+                <div key={`${step.at}-${index}`}>
+                  <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+                    <span className="font-mono text-[9.5px] uppercase tracking-[0.06em]">{step.kind}</span> {step.text}
+                  </p>
+                  <StepFrame frameUri={step.frame_uri} />
+                </div>
               ))}
             </div>
           )}

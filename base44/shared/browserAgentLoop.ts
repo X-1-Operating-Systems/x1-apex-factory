@@ -1,4 +1,4 @@
-import { PAGE_ACTIONS, hostRequest, signedFrameUrl } from "./browserHost.ts";
+import { PAGE_ACTIONS, frameBytes, hostRequest, signedFrameUrl } from "./browserHost.ts";
 import { recordSession } from "./hostStore.ts";
 
 /** Actions the reasoning loop may take. Screenshots and page reads are context, not steps. */
@@ -65,6 +65,24 @@ async function registerSession(base44, sessionId, created) {
     started_at: startedAt,
     meta: { keep_alive: true, timeout_seconds: timeoutSeconds, opened_by: "agent-run" },
   });
+}
+
+/**
+ * The run's evidence. Every step keeps the page as it looked when it happened,
+ * stored privately so a step can be re-opened later without re-running anything.
+ * Best effort: a failed capture must never stop the run.
+ */
+async function captureFrame(base44, sessionId) {
+  try {
+    const bytes = await frameBytes(sessionId);
+    if (!bytes) return null;
+    const file = new File([bytes], `run-frame-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const uploaded = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+    return uploaded?.file_uri || null;
+  } catch (error) {
+    console.error("frame capture failed", error?.message || error);
+    return null;
+  }
 }
 
 function decidePrompt(run, agent, snapshot, history, errorNote) {
@@ -160,6 +178,7 @@ export async function advanceRun(base44, run, agent) {
     if (taskUrl && blank && !steps.some((step) => step.kind === "goto")) {
       const nav = await hostRequest("sessions.act", { session_id: sessionId, page_action: "goto", url: taskUrl });
       errorNote = nav.ok ? null : nav.error;
+      const navFrame = nav.ok ? await captureFrame(base44, sessionId) : null;
       record = await base44.entities.BrowserRun.update(run.id, {
         session_id: sessionId,
         steps: [
@@ -168,6 +187,7 @@ export async function advanceRun(base44, run, agent) {
             at: new Date().toISOString(),
             kind: nav.ok ? "goto" : "error",
             text: nav.ok ? `Opening ${taskUrl}` : `Could not open ${taskUrl}: ${nav.error}`,
+            frame_uri: navFrame || undefined,
           },
         ],
       });
@@ -194,12 +214,13 @@ export async function advanceRun(base44, run, agent) {
     const at = new Date().toISOString();
     if (decision?.done) {
       const answer = String(decision.answer || "Done.").slice(0, 1500);
+      const doneFrame = await captureFrame(base44, sessionId);
       return base44.entities.BrowserRun.update(run.id, {
         status: "COMPLETED",
         session_id: sessionId,
         output: { answer, urls: Array.isArray(decision.urls) ? decision.urls.slice(0, 10) : [] },
         urls: Array.isArray(decision.urls) ? decision.urls.slice(0, 10) : [],
-        steps: [...steps, { at, kind: "done", text: answer }],
+        steps: [...steps, { at, kind: "done", text: answer, frame_uri: doneFrame || undefined }],
         ended_at: at,
       });
     }
@@ -217,6 +238,7 @@ export async function advanceRun(base44, run, agent) {
     const ran = await hostRequest("sessions.act", { session_id: sessionId, page_action: action, ...params });
     const summary = `${action} ${clip(params, 160)}`;
     errorNote = ran.ok ? null : ran.error;
+    const stepFrame = await captureFrame(base44, sessionId);
     record = await base44.entities.BrowserRun.update(run.id, {
       session_id: sessionId,
       steps: [
@@ -225,6 +247,7 @@ export async function advanceRun(base44, run, agent) {
           at,
           kind: ran.ok ? action : "error",
           text: ran.ok ? `${decision.thought ? `${clip(decision.thought, 220)} — ` : ""}${summary}` : `${summary} failed: ${ran.error}`,
+          frame_uri: stepFrame || undefined,
         },
       ],
     });
