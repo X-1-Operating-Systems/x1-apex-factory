@@ -7,6 +7,7 @@ import SessionStarter from '@/components/live/SessionStarter';
 import SessionHistory from '@/components/live/SessionHistory';
 import CapabilityTable from '@/components/video/CapabilityTable';
 import AdminGate from '@/components/video/AdminGate';
+import KeyNotice from '@/components/system/KeyNotice';
 
 export default function LiveAvatar() {
   const { user } = useAuth();
@@ -63,6 +64,8 @@ export default function LiveAvatar() {
         Interactive avatar sessions on your own contexts. Sandbox sessions are free; a live session bills
         per minute against the balance above.
       </p>
+
+      <KeyNotice surfaceKey="Live avatar" />
 
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
 

@@ -504,7 +504,29 @@ Two completions in the same pass: `SessionTranscript` reads `sessions.transcript
 | G-83 | closed | token and room are real and carry the right grants (above); the player is the standard LiveKit client against that room |
 | G-84 | **blocked on funds** | unchanged — HeyGen renders need a funded wallet; the control is wired and confirm-gated |
 
-## Register state (through Batch 38)
+### Batch 39 — the system stands up with the keys removed
+
+The question this batch answers is not "does it work with keys" but "what still works without them". Answered in code rather than prose: `base44/functions/keyStatus` reports **presence only** (never a value) for every secret this app reads, plus a `ready` verdict per surface and the wording of what each one stops and keeps. `useKeyStatus` fetches it once per session; `KeyNotice` renders the honest note on the surface that is missing its key.
+
+Wired: Video studio (`HEYGEN_API_KEY`), Live avatar (`LIVEAVATAR_API_KEY`), Browser host (`RAILWAY_API_KEY`, or the host URL pair), Release deploy (`VERCEL_API_KEY`), and Computers no longer fires a Manus call it knows will fail — it states Manus is not connected while the owned browser host above it keeps listing sessions.
+
+| surface | key removed | what stops | what keeps working |
+|---|---|---|---|
+| Video studio | `HEYGEN_API_KEY` | new renders, avatar and voice lists | stored renders, capability list |
+| Live avatar | `LIVEAVATAR_API_KEY` | new sessions, credits, contexts | past sessions and transcripts |
+| Browser host | `RAILWAY_API_KEY` (and no `BROWSER_HOST_URL` pair) | resolving the owned container | tasks, projects, releases, media |
+| Release deploy | `VERCEL_API_KEY` | pushing an approved release live | packaging, QA gate, downloads, handoff links |
+| Manus engine | `MANUS_API_KEY` | Manus tasks, devices, artifacts | the native engine (already the automatic fallback) |
+| Host provisioning | `SUPABASE_ACCESS_TOKEN` | provisioning from this app | every app screen |
+
+Verification (live): `keyStatus` answered `ok` with every secret present today and all six surfaces `ready: true` — so the mapping is real, not aspirational. `BROWSER_HOST_URL` is genuinely absent while `BROWSER_HOST_TOKEN` and `RAILWAY_API_KEY` are set, and `host` still resolves `true`, which is the override path proven. Build green.
+
+| id | state | verification |
+|---|---|---|
+| G-85 | closed | key presence and per-surface readiness read from one function; every dependent screen shows the instruction instead of an error |
+| G-86 | closed | Computers skips the Manus call when its key is absent and says so, so the page never reads as broken |
+
+## Register state (through Batch 39)
 
 | id | sev | state |
 |---|---|---|

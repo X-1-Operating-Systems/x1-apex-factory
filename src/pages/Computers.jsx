@@ -2,16 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Monitor, RefreshCw } from 'lucide-react';
 import HostSessions from '@/components/computers/HostSessions';
+import KeyNotice from '@/components/system/KeyNotice';
+import useKeyStatus from '@/hooks/useKeyStatus';
 
 export default function Computers() {
   const [browsers, setBrowsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const { loading: keysLoading, ready } = useKeyStatus();
 
   const load = async () => {
     setLoading(true);
     setError('');
+    // Without the Manus key there is nothing to list; say so instead of firing a call that fails.
+    if (!ready.manus) {
+      setBrowsers([]);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await base44.functions.invoke('manusAgent', { action: 'browsers' });
       setBrowsers(res.data.browsers || []);
@@ -23,8 +32,9 @@ export default function Computers() {
   };
 
   useEffect(() => {
+    if (keysLoading) return;
     load();
-  }, []);
+  }, [keysLoading, ready.manus]);
 
   const refresh = () => {
     setReloadKey((key) => key + 1);
@@ -48,6 +58,8 @@ export default function Computers() {
         Manus devices are the browsers signed into your Manus account.
       </p>
 
+      <KeyNotice surfaceKey="Browser host" />
+
       <section className="mt-6">
         <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Your browser host</p>
         <HostSessions reloadKey={reloadKey} />
@@ -58,6 +70,15 @@ export default function Computers() {
         {loading ? (
           <div className="mt-6 grid place-items-center py-10">
             <Loader2 size={18} className="animate-spin text-muted-foreground" />
+          </div>
+        ) : !ready.manus ? (
+          <div className="mt-3 rounded-xl border border-border bg-card px-4 py-6 text-center">
+            <Monitor size={18} className="mx-auto text-muted-foreground" />
+            <p className="mt-2 text-[12.5px] font-medium">Manus is not connected</p>
+            <p className="mx-auto mt-1 max-w-sm text-[11.5px] leading-relaxed text-muted-foreground">
+              Add MANUS_API_KEY to list its devices. The browser host above is unaffected — it runs from
+              RAILWAY_API_KEY or its own host URL.
+            </p>
           </div>
         ) : error ? (
           <p className="mt-3 text-[12.5px] text-destructive">{error}</p>

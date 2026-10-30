@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ReleaseRow from '@/components/releases/ReleaseRow';
+import KeyNotice from '@/components/system/KeyNotice';
 
 export default function Releases() {
   const [rows, setRows] = useState([]);
@@ -102,6 +103,8 @@ export default function Releases() {
         Bundles download from each release — the exported page plus the config file your target needs (vercel.json,
         Dockerfile, or a GitHub Pages workflow). Pushing straight to an account still needs that account connected.
       </div>
+
+      <KeyNotice surfaceKey="Release deploy" />
 
       {error && <p className="mt-3 text-[11.5px] text-destructive">{error}</p>}
 

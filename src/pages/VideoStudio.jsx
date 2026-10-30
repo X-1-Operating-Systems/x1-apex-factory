@@ -8,6 +8,7 @@ import RenderForm from '@/components/video/RenderForm';
 import JobRow from '@/components/video/JobRow';
 import CapabilityTable from '@/components/video/CapabilityTable';
 import AdminGate from '@/components/video/AdminGate';
+import KeyNotice from '@/components/system/KeyNotice';
 
 export default function VideoStudio() {
   const { user } = useAuth();
@@ -70,6 +71,8 @@ export default function VideoStudio() {
         Avatar renders from a script, with the account&apos;s own avatars and voices. Every render is
         stored here with its status and result.
       </p>
+
+      <KeyNotice surfaceKey="Video studio" />
 
       <div className="mt-3">
         <BalanceCard account={account} loading={loading} />
