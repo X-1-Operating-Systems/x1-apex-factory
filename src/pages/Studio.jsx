@@ -247,23 +247,9 @@ export default function Studio() {
   const prepareRelease = async () => {
     setReleasing(true);
     try {
-      const data = await evaluate();
-      await storeRun(data);
-      const passed = data.verdict === 'pass';
-      await base44.entities.Deployment.create({
-        project_id: id,
-        project_name: project.name,
-        target,
-        status: passed ? 'ready_for_approval' : 'blocked',
-        manifest_hash: blockHash(page.blocks),
-        page_version: page.version,
-        qa_score: data.score,
-        notes: passed
-          ? 'Manifest prepared from this page version. Approval hands it to the connected deployment target.'
-          : `Blocked by release review: ${(data.findings || [])[0] || 'see findings'}`,
-      });
-      const updated = await base44.entities.Project.update(project.id, { status: passed ? 'ready' : 'review', deploy_target: target });
-      setProject(updated);
+      const res = await base44.functions.invoke('deployRelease', { action: 'run', project_id: id, target });
+      const passed = res.data.deployment.status === 'ready_for_approval';
+      setProject(res.data.project);
       setReleaseOpen(false);
       toast({
         title: passed ? 'Release manifest prepared' : 'Release blocked',

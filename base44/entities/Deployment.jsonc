@@ -37,10 +37,71 @@
     "qa_score": {
       "type": "number"
     },
+    "qa_verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "review",
+        "block"
+      ]
+    },
     "url": {
       "type": "string"
     },
     "notes": {
+      "type": "string"
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "status"
+        ]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file_uri": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "file_uri"
+        ]
+      }
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
       "type": "string"
     }
   },

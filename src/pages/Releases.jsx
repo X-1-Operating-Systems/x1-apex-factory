@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import moment from 'moment';
-import { Check, ShieldAlert, Clock, ArrowUpRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-const META = {
-  ready_for_approval: { label: 'Ready for approval', icon: Clock, tone: 'text-amber-600 bg-amber-500/10' },
-  approved: { label: 'Approved', icon: Check, tone: 'text-emerald-600 bg-emerald-500/10' },
-  blocked: { label: 'Blocked', icon: ShieldAlert, tone: 'text-destructive bg-destructive/10' },
-  superseded: { label: 'Superseded', icon: Clock, tone: 'text-muted-foreground bg-muted' },
-};
+import ReleaseRow from '@/components/releases/ReleaseRow';
 
 export default function Releases() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState('');
+  const [error, setError] = useState('');
 
   const load = async () => {
     const page = await base44.entities.Deployment.filter({}, { sort: '-created_date', limit: 60 });
@@ -27,22 +21,41 @@ export default function Releases() {
   }, []);
 
   const approve = async (row) => {
-    await base44.entities.Deployment.update(row.id, { status: 'approved' });
-    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: 'approved' } : r)));
+    setApproving(row.id);
+    setError('');
+    try {
+      const res = await base44.functions.invoke('deployRelease', { action: 'approve', deployment_id: row.id });
+      setRows((prev) => prev.map((r) => (r.id === row.id ? res.data.deployment : r)));
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+    } finally {
+      setApproving('');
+    }
   };
+
+  const pending = rows.filter((row) => row.status === 'ready_for_approval').length;
+  const approved = rows.filter((row) => row.status === 'approved').length;
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-5 py-8 lg:px-10 lg:py-12">
-      <h1 className="text-[15px] font-medium">Releases</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-[15px] font-medium">Releases</h1>
+        <p className="text-[11.5px] text-muted-foreground">
+          {pending} awaiting approval · {approved} approved
+        </p>
+      </div>
       <p className="mt-1.5 max-w-[62ch] text-[12.5px] leading-relaxed text-muted-foreground">
-        Each record pins a page version, its review score and a manifest hash, so an approval always points at exactly
-        one build.
+        Every release freezes one page version, reviews it, then packages a deployable bundle. The manifest hash pins
+        the exact build, so an approval always points at one thing.
       </p>
 
-      <div className="mt-5 rounded-xl border border-border bg-card px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
-        Manifests are prepared here. Pushing to Vercel, Railway, GitHub or Supabase runs once those accounts are
-        connected — an approved record is the handoff point, not a live site.
+      <div className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+        Bundles download from each release — the exported page plus the config file your target needs (vercel.json,
+        Dockerfile, or a GitHub Pages workflow). Pushing straight to an account still needs that account connected.
       </div>
+
+      {error && <p className="mt-3 text-[11.5px] text-destructive">{error}</p>}
 
       {loading ? (
         <div className="mt-6 space-y-2">
@@ -54,7 +67,7 @@ export default function Releases() {
         <div className="mt-6 rounded-xl border border-dashed border-border px-6 py-14 text-center">
           <p className="text-[15px] font-medium">Nothing prepared yet</p>
           <p className="mx-auto mt-2 max-w-[44ch] text-[12.5px] leading-relaxed text-muted-foreground">
-            Open a project, run a review, then prepare a release from the studio header.
+            Open a project and prepare a release from the studio header — it gets reviewed, frozen and bundled here.
           </p>
           <Link to="/" className="mt-5 inline-flex items-center gap-1 text-[12px] font-medium text-primary">
             Go to projects <ArrowUpRight size={13} />
@@ -62,31 +75,9 @@ export default function Releases() {
         </div>
       ) : (
         <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
-          {rows.map((row) => {
-            const meta = META[row.status] || META.blocked;
-            const Icon = meta.icon;
-            return (
-              <div key={row.id} className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3.5 last:border-0">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10.5px] font-medium ${meta.tone}`}>
-                  <Icon size={11} /> {meta.label}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link to={`/studio/${row.project_id}`} className="truncate text-[13px] font-medium hover:underline">
-                    {row.project_name}
-                  </Link>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {row.target} · v{row.page_version} · {row.manifest_hash} · QA {Math.round(row.qa_score ?? 0)}
-                  </p>
-                </div>
-                <span className="text-[11px] text-muted-foreground">{moment(row.created_date).format('D MMM, HH:mm')}</span>
-                {row.status === 'ready_for_approval' && (
-                  <Button size="sm" variant="outline" className="rounded-full" onClick={() => approve(row)}>
-                    Approve
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+          {rows.map((row) => (
+            <ReleaseRow key={row.id} row={row} onApprove={approve} busy={approving === row.id} />
+          ))}
         </div>
       )}
     </div>
