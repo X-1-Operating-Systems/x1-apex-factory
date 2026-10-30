@@ -525,6 +525,7 @@ Verification (live): `keyStatus` answered `ok` with every secret present today a
 |---|---|---|
 | G-85 | closed | key presence and per-surface readiness read from one function; every dependent screen shows the instruction instead of an error |
 | G-86 | closed | Computers skips the Manus call when its key is absent and says so, so the page never reads as broken |
+| G-90 | closed | her room is renewed in place before the vendor ceiling, one join link works from any signed-in device, and the room resumes after a reload (Batch 42) |
 
 ### Batch 40 — the avatar artwork drives the card shape, and the live session is proven again
 
@@ -548,6 +549,18 @@ Built: two registry actions ('voices.get', 'avatars.get', both verified 200 thro
 | G-89 | blocked on funds | speech.create with her clone returned **402 insufficient_credit** — authentication and the voice id resolve, and the request is refused only at the wallet. Same standing blocker as G-84 |
 
 **Not done on purpose:** nothing was pushed into LiveAvatar. The gate records LiveAvatar's identity, private voice and source-voice mapping as NOT_VERIFIED, and LITE external-PCM bridging is a separate build that needs bounded paid-session authorisation.
+
+### Batch 42 — her room is kept open, on one link, from any device (G-90)
+
+The session in Batch 41 lasted 60 seconds and then simply ended: LiveAvatar caps a session, and every device that wanted her had to start its own. Nothing was held between visits, so "continuous presence" was a claim the code did not keep.
+
+Built: `base44/functions/edenLive/entry.ts` with four actions on one room per operator — `state` (the room that is actually open, verified against the provider's own session list, plus credits), `keep` (creates when there is none, otherwise returns the live one; inside the 45-second renewal window it **ends the old session and starts a fresh one**, carrying the renewal count forward), `stop` (ends every one of the operator's open rooms and says how many), `start` (explicit single session). Every record is written to `LiveSession` with the client token, the LiveKit room and an `expires_at`, so a reload or a second device reattaches to the room that is really running. `src/components/live/PersistentRoom.jsx` replaces the old one-shot starter: open her room (two-step when the sandbox is off, because a live minute bills), the stage joins with the session's own token, a countdown shows the remaining seconds and the renewal count, "Keep her live" beats every 15 seconds, and **Copy phone link** hands out `/live` so the same room opens on the phone that is signed into this workspace. Dead surface removed: `SessionStarter.jsx` is deleted, not left beside the new room.
+
+| id | state | verification (live, this turn, free sandbox) |
+|---|---|---|
+| G-90 | closed | `keep` created room `56f81816…` (room `0433cf29…`, 60s, `renewals: 0`, credits 1110) · 31 seconds later the next `keep` **renewed**: room `dfba9898…` in a different LiveKit room (`ba2bb59d…`) with a new client token and `renewals: 1`, and the previous record came back `status: ended` with `ended_at` set — the rollover happens before the vendor's ceiling, so the chain never breaks · `stop` answered `stopped: 1` and closed the open room · all three probe records deleted (0 `LiveSession` rows left) · client tokens are stored but never rendered — the page reads them through the function · build green |
+
+**Still blocked on funds:** her cloned voice and her own avatar are private HeyGen records; both reach LiveAvatar only after her image is uploaded and validated inside LiveAvatar, and rendering with that voice answers `402 insufficient_credit` until the wallet is funded (G-84, G-89). Until then the room runs LiveAvatar's preview avatar with her context and greeting, and the page says exactly that.
 
 ## Register state (through Batch 40)
 
