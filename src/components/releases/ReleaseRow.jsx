@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
-import { AlertTriangle, Check, ChevronRight, Clock, Copy, Download, Loader2, Send, ShieldAlert, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Copy, Download, ExternalLink, Loader2, Send, ShieldAlert, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 
@@ -51,6 +51,16 @@ export default function ReleaseRow({ row, onApprove, busy, handoff, onHandoff, o
           {row.target.replace('_', ' ')} · v{row.page_version} · {row.manifest_hash}
           {row.qa_verdict ? ` · QA ${Math.round(row.qa_score ?? 0)} (${row.qa_verdict})` : ''}
         </span>
+        {row.url && (
+          <a
+            href={row.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-[3px] text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <ExternalLink size={9} /> Live
+          </a>
+        )}
         <span className="ml-auto text-[11px] text-muted-foreground">
           {moment(row.created_date).format('D MMM, HH:mm')}
         </span>

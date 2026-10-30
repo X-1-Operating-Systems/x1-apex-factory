@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { auditPage } from '../../shared/qa.ts';
 import { manifestHash, renderPageHtml, targetFiles } from '../../shared/bundle.ts';
+import { deployToVercel, deploymentName } from '../../shared/vercel.ts';
 
 const TARGETS = ['vercel', 'railway', 'docker', 'github_pages'];
 
@@ -148,13 +149,73 @@ export default async function (req: Request): Promise<Response> {
       }
 
       const approvedAt = new Date().toISOString();
+      const approvedStages = (record.stages || []).map((stage: any) =>
+        stage.key === 'handoff' ? { ...stage, status: 'pass', detail: `Approved by ${user.email}` } : stage
+      );
+
+      // Approval is a decision; the release only becomes live when the target accepts the packaged files.
+      let liveUrl: string | null = record.url || null;
+      let deployStage: any;
+      if (record.target !== 'vercel') {
+        deployStage = {
+          key: 'deploy',
+          label: `Deploy · ${record.target}`,
+          status: 'skipped',
+          detail: `${record.target} deploys are not automated — the packaged files are on this release for a manual push`,
+        };
+      } else if (!record.artifacts?.length) {
+        deployStage = { key: 'deploy', label: 'Deploy · vercel', status: 'fail', detail: 'This release has no packaged files' };
+      } else {
+        const files: { name: string; content: string }[] = [];
+        for (const artifact of record.artifacts) {
+          const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+            file_uri: artifact.file_uri,
+            expires_in: 300,
+          });
+          const fileResponse = await fetch(signed_url);
+          if (!fileResponse.ok) continue;
+          files.push({ name: artifact.name, content: await fileResponse.text() });
+        }
+        const deployed = await deployToVercel({
+          token: Deno.env.get('VERCEL_API_KEY') || '',
+          name: deploymentName(record.project_name, record.manifest_hash),
+          files,
+        });
+        const buildFailed = deployed.state === 'ERROR' || deployed.state === 'CANCELED';
+        if (deployed.error || buildFailed || !deployed.url) {
+          deployStage = {
+            key: 'deploy',
+            label: 'Deploy · vercel',
+            status: 'fail',
+            detail: deployed.error || 'Vercel accepted the upload but the build did not succeed',
+          };
+        } else {
+          liveUrl = deployed.url;
+          const building = deployed.state !== 'READY';
+          deployStage = {
+            key: 'deploy',
+            label: 'Deploy · vercel',
+            status: building ? 'warn' : 'pass',
+            detail: building
+              ? `${files.length} files uploading — Vercel is still building ${deployed.url}`
+              : `${files.length} files live at ${deployed.url}`,
+          };
+          if (!building) {
+            await base44.entities.Project.update(record.project_id, { live_url: deployed.url, status: 'live' });
+          }
+        }
+      }
+
       const updated = await base44.entities.Deployment.update(deploymentId, {
         status: 'approved',
         approved_at: approvedAt,
         approved_by: user.email,
-        stages: (record.stages || []).map((stage: any) =>
-          stage.key === 'handoff' ? { ...stage, status: 'pass', detail: `Approved by ${user.email}` } : stage
-        ),
+        url: liveUrl || undefined,
+        stages: [...approvedStages, deployStage],
+        notes:
+          deployStage.status === 'fail'
+            ? `${record.notes ? `${record.notes} ` : ''}Approved, but the deploy failed: ${deployStage.detail}`
+            : record.notes,
       });
 
       const approved = await base44.entities.Deployment.filter(
