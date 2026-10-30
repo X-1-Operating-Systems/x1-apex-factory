@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { manusCall, digestTask, normalizeEvents, buildContent } from '../../shared/manus.ts';
+import { manusCall, digestTask, normalizeEvents, buildContent, summarizeRun } from '../../shared/manus.ts';
 
 const TASK_ID = /^[A-Za-z0-9_-]{4,80}$/;
 
@@ -105,6 +105,7 @@ export default async function (req: Request): Promise<Response> {
         },
         events: normalizeEvents(listed.messages || []),
         digest: digestTask(listed.messages || []),
+        run: summarizeRun(listed.messages || []),
         next_cursor: listed.next_cursor || null,
         has_more: Boolean(listed.has_more),
       });

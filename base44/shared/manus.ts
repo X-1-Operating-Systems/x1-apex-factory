@@ -58,6 +58,45 @@ export function resolveLinks(content: string, files: any[]) {
   return text.replace(/\[([^\]]*)\]\((?!https?:\/\/)([^)]*)\)/g, '$1');
 }
 
+// The agent's computer view: latest plan snapshot, current activity, tool actions.
+export function summarizeRun(messages: any[]) {
+  const ordered = [...(messages || [])];
+
+  const planEvent = ordered.find(
+    (event) => event?.type === 'plan_update' && Array.isArray(event?.plan_update?.steps) && event.plan_update.steps.length
+  );
+  const steps = planEvent
+    ? planEvent.plan_update.steps.slice(0, 24).map((step: any) => ({
+        title: String(step?.title || '').slice(0, 160),
+        status: String(step?.status || 'todo'),
+      }))
+    : [];
+
+  const statusEvent = ordered.find((event) => event?.type === 'status_update');
+  const status = statusEvent?.status_update || {};
+
+  const activity = ordered
+    .filter((event) => event?.type === 'tool_used')
+    .slice(0, 40)
+    .map((event: any) => ({
+      id: String(event?.id || ''),
+      tool: String(event?.tool_used?.tool || 'tool'),
+      status: String(event?.tool_used?.status || 'success'),
+      brief: String(event?.tool_used?.message?.action || event?.tool_used?.brief || '').slice(0, 180),
+      detail: String(event?.tool_used?.description || '').slice(0, 400),
+      timestamp: Number(event?.timestamp || 0),
+    }));
+
+  return {
+    steps,
+    activity,
+    agent_status: String(status?.agent_status || ''),
+    brief: String(status?.brief || '').slice(0, 300),
+    description: String(status?.description || '').slice(0, 600),
+    waiting: String(status?.status_detail?.waiting_description || '').slice(0, 400),
+  };
+}
+
 export function buildContent(text: string, files: any[]) {
   const usable = (files || []).slice(0, 5);
   if (!usable.length) return text;

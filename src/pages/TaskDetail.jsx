@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Loader2, Square } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, Monitor, Square } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import StatusPill from '@/components/manus/StatusPill';
 import TaskTimeline from '@/components/task/TaskTimeline';
 import TaskFollowUp from '@/components/task/TaskFollowUp';
+import ComputerPanel from '@/components/task/ComputerPanel';
 
 const when = (ts) => {
   if (!ts) return '';
@@ -25,6 +26,7 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stopping, setStopping] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [earlier, setEarlier] = useState({ events: [], cursor: null, hasMore: false });
   const [busyEarlier, setBusyEarlier] = useState(false);
 
@@ -141,6 +143,14 @@ export default function TaskDetail() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPanelOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Monitor size={11} /> Computer
+              {running && <span className="h-1 w-1 rounded-full bg-info" />}
+            </button>
             {running && (
               <button
                 type="button"
@@ -187,6 +197,8 @@ export default function TaskDetail() {
           placeholder={waiting?.description || 'Send a follow-up to this task'}
         />
       </div>
+
+      <ComputerPanel run={data?.run} open={panelOpen} onClose={() => setPanelOpen(false)} />
     </div>
   );
 }
