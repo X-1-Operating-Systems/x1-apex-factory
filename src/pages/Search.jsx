@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, Search as SearchIcon } from 'lucide-react';
+import { Loader2, Search as SearchIcon, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import StatusPill from '@/components/manus/StatusPill';
 import { ResultRow, ResultSection } from '@/components/search/ResultSection';
+import AIChat from '@/components/ai/AIChat';
+import useStudioChat from '@/hooks/useStudioChat';
+import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
 import { prettySize } from '@/lib/files';
 
 const like = (value) => ({ $regex: value, $options: 'i' });
@@ -17,6 +20,13 @@ export default function Search() {
   const query = (params.get('q') || '').trim();
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [chatOptions, setChatOptions] = useState(() => loadTaskOptions());
+  const chat = useStudioChat({ model: chatOptions.model, effort: chatOptions.effort });
+
+  const changeChatOptions = (next) => {
+    setChatOptions(next);
+    saveTaskOptions(next);
+  };
 
   useEffect(() => {
     if (!query) {
@@ -76,9 +86,23 @@ export default function Search() {
 
   return (
     <div className="mx-auto w-full max-w-[900px] px-5 py-8 lg:px-10 lg:py-10">
-      <h1 className="text-[15px] font-medium">Search</h1>
+      <h1 className="text-[15px] font-medium">Ask or search</h1>
 
-      <form onSubmit={submit} className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+      <div className="mt-3 flex h-[320px] flex-col rounded-xl border border-border bg-card p-3">
+        <div className="mb-1.5 flex shrink-0 items-center gap-1.5">
+          <Sparkles size={12} className="text-muted-foreground" />
+          <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Ask the studio</p>
+        </div>
+        <AIChat
+          chat={chat}
+          options={chatOptions}
+          onOptionsChange={changeChatOptions}
+          placeholder={query ? `Ask about “${query}”` : 'Describe what you want built'}
+          hint="The fastest way in: describe the build and it starts as a real task. Results for what already exists sit below."
+        />
+      </div>
+
+      <form onSubmit={submit} className="mt-6 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
         <SearchIcon size={14} className="shrink-0 text-muted-foreground" />
         <input
           value={term}

@@ -4,6 +4,7 @@ import { Globe, Loader2, Monitor, X } from 'lucide-react';
 import ComputerActions from '@/components/task/ComputerActions';
 import ComputerFeed from '@/components/task/ComputerFeed';
 import ComputerPlan from '@/components/task/ComputerPlan';
+import ComputerView from '@/components/task/ComputerView';
 import { effortLabel, modelLabel } from '@/lib/taskOptions';
 
 const LABEL = 'mb-1.5 text-[10.5px] uppercase tracking-wide text-muted-foreground';
@@ -59,6 +60,11 @@ export default function ComputerPane({ task, events = [], run, engine, onClose }
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto scroll-thin p-3.5">
+        <section>
+          <p className={LABEL}>Live view</p>
+          <ComputerView task={task} engine={engine} />
+        </section>
+
         <section>
           <p className={LABEL}>Now</p>
           <p className="text-[12px] leading-relaxed">{now}</p>

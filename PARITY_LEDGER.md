@@ -81,6 +81,19 @@ Verification rule: a gap is only `closed` when the production build is green AND
 |---|---|---|---|---|
 | G-15 | closed | src/pages/Search.jsx, src/components/search/ResultSection.jsx | Search now runs eight parallel server queries instead of five: task titles/instructions, projects, **websites**, **artifacts**, **files**, agents, automations, templates. Websites match a task's deliverable where the type is `website` and link to `/websites/:taskId`; artifacts match any other deliverable by name or detail and link to their build task; files match by name and show mime type plus size. A website deliverable is filtered out of the artifacts section so nothing is listed twice. `ResultSection`/`ResultRow` moved into their own component so the page stays readable. Verified on real records: one site task, one deck task and one upload produced exactly `websites: ["zephyr site"]`, `artifacts: ["zephyr growth deck"]`, `files: ["zephyr brief.pdf (application/pdf)"]`, with the title query catching the site task and the unrelated deliverable excluded; all probes deleted afterwards (0 tasks, 0 files). Build green. |
 
+### Batch 12 — the interaction core: live view, AI panel, AI-first search
+
+**Surface hierarchy (decided this batch).** Three surfaces carry the product, in this order:
+
+1. **AI panel** — the conversation. A persistent slide-over on every screen (⌘J, or the "Ask" pill) that starts a real task from the first sentence and keeps the thread going with follow-ups. One implementation (`useStudioChat` + `AIChat`) shared with every other entry point, so a conversation behaves identically wherever it starts.
+2. **Computer panel live view** — the output. The top of the computer panel now shows the run's actual surface: the hosted site in a frame for Manus runs, the composed page rendered live (its real blocks, accent, surface and headline font) for native runs, with a clear empty state when nothing is viewable yet.
+3. **Search** — the index, now AI-first. "Ask or search" opens with the studio conversation at the top and workspace results below, so the page answers questions *and* finds existing work.
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-16 | closed | src/components/task/ComputerView.jsx, src/components/task/ComputerPane.jsx | The computer panel opens with a **Live view** section: Manus runs frame their `preview_url`/`site_url` with an open-in-new-tab footer, native runs render the project's real page through `PageCanvas` in a browser-chrome frame, and a run with neither shows an honest empty state. It refetches as the task's `updated_date` moves, so the view tracks the build. Verified on live records: a probe project (dark surface, `#2f5d50`, display font) with a two-block page came back through ComputerView's exact queries as `{pageName: 'Home', pageVersion: 3, blockTypes: ['hero','cta'], tokens: {accent:'#2f5d50', surface:'dark', headlineFont:'display'}}`, and the polled detail payload carries `task`, `events`, `digest`. Probes deleted (0 projects, 0 pages, 0 tasks). Build green. | A remote-browser screencast (Browserbase live view) is still an extra, not a gap: the panel now shows the real surface rather than only steps. Logged as a future extra. |
+| G-15b | closed | src/hooks/useStudioChat.js, src/components/ai/AIChat.jsx, src/components/ai/AIPanel.jsx, src/components/AppShell.jsx, src/pages/Search.jsx | One conversation engine backs the Ask panel, the ⌘J shortcut and the Search page's Ask card: the first message becomes a task via `createTask`, later messages are follow-ups via `sendToTask`, and polling stops once the task settles (restarted by the next follow-up). The panel links straight to the full task, and Search puts the same chat above its results. Verified build green and the polled detail payload (`task`, `events`, `next_cursor`, `has_more`) matches what the chat reads. | Both entry points share the model/effort choice already stored on the device. |
+
 ## Register state
 
 | id | sev | state |
@@ -100,15 +113,15 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-13 | HIGH | closed |
 | G-14 | HIGH | closed |
 | G-15 | HIGH | closed |
-| G-16 | HIGH | open — computer panel streams run steps but has no live browser view |
+| G-16 | HIGH | closed |
 | G-17 | HIGH | closed |
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 12)
+## Next batch (Batch 13)
 
-G-16 — re-scope the computer panel against what it renders today, then decide between a live browser view and closing it as "streamed steps are the view".
-Medium gaps G-18..G-25 come after that.
+G-18..G-25 in severity order, starting with whichever of them touches the three core surfaces first (the AI panel's conversation and the computer panel's live view now set the interaction standard everything else is measured against).
+Extras still open beyond the register: a remote-browser screencast in the computer panel (Browserbase live view), and per-conversation history in the Ask panel.
 
 ## Blockers needing the operator
 

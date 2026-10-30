@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -9,6 +9,9 @@ import AccountMenu from '@/components/shell/AccountMenu';
 import NotificationBell from '@/components/shell/NotificationBell';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { loadPreferences } from '@/lib/preferences';
+import AIPanel from '@/components/ai/AIPanel';
+import useStudioChat from '@/hooks/useStudioChat';
+import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
 
 function Wordmark() {
   return (
@@ -27,6 +30,14 @@ export default function AppShell() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [chatOptions, setChatOptions] = useState(() => loadTaskOptions());
+  const chat = useStudioChat({ model: chatOptions.model, effort: chatOptions.effort });
+
+  const changeChatOptions = (next) => {
+    setChatOptions(next);
+    saveTaskOptions(next);
+  };
 
   useEffect(() => {
     loadPreferences().catch(() => {});
@@ -49,6 +60,10 @@ export default function AppShell() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         navigate('/search');
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
+        event.preventDefault();
+        setAiOpen((open) => !open);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -132,6 +147,25 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {!aiOpen && (
+        <button
+          type="button"
+          onClick={() => setAiOpen(true)}
+          aria-label="Ask the studio"
+          className="fixed bottom-4 right-4 z-30 inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-[11.5px] font-medium text-background shadow-lg transition-opacity hover:opacity-90"
+        >
+          <Sparkles size={12} /> Ask
+        </button>
+      )}
+
+      <AIPanel
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        chat={chat}
+        options={chatOptions}
+        onOptionsChange={changeChatOptions}
+      />
     </div>
   );
 }
