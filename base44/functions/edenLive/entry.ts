@@ -1,11 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { secrets } from 'base44:runtime';
-import { callLiveAvatar } from '../../shared/liveavatar.ts';
+import { callLiveAvatar, EDEN_AVATAR_ID, SANDBOX_AVATAR_ID } from '../../shared/liveavatar.ts';
 
 // One live Eden room that survives the vendor's per-session ceiling. LiveAvatar caps a session at
 // 20 minutes (60 seconds in its sandbox), so "persistent" here means the app rolls a fresh session
 // over a few seconds before the old one expires, and every device joins whatever room is current.
-const SANDBOX_AVATAR_ID = 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a';
+// Her own avatar, trained from her artwork. The sandbox avatar is only a fallback if that fails.
+const AVATAR_ID = secrets.get('EDEN_LIVEAVATAR_AVATAR_ID') || EDEN_AVATAR_ID || SANDBOX_AVATAR_ID;
 const EDEN_CONTEXT_ID = '58a8223a-bbb7-4bff-99d3-0322661d3588';
 const LIVE_CAP_SECONDS = 1200;
 const SANDBOX_CAP_SECONDS = 60;
@@ -113,7 +114,7 @@ export default async function (req) {
     const tokenRes = await callLiveAvatar(
       'sessions.token',
       {
-        avatar_id: SANDBOX_AVATAR_ID,
+        avatar_id: AVATAR_ID,
         mode: 'FULL',
         is_sandbox: sandbox,
         context_id: EDEN_CONTEXT_ID,
@@ -129,7 +130,7 @@ export default async function (req) {
 
     const startRes = await callLiveAvatar(
       'sessions.start',
-      { session_token: sessionToken, avatar_id: SANDBOX_AVATAR_ID, mode: 'FULL', is_sandbox: sandbox, context_id: EDEN_CONTEXT_ID },
+      { session_token: sessionToken, avatar_id: AVATAR_ID, mode: 'FULL', is_sandbox: sandbox, context_id: EDEN_CONTEXT_ID },
       apiKey,
     );
     if (!startRes.ok) {
@@ -141,7 +142,7 @@ export default async function (req) {
       provider: 'liveavatar',
       session_id: String(started.session_id),
       context_id: EDEN_CONTEXT_ID,
-      avatar_id: SANDBOX_AVATAR_ID,
+      avatar_id: AVATAR_ID,
       mode: 'FULL',
       status: 'started',
       persistent: true,

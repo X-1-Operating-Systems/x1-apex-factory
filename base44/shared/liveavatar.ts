@@ -10,6 +10,10 @@ const TRIES = 3;
 // The vendor's free sandbox avatar; sandbox sessions bill nothing and end after ~1 minute.
 export const SANDBOX_AVATAR_ID = "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a";
 
+// Her own LiveAvatar id, once the vendor has trained one from a still it accepts. Empty means the
+// room falls back to the free sandbox avatar; EDEN_LIVEAVATAR_AVATAR_ID overrides this value.
+export const EDEN_AVATAR_ID = "";
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const pick = (input, keys) => {
