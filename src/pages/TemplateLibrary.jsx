@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import TemplateCard from '@/components/TemplateCard';
+import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog';
 import NewProjectDialog from '@/components/NewProjectDialog';
 
 const PAGE = 24;
@@ -45,6 +46,7 @@ export default function TemplateLibrary() {
   const [moreBusy, setMoreBusy] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [preset, setPreset] = useState('');
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     const id = setTimeout(() => setTerm(query.trim()), 250);
@@ -164,7 +166,7 @@ export default function TemplateLibrary() {
           </p>
           <div className="mt-3 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((t) => (
-              <TemplateCard key={t.id} template={t} onUse={use} />
+              <TemplateCard key={t.id} template={t} onUse={use} onPreview={setPreview} />
             ))}
           </div>
           {hasMore && (
@@ -181,6 +183,18 @@ export default function TemplateLibrary() {
           )}
         </>
       )}
+
+      <TemplatePreviewDialog
+        template={preview}
+        open={Boolean(preview)}
+        onOpenChange={(next) => {
+          if (!next) setPreview(null);
+        }}
+        onUse={(template) => {
+          setPreview(null);
+          use(template);
+        }}
+      />
 
       <NewProjectDialog
         open={dialogOpen}

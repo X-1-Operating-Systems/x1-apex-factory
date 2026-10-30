@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import PageCanvas from '@/components/studio/PageCanvas';
 
-export default function TemplateCard({ template, onUse }) {
+export default function TemplateCard({ template, onUse, onPreview }) {
   const tokens = {
     accent: template.accent || '#b4532a',
     surface: template.surface || 'light',
@@ -11,9 +11,16 @@ export default function TemplateCard({ template, onUse }) {
 
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/25">
-      <div className="pointer-events-none h-[168px] overflow-hidden border-b border-border">
-        <PageCanvas blocks={template.blocks || []} tokens={tokens} showSelection={false} />
-      </div>
+      <button
+        type="button"
+        onClick={() => onPreview(template)}
+        aria-label={`Preview ${template.name}`}
+        className="block h-[168px] w-full cursor-zoom-in overflow-hidden border-b border-border"
+      >
+        <div className="pointer-events-none h-full">
+          <PageCanvas blocks={template.blocks || []} tokens={tokens} showSelection={false} />
+        </div>
+      </button>
       <div className="flex items-start justify-between gap-3 p-4">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{template.category?.replace('_', ' ')}</p>

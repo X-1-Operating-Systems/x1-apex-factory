@@ -18,6 +18,7 @@ import Studio from '@/pages/Studio';
 import TaskDetail from '@/pages/TaskDetail';
 import NewTask from '@/pages/NewTask';
 import TemplateLibrary from '@/pages/TemplateLibrary';
+import Playbooks from '@/pages/Playbooks';
 import Releases from '@/pages/Releases';
 import Library from '@/pages/Library';
 import Artifacts from '@/pages/Artifacts';
@@ -81,6 +82,7 @@ const AuthenticatedApp = () => {
           <Route path="/new" element={<NewTask />} />
           <Route path="/task/:id" element={<TaskDetail />} />
           <Route path="/templates" element={<TemplateLibrary />} />
+          <Route path="/playbooks" element={<Playbooks />} />
           <Route path="/releases" element={<Releases />} />
           <Route path="/library" element={<Library />} />
           <Route path="/artifacts" element={<Artifacts />} />

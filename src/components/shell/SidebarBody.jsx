@@ -12,6 +12,7 @@ import {
   FolderOpen,
   Globe,
   Layers,
+  BookOpen,
   Rocket,
   Plug,
   Settings,
@@ -30,6 +31,7 @@ const NAV = [
   { to: '/files', label: 'Files', icon: FolderOpen },
   { to: '/websites', label: 'Websites', icon: Globe },
   { to: '/templates', label: 'Templates', icon: Layers },
+  { to: '/playbooks', label: 'Playbooks', icon: BookOpen },
   { to: '/releases', label: 'Releases', icon: Rocket },
   { to: '/plugins', label: 'Connectors', icon: Plug },
 ];
