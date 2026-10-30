@@ -158,6 +158,43 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 |---|---|---|---|---|
 | G-28 | closed | base44/shared/connectorTools.ts, src/lib/connectorCatalog.js | Nine Google products are now runnable actions under one connection: Gmail search/read/send, Calendar list/create, Drive search/read-export, Docs read, Sheets read/append, Contacts search — plus Supabase `list_projects` / `query_readonly` and GitHub `list_pull_requests` / `create_issue` on top of the existing repo and issue reads. `googleworkspace` was added to the connector catalogue so it installs like any other tool. Three connectors authorized for the app and installed as StudioConnector records, each token proven live with a real API call: Drive 200, Gmail profile 200, GitHub /user 200, Supabase projects 200. Build green. | Token lookup fails soft and yields an honest "not connected" message instead of throwing. Writes stay gated behind access above read-only plus auto-approve. Authorizations are builder-level, so runs act on the operator's own accounts; Supabase was granted read-only scopes, so SQL is SELECT-only. |
 
+### Batch 19 — Browserbase parity, step 0: ground truth (nothing built yet)
+
+**Key proven live this turn.** The key in app secrets authenticates against `api.browserbase.com`; the configured project id resolves (200); one real session was created (201, `42de2fbb-4d2b-4a23-a66b-f1443f1a7a49`), reported `RUNNING`, returned a debugger + fullscreen URL, and was released (200); one context was created (201); a second session was created with `recordSession` + `logSession` and its logs and downloads both answered 200. **The account currently holds 0 agents.**
+
+Endpoints confirmed live: `GET /v1/sessions` 200 · `POST /v1/sessions` 201 · `GET /v1/sessions/{id}` 200 · `POST /v1/sessions/{id}` release 200 · `GET /v1/sessions/{id}/debug` 200 · `GET /v1/sessions/{id}/logs` 200 · `GET /v1/sessions/{id}/downloads` 200 · `POST /v1/contexts` 201 · `GET /v1/projects/{id}/usage` 200 · `GET /v1/agents` 200 · `GET /v1/agents/runs` 200 · `GET /v1/webhooks` 200 · `GET /v1/functions` 200 · `GET /v1/certificates` 200.
+Guessed paths that did **not** answer (endpoint to be confirmed during build, not to be assumed): `/sessions/{id}/live`, `/sessions/{id}/replay`, `/identities`, `/fetch`, `/search`, `GET /contexts`, `/extensions`.
+
+| id | capability | evidence today | state |
+|---|---|---|---|
+| G-30 | Sessions: create with full configuration (proxies, region, keepAlive, timeout 60–21600, extensionId, browserSettings incl. blockAds, solveCaptchas, recordSession, logSession, verified, os, context, viewport, captcha selectors, userMetadata) | 201 live | open |
+| G-31 | Sessions: list with filters + single-session detail | 200 live | open |
+| G-32 | Sessions: end / release a keep-alive session | 200 live | open |
+| G-33 | Live view: debugger URL + fullscreen URL | 200 live | open |
+| G-34 | Session logs (`logSession`) | 200 live | open |
+| G-35 | Session downloads / produced files | 200 live | open |
+| G-36 | Recording + replay (MP4 assemble, HLS replay) | `/recording` 410 while running — confirm on a completed session | open |
+| G-37 | Contexts: create, attach to a session, persist cookies/auth, retrieve, delete | create 201; `GET /contexts` not supported | open |
+| G-38 | Projects: read + update project settings | read 200 | open |
+| G-39 | Proxies: managed geo (country/state/city), external, per-domain patterns | documented; config path unverified | open |
+| G-40 | Uploads, screenshots, PDFs from a session | documented; no probe yet | open |
+| G-41 | Extensions: upload + attach by id | `/extensions` 404 on guessed path | open |
+| G-42 | Webhooks: create / list / delete, event types, inbound verify + store | list 200 | open |
+| G-43 | Usage + spend: per-project usage, session minutes | 200 live | open |
+| G-44 | Rate limits: retry with backoff, honest 429 surfacing | undocumented endpoint | open |
+| G-45 | Agents CRUD (list 200, **0 exist** on this account) | 200 live | open |
+| G-46 | Agent runs: start, poll to terminal, stop, resume a `PAUSED` run, messages transcript, run files | runs list 200 | open |
+| G-47 | Functions: list / deploy / invoke + per-function secrets | list 200 | open |
+| G-48 | Certificates (client-certificate auth) | 200 live | open |
+| G-49 | Search + Fetch products | docs exist; guessed paths 404 | open |
+| G-50 | Agent identity / saved sign-ins | docs exist; `/identities` 404 | open |
+| G-51 | Model Gateway | docs only, no endpoint confirmed | open |
+| G-52 | Session security: allowed domains, IP allowlisting, certificate validation | docs only | open |
+| G-53 | App surfaces: sessions board + embedded live view, logs viewer, context inspector, project switcher, webhook stream, usage/spend, agent runner, in-app docs page | — | open |
+| G-54 | Wiring: task engine browser tools, computer panel live session, Ask panel launches a run | — | open |
+| G-55 | End-to-end proof on a published test app: success path, failure path + recovery, context reuse across two sessions, webhook received, usage recorded, record before/after, probes deleted | — | open |
+| G-56 | Enterprise bar: secrets server-side only, RLS on every new entity, per-user isolation, audit trail, cost guardrails, security scan clean | — | open |
+
 ## Blockers needing the operator
 
-None.
+Awaiting approval of the G-30..G-56 register before any build work begins (as instructed).
