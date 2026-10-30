@@ -63,6 +63,12 @@ Verification rule: a gap is only `closed` when the production build is green AND
 |---|---|---|---|---|
 | G-12 (dashboard half) | closed | src/pages/Dashboard.jsx, src/components/dashboard/ProjectGrid.jsx, src/components/dashboard/TemplateRow.jsx, src/components/ProjectCard.jsx | Dashboard order is now composer → projects → recent tasks → templates, so the studio is the primary surface and task history sits below it. Project cards carry a live page count from one grouped aggregate; the grid loads from the server and has its own empty state with a working "New project" path. Verified against real records: a two-page project came back through the grid's exact queries as `{pages: 2, template: 'Atelier'}`, and deleting it left zero projects. Build green. | `ProjectCard` is now shared and takes an optional `pageCount`. |
 
+### Batch 9 — file type filters (G-14)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-14 | closed | src/lib/files.js, src/pages/Files.jsx, src/components/files/FileTypeFilter.jsx | Search now combines with a type filter (All / Images / Documents / Video / Audio) in one server query, and the header count reflects the active filters instead of the whole library. `fileFilter` is shared by list and count so the two can never disagree; paging carries both filters. Verified on real records: three probe uploads (png, txt, mp4) returned exactly one image, one document, and one video-with-term, term-only search matched by name, the filtered count came back 1, and all probes were deleted afterwards (0 left). Build green. | Files already had search; the missing half was type filtering and an honest filtered count. |
+
 ## Register state
 
 | id | sev | state |
@@ -80,17 +86,17 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-11 | HIGH | closed |
 | G-12 | HIGH | doing — sidebar sections and project-first dashboard live; project grouping inside sessions pending |
 | G-13 | HIGH | closed |
-| G-14 | HIGH | open — Files has no search or type filter over uploads |
+| G-14 | HIGH | closed |
 | G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
 | G-16 | HIGH | open — computer panel streams run steps but has no live browser view |
 | G-17 | HIGH | closed |
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 9)
+## Next batch (Batch 10)
 
-G-14 upload search and type filter on Files · then G-12's remaining half (project grouping inside the session list).
-G-15 and G-16 get re-scoped at the start of the batch after verifying the current Search and computer-panel behaviour.
+G-12's remaining half — project grouping inside the session list — then G-15 search coverage across artifacts, files and websites.
+G-16 gets re-scoped at the start of the batch after verifying the current computer-panel behaviour.
 
 ## Blockers needing the operator
 

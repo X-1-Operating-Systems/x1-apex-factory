@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import FileRow from '@/components/files/FileRow';
+import FileTypeFilter from '@/components/files/FileTypeFilter';
 import FileUploadButton from '@/components/files/FileUploadButton';
 import { countFiles, listFiles } from '@/lib/files';
 
 export default function Files() {
   const [files, setFiles] = useState([]);
   const [query, setQuery] = useState('');
+  const [type, setType] = useState('');
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
@@ -14,11 +16,11 @@ export default function Files() {
   const [moreBusy, setMoreBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async (term) => {
+  const load = useCallback(async (term, mime) => {
     setLoading(true);
     setError('');
     try {
-      const page = await listFiles({ query: term, limit: 30 });
+      const page = await listFiles({ query: term, type: mime, limit: 30 });
       setFiles(page.items);
       setCursor(page.next_cursor);
       setHasMore(Boolean(page.has_more));
@@ -30,19 +32,18 @@ export default function Files() {
   }, []);
 
   useEffect(() => {
-    countFiles().then(setTotal).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => load(query), query ? 280 : 0);
+    const timer = setTimeout(() => {
+      load(query, type);
+      countFiles({ query, type }).then(setTotal).catch(() => {});
+    }, query ? 280 : 0);
     return () => clearTimeout(timer);
-  }, [query, load]);
+  }, [query, type, load]);
 
   const loadMore = async () => {
     if (!cursor || moreBusy) return;
     setMoreBusy(true);
     try {
-      const page = await listFiles({ query, limit: 30, cursor });
+      const page = await listFiles({ query, type, limit: 30, cursor });
       setFiles((prev) => {
         const seen = new Set(prev.map((f) => f.id));
         return [...prev, ...page.items.filter((f) => !seen.has(f.id))];
@@ -64,7 +65,9 @@ export default function Files() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-[15px] font-medium">Files</h1>
         <div className="flex items-center gap-2.5">
-          <p className="text-[11.5px] text-muted-foreground">{total} uploaded</p>
+          <p className="text-[11.5px] text-muted-foreground">
+            {total} {query.trim() || type ? 'matching' : 'uploaded'}
+          </p>
           <FileUploadButton
             onUploaded={(created) => {
               setFiles((prev) => [...created, ...prev]);
@@ -87,7 +90,18 @@ export default function Files() {
           aria-label="Search files"
           className="w-full bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
         />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            className="shrink-0 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Clear
+          </button>
+        )}
       </div>
+
+      <FileTypeFilter value={type} onChange={setType} />
 
       {loading ? (
         <div className="mt-6 grid place-items-center py-16">
@@ -97,7 +111,9 @@ export default function Files() {
         <p className="mt-8 text-[12.5px] text-destructive">{error}</p>
       ) : files.length === 0 ? (
         <p className="mt-10 text-center text-[12.5px] text-muted-foreground">
-          {query.trim() ? 'No files match that search.' : 'No files yet. Attach something to a task and it lands here.'}
+          {query.trim() || type
+            ? 'No files match those filters.'
+            : 'No files yet. Attach something to a task and it lands here.'}
         </p>
       ) : (
         <>

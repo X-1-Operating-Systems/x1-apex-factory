@@ -1,15 +1,28 @@
 import { base44 } from '@/api/base44Client';
 
-export async function listFiles({ query = '', limit = 30, cursor } = {}) {
-  const term = query.trim();
-  const filter = term
-    ? { $or: [{ name: { $regex: term } }, { task_title: { $regex: term } }] }
-    : {};
-  return base44.entities.StudioFile.filter(filter, { sort: '-created_date', limit, cursor });
+const TYPE_MIME = {
+  image: '^image/',
+  document: '^(text/|application/)',
+  video: '^video/',
+  audio: '^audio/',
+};
+
+export function fileFilter({ query = '', type = '' } = {}) {
+  const term = String(query).trim();
+  const clauses = [];
+  if (term) clauses.push({ $or: [{ name: { $regex: term } }, { task_title: { $regex: term } }] });
+  const mime = TYPE_MIME[type];
+  if (mime) clauses.push({ mime_type: { $regex: mime } });
+  if (!clauses.length) return {};
+  return clauses.length === 1 ? clauses[0] : { $and: clauses };
 }
 
-export async function countFiles() {
-  return base44.entities.StudioFile.count({});
+export async function listFiles({ query = '', type = '', limit = 30, cursor } = {}) {
+  return base44.entities.StudioFile.filter(fileFilter({ query, type }), { sort: '-created_date', limit, cursor });
+}
+
+export async function countFiles({ query = '', type = '' } = {}) {
+  return base44.entities.StudioFile.count(fileFilter({ query, type }));
 }
 
 export async function openFile(file) {
