@@ -1,31 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Plus, Layers, Rocket, LogOut, Search, Library as LibraryIcon, Monitor, Bot, Globe, Plug, Repeat, FileStack } from 'lucide-react';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { LogOut, Menu } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
-import SessionList from '@/components/SessionList';
-
-const NAV = [
-  { to: '/computers', label: 'Computers', icon: Monitor },
-  { to: '/agents', label: 'Agents', icon: Bot },
-  { to: '/library', label: 'Library', icon: LibraryIcon },
-  { to: '/artifacts', label: 'Artifacts', icon: FileStack },
-  { to: '/websites', label: 'Websites', icon: Globe },
-  { to: '/automations', label: 'Automations', icon: Repeat },
-  { to: '/plugins', label: 'Plugins', icon: Plug },
-  { to: '/templates', label: 'Templates', icon: Layers },
-  { to: '/releases', label: 'Releases', icon: Rocket },
-];
+import SidebarBody from '@/components/shell/SidebarBody';
+import AccountMenu from '@/components/shell/AccountMenu';
+import NotificationBell from '@/components/shell/NotificationBell';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { loadPreferences } from '@/lib/preferences';
 
 function Wordmark() {
   return (
-    <div className="flex items-center gap-2">
+    <Link to="/" className="flex items-center gap-2">
       <div className="grid h-[26px] w-[26px] place-items-center rounded-[7px] bg-foreground text-[10.5px] font-semibold tracking-tight text-background">
         X1
       </div>
       <span className="text-[13.5px] font-medium tracking-tight">apex factory</span>
-    </div>
+    </Link>
   );
 }
 
@@ -33,7 +25,11 @@ export default function AppShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
-  const [query, setQuery] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    loadPreferences().catch(() => {});
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -42,6 +38,17 @@ export default function AppShell() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        navigate('/search');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigate]);
 
   const initials = (user?.full_name || user?.email || 'X')
     .split(' ')
@@ -58,71 +65,17 @@ export default function AppShell() {
           <ThemeToggle compact />
         </div>
 
-        <div className="px-2.5">
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-sidebar-accent"
-          >
-            <Plus size={15} strokeWidth={1.9} className="text-muted-foreground" />
-            New task
-          </button>
-
-          <label className="mt-0.5 flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] text-sidebar-foreground/80 transition-colors focus-within:bg-sidebar-accent hover:bg-sidebar-accent/70">
-            <Search size={15} strokeWidth={1.7} className="shrink-0 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
-              className="w-full bg-transparent outline-none placeholder:text-sidebar-foreground/60"
-            />
-          </label>
-
-          <nav className="mt-0.5 space-y-0.5">
-            {NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
-                    isActive
-                      ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
-                  }`
-                }
-              >
-                <Icon size={15} strokeWidth={1.7} className="text-muted-foreground" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
-          <SessionList
-            projects={
-              query.trim()
-                ? projects.filter((p) =>
-                    `${p.name} ${p.client_name || ''}`.toLowerCase().includes(query.trim().toLowerCase())
-                  )
-                : projects
-            }
-          />
-        </div>
+        <SidebarBody projects={projects} />
 
         <div className="shrink-0 border-t border-sidebar-border p-2.5">
           <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5">
+            <AccountMenu user={user} initials={initials} />
             <Link
-              to="/account"
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-0.5 transition-colors hover:bg-sidebar-accent"
+              to="/settings/profile"
+              className="min-w-0 flex-1 rounded-md px-0.5 py-0.5 transition-colors hover:text-foreground"
             >
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-[10.5px] font-medium text-foreground">
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium leading-tight">{user?.full_name || 'Studio operator'}</p>
-                <p className="truncate text-[10.5px] leading-tight text-muted-foreground">Account &amp; Manus key</p>
-              </div>
+              <p className="truncate text-[12px] font-medium leading-tight">{user?.full_name || 'Studio operator'}</p>
+              <p className="truncate text-[10.5px] leading-tight text-muted-foreground">Profile &amp; settings</p>
             </Link>
             <button
               type="button"
@@ -137,24 +90,32 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:hidden">
-          <Wordmark />
-          <div className="flex items-center gap-1">
-            {NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                aria-label={label}
-                className={({ isActive }) =>
-                  `grid h-8 w-8 place-items-center rounded-full ${
-                    isActive ? 'bg-foreground text-background' : 'text-muted-foreground'
-                  }`
-                }
-              >
-                <Icon size={15} strokeWidth={1.8} />
-              </NavLink>
-            ))}
-            <ThemeToggle compact />
+        <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-3 lg:hidden">
+          <div className="flex items-center gap-1.5">
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open menu"
+                  className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Menu size={16} />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="flex w-[280px] flex-col p-0">
+                <SheetTitle className="sr-only">Studio navigation</SheetTitle>
+                <div className="flex h-[54px] shrink-0 items-center justify-between px-4">
+                  <Wordmark />
+                  <ThemeToggle compact />
+                </div>
+                <SidebarBody projects={projects} onNavigate={() => setMobileOpen(false)} />
+              </SheetContent>
+            </Sheet>
+            <Wordmark />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <NotificationBell />
+            <AccountMenu user={user} initials={initials} />
           </div>
         </header>
 

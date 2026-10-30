@@ -42,7 +42,7 @@ export default function SessionList({ projects }) {
                 to={`/studio/${p.id}`}
                 title={p.name}
                 className={({ isActive }) =>
-                  `block truncate rounded-lg px-2.5 py-[7px] text-[12.5px] leading-tight transition-colors ${
+                  `session-row block truncate rounded-lg px-2.5 py-[7px] text-[12.5px] leading-tight transition-colors ${
                     isActive
                       ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'

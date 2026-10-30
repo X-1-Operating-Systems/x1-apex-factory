@@ -1,0 +1,87 @@
+{
+  "name": "StudioPreference",
+  "type": "object",
+  "properties": {
+    "density": {
+      "type": "string",
+      "enum": [
+        "comfortable",
+        "compact"
+      ],
+      "default": "comfortable"
+    },
+    "motion": {
+      "type": "string",
+      "enum": [
+        "full",
+        "reduced"
+      ],
+      "default": "full"
+    },
+    "language": {
+      "type": "string",
+      "default": "en"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
+    "digest_email": {
+      "type": "boolean",
+      "default": true
+    },
+    "task_alerts": {
+      "type": "boolean",
+      "default": true
+    },
+    "release_alerts": {
+      "type": "boolean",
+      "default": true
+    },
+    "weekly_summary": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -208,4 +208,22 @@
     border: 1px solid hsl(var(--border));
     box-shadow: 0 1px 3px hsl(0 0% 0% / 0.04), 0 8px 24px -18px hsl(0 0% 0% / 0.18);
   }
+
+  html[data-density="compact"] body {
+    line-height: 1.35;
+  }
+
+  html[data-density="compact"] .nav-row,
+  html[data-density="compact"] .session-row {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  html[data-motion="reduced"] *,
+  html[data-motion="reduced"] *::before,
+  html[data-motion="reduced"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

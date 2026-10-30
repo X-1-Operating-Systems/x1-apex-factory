@@ -27,6 +27,17 @@ import WebsiteDetail from '@/pages/WebsiteDetail';
 import Automations from '@/pages/Automations';
 import Plugins from '@/pages/Plugins';
 import Account from '@/pages/Account';
+import Search from '@/pages/Search';
+import Notifications from '@/pages/Notifications';
+import SettingsLayout from '@/pages/settings/SettingsLayout';
+import SettingsProfile from '@/pages/settings/SettingsProfile';
+import SettingsAppearance from '@/pages/settings/SettingsAppearance';
+import SettingsNotifications from '@/pages/settings/SettingsNotifications';
+import SettingsConnections from '@/pages/settings/SettingsConnections';
+import SettingsUsage from '@/pages/settings/SettingsUsage';
+import SettingsTeam from '@/pages/settings/SettingsTeam';
+import SettingsSecurity from '@/pages/settings/SettingsSecurity';
+import SettingsData from '@/pages/settings/SettingsData';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -76,6 +87,19 @@ const AuthenticatedApp = () => {
           <Route path="/automations" element={<Automations />} />
           <Route path="/plugins" element={<Plugins />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="/settings/profile" replace />} />
+            <Route path="profile" element={<SettingsProfile />} />
+            <Route path="appearance" element={<SettingsAppearance />} />
+            <Route path="notifications" element={<SettingsNotifications />} />
+            <Route path="connections" element={<SettingsConnections />} />
+            <Route path="usage" element={<SettingsUsage />} />
+            <Route path="team" element={<SettingsTeam />} />
+            <Route path="security" element={<SettingsSecurity />} />
+            <Route path="data" element={<SettingsData />} />
+          </Route>
         </Route>
       </Route>
 
