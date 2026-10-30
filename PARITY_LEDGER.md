@@ -4,6 +4,7 @@ Mission A: operational parity with manus.im. Mission B: autonomous loop. Mission
 Read first, write last, every turn. A turn without a ledger update did not happen.
 
 Legend: open · doing · closed · blocked
+Verification rule: a gap is only `closed` when the production build is green AND the behaviour was exercised against real records (no mocks, no stubs, no dead controls).
 
 ## Batch log
 
@@ -11,37 +12,73 @@ Legend: open · doing · closed · blocked
 
 | id | state | files changed | verification | notes |
 |---|---|---|---|---|
-| G-01 | closed | base44/entities/StudioTask.jsonc, base44/entities/Project.jsonc, base44/shared/projects.ts, base44/shared/native.ts, base44/functions/nativeTask/entry.ts, base44/functions/manusAgent/entry.ts, src/lib/taskEngine.js, src/components/SessionList.jsx, src/components/AppShell.jsx, src/components/shell/SidebarBody.jsx, src/components/shell/ProjectList.jsx, src/pages/Dashboard.jsx, src/pages/Studio.jsx | Sidebar sessions, Dashboard "Recent tasks" and Library all read StudioTask and link to /task/:id. Projects get their own sidebar section linking to /studio/:id, so the canvas stays reachable. Production build green. | StudioTask gained `project_id`; engine passes it through (native + manus). |
-| G-05 | closed | base44/entities/Project.jsonc, base44/shared/projects.ts, base44/shared/native.ts, base44/functions/manusAgent/entry.ts, src/components/NewProjectDialog.jsx, src/components/studio/ProjectSettingsDialog.jsx, src/pages/Studio.jsx, src/pages/NewTask.jsx, src/components/shell/ProjectList.jsx | Master instruction captured at creation, editable from the project header, injected into native prompts (create + follow-up) and prepended to Manus task content. Pin and sort_order live and order the sidebar Projects list. | Knowledge-base files per project still open (needs StudioFile.project_id) — carried as G-05b. |
+| G-01 | closed | base44/entities/StudioTask.jsonc, base44/entities/Project.jsonc, base44/shared/projects.ts, base44/shared/native.ts, base44/functions/nativeTask/entry.ts, base44/functions/manusAgent/entry.ts, src/lib/taskEngine.js, src/components/SessionList.jsx, src/components/AppShell.jsx, src/components/shell/SidebarBody.jsx, src/components/shell/ProjectList.jsx, src/pages/Dashboard.jsx, src/pages/Studio.jsx | Sidebar sessions, Dashboard "Recent tasks" and Tasks list all read StudioTask and link to /task/:id. Projects get their own sidebar section linking to /studio/:id. Build green. | StudioTask gained `project_id`; both engines pass it through. |
+| G-05 | closed | base44/entities/Project.jsonc, base44/shared/projects.ts, base44/shared/native.ts, base44/functions/manusAgent/entry.ts, src/components/NewProjectDialog.jsx, src/components/studio/ProjectSettingsDialog.jsx, src/pages/Studio.jsx, src/pages/NewTask.jsx, src/components/shell/ProjectList.jsx | Master instruction captured at creation, editable from project settings, injected into native prompts (create + follow-up) and prepended to Manus task content. | Knowledge-base files were carried as G-05b (closed in Batch 6). |
 | G-11 | closed | src/pages/TaskDetail.jsx, src/pages/Library.jsx | `task.type` guarded in both places; native tasks carry type 'native' from the engine shape. | — |
+
+### Batch 2 — connectors declared, automations event-triggered (G-04 partial, G-06)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-04 | doing | base44/shared/connectors.ts, base44/shared/native.ts, src/pages/Plugins.jsx, src/components/plugins/ConnectorDialog.jsx, src/components/plugins/ConnectorCard.jsx, base44/entities/StudioConnector.jsonc | Connectors installed in the app are declared to the reasoning engine on every run, with access level and approval gate, and the engine is explicitly forbidden from claiming a connector action it did not take. Probe run echoed the declared connector block. | **Engine-side execution is still missing**: a run cannot read from Gmail/Drive/etc. through the connector's auth. Carried as the remaining half of G-04. |
+| G-06 | closed | base44/entities/Automation.jsonc, base44/functions/automationEvents/entry.ts, base44/functions/runAutomations/entry.ts, base44/shared/automations.ts, base44/workflows/Task Finished Automations.jsonc, base44/workflows/Automation Clock.jsonc, src/components/automations/AutomationDialog.jsx, src/components/automations/AutomationDetailDialog.jsx, src/components/automations/AutomationCard.jsx, src/pages/Automations.jsx | "After a task" automations fire from the completion event and create the follow-up run; schedule mode still fires from the clock workflow. Both paths verified against real tasks. | Automation gained `trigger_mode` / `event_when`; runs recorded on the automation record. |
+
+### Batch 3 — composer honesty (G-02)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-02 | closed | src/components/composer/ModelPicker.jsx, src/components/task/AttachmentPicker.jsx, src/pages/Dashboard.jsx, src/pages/NewTask.jsx, src/components/dashboard/Composer.jsx, src/lib/taskOptions.js, src/lib/taskEngine.js | Model pill writes a real `model` value that the engine receives; effort toggle real; attachments upload and reach both engines; usage line reads live counts. Build green. | Removed the fake pill, the hardcoded `0` credits and the dead `+`. |
+
+### Batch 4 — artifacts, usage, navigation (G-12 partial, G-17)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-12 | doing | src/components/shell/SidebarBody.jsx, src/components/shell/ProjectList.jsx, src/components/shell/UsageMeter.jsx, src/components/shell/NotificationBell.jsx | Sidebar split into Workspace / Build / Agents / Connect sections with projects and grouped sessions. | Remaining half: project grouping inside the session list and inbox parity. |
+| G-17 | closed | src/components/shell/SidebarBody.jsx, src/pages/Library.jsx, src/pages/Plugins.jsx | Nav label and page title now agree everywhere (Tasks, Connectors, Files, Artifacts, Computers, Skills, Agents). | — |
+| G-08 | closed | src/pages/Artifacts.jsx | Artifact list filters by type on the server and pages with "load more"; no client-side truncation. | — |
+| G-09 | closed | src/pages/settings/SettingsUsage.jsx, src/components/usage/UsageBreakdowns.jsx, src/components/usage/CoverageCard.jsx | Usage screen reads real task counts and server-side date windows. | — |
+
+### Batch 5 — project master instruction in context (G-05 remainder)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-05 | closed | src/components/studio/ProjectSettingsDialog.jsx, src/pages/Studio.jsx, base44/shared/projects.ts | Master instruction edited in project settings persists and is injected into every run inside the project. | — |
+
+### Batch 6 — project knowledge files + standalone uploads (G-05b, G-10)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-05b | closed | base44/entities/StudioFile.jsonc, base44/shared/projects.ts, base44/shared/native.ts, src/lib/files.js, src/components/studio/ProjectFiles.jsx, src/components/studio/ProjectSettingsDialog.jsx | Files added to a project (stored privately) are attached to the create and follow-up runs of every task in that project and named in the project brief; Manus runs receive the names. Verified with a real run: a task created inside a project holding `brand-voice.txt` answered with exactly that file name. Round-trip of the `project_id` filter verified against real records (create → matched → delete → zero remaining). Build green. | Capped at 4 signed files per run to bound payload size; the brief always lists up to 12 names. |
+| G-10 | closed | src/components/files/FileUploadButton.jsx, src/pages/Files.jsx, src/lib/files.js | Files screen can now upload directly (stored privately), the new record appears at the top of the list immediately and the counter increments; upload errors surface inline. Build green. | Uploads made outside a task carry `source: 'library'`; project uploads carry `source: 'studio'` plus `project_id`. |
 
 ## Register state
 
 | id | sev | state |
 |---|---|---|
 | G-01 | BLOCKER | closed |
-| G-02 | BLOCKER | open — composer still has fake model pill, hardcoded 0 credits, dead `+` |
-| G-03 | BLOCKER | open |
-| G-04 | BLOCKER | open |
-| G-05 | BLOCKER | closed (G-05b project files open) |
-| G-06 | BLOCKER | open |
+| G-02 | BLOCKER | closed |
+| G-03 | BLOCKER | open — release pipeline ships the operator bundle only; no client handoff path |
+| G-04 | BLOCKER | doing — connectors are declared to the engine; auth-backed execution from a run not implemented |
+| G-05 | BLOCKER | closed |
+| G-06 | BLOCKER | closed |
 | G-07 | BLOCKER | extension protocol, not a gap |
-| G-08 | HIGH | open |
-| G-09 | HIGH | open |
-| G-10 | HIGH | open |
+| G-08 | HIGH | closed |
+| G-09 | HIGH | closed |
+| G-10 | HIGH | closed |
 | G-11 | HIGH | closed |
-| G-12 | HIGH | open — sidebar still 12 flat items; Projects section shipped early (needed by G-01) |
-| G-13 | HIGH | open |
-| G-14 | HIGH | open |
-| G-15 | HIGH | open |
-| G-16 | HIGH | open |
-| G-17 | HIGH | open — "Library" nav vs page title still mismatched |
+| G-12 | HIGH | doing — sidebar sections live; project grouping inside sessions pending |
+| G-13 | HIGH | open — projects are single-page: studio loads one page (`limit: 1`) and release bundles one page, while StudioPage supports many paths |
+| G-14 | HIGH | open — Files has no search or type filter over uploads |
+| G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
+| G-16 | HIGH | open — computer panel streams run steps but has no live browser view |
+| G-17 | HIGH | closed |
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 2)
+## Next batch (Batch 7)
 
-G-04 connectors reach the engine · G-06 event-triggered automations.
+G-13 multi-page projects (page list in the studio, per-page canvas + SEO, release bundles every page) · then G-14 (upload search/filter).
+G-15 and G-16 get re-scoped at the start of the batch after verifying the current Search and computer-panel behaviour.
 
 ## Blockers needing the operator
 
