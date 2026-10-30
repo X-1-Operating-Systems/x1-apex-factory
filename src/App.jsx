@@ -46,6 +46,7 @@ import SettingsData from '@/pages/settings/SettingsData';
 import AdminControl from '@/pages/AdminControl';
 import VideoStudio from '@/pages/VideoStudio';
 import LiveAvatar from '@/pages/LiveAvatar';
+import Autopilot from '@/pages/Autopilot';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -85,6 +86,7 @@ const AuthenticatedApp = () => {
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<AdminControl />} />
+          <Route path="/autopilot" element={<Autopilot />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
           <Route path="/studio/:id" element={<Studio />} />

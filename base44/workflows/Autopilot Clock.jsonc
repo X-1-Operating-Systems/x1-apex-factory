@@ -1,0 +1,47 @@
+{
+  "description": "Carries every running autopilot job forward, several stages per fire, so a command finishes with nobody watching.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "autopilot_clock",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "advance_jobs": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "autopilot",
+            "args": {
+              "action": "tick"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Advance autopilot jobs",
+            "description": "Work every running job forward"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Autopilot Clock",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

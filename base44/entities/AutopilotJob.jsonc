@@ -1,0 +1,205 @@
+{
+  "name": "AutopilotJob",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "done",
+        "failed",
+        "stopped"
+      ],
+      "default": "queued"
+    },
+    "stage": {
+      "type": "string",
+      "default": "brief"
+    },
+    "model": {
+      "type": "string",
+      "default": "gpt_6_sol"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "seo_title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "build_index": {
+      "type": "number",
+      "default": 0
+    },
+    "revision": {
+      "type": "number",
+      "default": 0
+    },
+    "next_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "state"
+        ]
+      }
+    },
+    "ceiling": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "number"
+        },
+        "verdict": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "status"
+            ]
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "live_url": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "browser_run_id": {
+      "type": "string"
+    },
+    "browser_note": {
+      "type": "string"
+    },
+    "fix_note": {
+      "type": "string"
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

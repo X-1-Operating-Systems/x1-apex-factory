@@ -30,7 +30,10 @@ import UsageMeter from '@/components/shell/UsageMeter';
 const NAV_SECTIONS = [
   {
     label: 'Control',
-    items: [{ to: '/admin', label: 'Control plane', icon: ShieldCheck }],
+    items: [
+      { to: '/admin', label: 'Control plane', icon: ShieldCheck },
+      { to: '/autopilot', label: 'Autopilot', icon: Rocket },
+    ],
   },
   {
     label: 'Workspace',
