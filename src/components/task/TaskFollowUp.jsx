@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import AttachmentPicker from '@/components/task/AttachmentPicker';
+import ModelPicker from '@/components/composer/ModelPicker';
 
-export default function TaskFollowUp({ onSend, placeholder, disabled }) {
+export default function TaskFollowUp({ onSend, placeholder, disabled, options, onOptionsChange }) {
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -42,7 +43,12 @@ export default function TaskFollowUp({ onSend, placeholder, disabled }) {
           className="max-h-28 w-full resize-none bg-transparent px-1 py-1.5 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground"
         />
         <div className="flex items-end justify-between gap-2">
-          <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
+            {options && onOptionsChange && (
+              <ModelPicker options={options} onChange={onOptionsChange} disabled={busy || disabled} />
+            )}
+          </div>
           <button
             type="button"
             onClick={send}

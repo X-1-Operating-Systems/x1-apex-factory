@@ -12,6 +12,7 @@ function shape(task: any, includeEvents = false) {
     type: 'native',
     engine: 'native',
     model: task.model || AI_MODEL,
+    effort: task.effort || 'standard',
     created_at: created,
     updated_at: new Date(task.updated_date || task.created_date || Date.now()).getTime() / 1000,
     task_url: '',
@@ -51,6 +52,8 @@ export default async function (req: Request): Promise<Response> {
         title: String(body?.title || '').slice(0, 120),
         instruction,
         agentId: String(body?.agent_id || ''),
+        model: body?.model,
+        effort: body?.effort,
       });
 
       if (task.status === 'error') {
@@ -92,7 +95,7 @@ export default async function (req: Request): Promise<Response> {
       const task = await base44.entities.StudioTask.get(taskId).catch((e: any) => (e.status === 404 ? null : Promise.reject(e)));
       if (!task) return Response.json({ error: 'Not found' }, { status: 404 });
 
-      await followUpNativeTask(base44, { task, message });
+      await followUpNativeTask(base44, { task, message, model: body?.model, effort: body?.effort });
       return Response.json({ ok: true });
     }
 

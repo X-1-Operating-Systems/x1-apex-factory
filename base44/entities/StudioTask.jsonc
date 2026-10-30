@@ -26,6 +26,14 @@
       "type": "string",
       "default": "gpt_5_6_sol"
     },
+    "effort": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "deep"
+      ],
+      "default": "standard"
+    },
     "summary": {
       "type": "string"
     },

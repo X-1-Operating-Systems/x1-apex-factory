@@ -8,6 +8,7 @@ import TaskFollowUp from '@/components/task/TaskFollowUp';
 import ComputerPanel from '@/components/task/ComputerPanel';
 import DeliverableNote from '@/components/task/DeliverableNote';
 import { taskDetail, stopTask, sendToTask } from '@/lib/taskEngine';
+import { effortLabel, modelLabel } from '@/lib/taskOptions';
 
 const when = (ts) => {
   if (!ts) return '';
@@ -31,6 +32,7 @@ export default function TaskDetail() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [earlier, setEarlier] = useState({ events: [], cursor: null, hasMore: false });
   const [busyEarlier, setBusyEarlier] = useState(false);
+  const [options, setOptions] = useState(null);
 
   const load = useCallback(async () => {
     const res = await taskDetail(id);
@@ -47,6 +49,13 @@ export default function TaskDetail() {
 
   const task = data?.task;
   const running = task?.status === 'running' || task?.status === 'waiting';
+
+  useEffect(() => {
+    if (!task) return;
+    setOptions(
+      (prev) => prev || { model: task.model || 'gpt_5_6_sol', effort: task.effort || 'standard' }
+    );
+  }, [task]);
 
   useEffect(() => {
     if (!running) return undefined;
@@ -96,7 +105,7 @@ export default function TaskDetail() {
   };
 
   const send = async (message, attachments) => {
-    await sendToTask(id, message, attachments);
+    await sendToTask(id, message, attachments, options || {});
     await load();
   };
 
@@ -139,7 +148,10 @@ export default function TaskDetail() {
               <StatusPill status={task.status} />
             </h1>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {task.type.replace('_', ' ')} · created {when(task.created_at)}
+              {data?.engine === 'native'
+                ? `${modelLabel(task.model)} · ${effortLabel(task.effort)}`
+                : task.type.replace('_', ' ')}{' '}
+              · created {when(task.created_at)}
               {task.credit_usage ? ` · ${task.credit_usage} credits` : ''}
             </p>
           </div>
@@ -200,6 +212,8 @@ export default function TaskDetail() {
         <TaskFollowUp
           onSend={send}
           placeholder={waiting?.description || 'Send a follow-up to this task'}
+          options={data?.engine === 'native' ? options : null}
+          onOptionsChange={data?.engine === 'native' ? setOptions : undefined}
         />
       </div>
 

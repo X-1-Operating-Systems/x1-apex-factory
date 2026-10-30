@@ -16,6 +16,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import Dashboard from '@/pages/Dashboard';
 import Studio from '@/pages/Studio';
 import TaskDetail from '@/pages/TaskDetail';
+import NewTask from '@/pages/NewTask';
 import TemplateLibrary from '@/pages/TemplateLibrary';
 import Releases from '@/pages/Releases';
 import Library from '@/pages/Library';
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/studio/:id" element={<Studio />} />
+          <Route path="/new" element={<NewTask />} />
           <Route path="/task/:id" element={<TaskDetail />} />
           <Route path="/templates" element={<TemplateLibrary />} />
           <Route path="/releases" element={<Releases />} />

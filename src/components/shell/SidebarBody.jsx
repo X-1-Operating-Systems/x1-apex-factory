@@ -49,7 +49,7 @@ export default function SidebarBody({ projects, onNavigate }) {
         <button
           type="button"
           onClick={() => {
-            navigate('/');
+            navigate('/new');
             if (onNavigate) onNavigate();
           }}
           className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-sidebar-accent"

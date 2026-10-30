@@ -24,10 +24,10 @@ export async function setEngine(engine) {
   return engineInfo();
 }
 
-export async function createTask({ title, instruction, agent_id }) {
+export async function createTask({ title, instruction, agent_id, model, effort }) {
   const { engine } = await engineInfo();
   const fn = engine === 'manus' ? 'manusAgent' : 'nativeTask';
-  const res = await base44.functions.invoke(fn, { action: 'create', title, instruction, agent_id });
+  const res = await base44.functions.invoke(fn, { action: 'create', title, instruction, agent_id, model, effort });
   return { ...res.data, engine };
 }
 
@@ -75,14 +75,15 @@ export async function taskDetail(id) {
   throw lastError;
 }
 
-export async function sendToTask(id, message, attachments) {
+export async function sendToTask(id, message, attachments, options = {}) {
   const { engine } = await engineInfo();
   const fn = engine === 'manus' ? 'manusAgent' : 'nativeTask';
+  const payload = { action: 'send', task_id: id, message, attachments, model: options.model, effort: options.effort };
   try {
-    return await base44.functions.invoke(fn, { action: 'send', task_id: id, message, attachments });
+    return await base44.functions.invoke(fn, payload);
   } catch (err) {
     const other = fn === 'manusAgent' ? 'nativeTask' : 'manusAgent';
-    return base44.functions.invoke(other, { action: 'send', task_id: id, message, attachments });
+    return base44.functions.invoke(other, payload);
   }
 }
 

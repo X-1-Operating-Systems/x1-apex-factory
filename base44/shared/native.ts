@@ -1,5 +1,22 @@
 export const AI_MODEL = 'gpt_5_6_sol';
 
+export const MODELS = ['gpt_5_6_sol', 'gpt_5_6_luna', 'gpt_5_4', 'claude_sonnet_5', 'gemini_3_1_pro'];
+export const EFFORTS = ['standard', 'deep'];
+
+export function pickModel(model: any) {
+  return MODELS.includes(String(model)) ? String(model) : AI_MODEL;
+}
+
+export function pickEffort(effort: any) {
+  return EFFORTS.includes(String(effort)) ? String(effort) : 'standard';
+}
+
+const DEPTH = {
+  standard: 'Depth: standard. Ship the essential material once, with no padding.',
+  deep:
+    'Depth: deep. Go further on every section: specifics, quantities, named examples and second-order detail the operator would otherwise have to add.',
+};
+
 const TASK_SCHEMA = {
   type: 'object',
   properties: {
@@ -32,8 +49,8 @@ For every assignment:
 
 The studio's blocks are hero, stats, features, showcase, gallery, pricing, faq, cta, contact, text and footer. When the deliverable is a website, draft it block by block in that vocabulary.`;
 
-export function buildPrompt({ instruction, history = [], followUp = false }) {
-  const lines = [SYSTEM, ''];
+export function buildPrompt({ instruction, history = [], followUp = false, effort = 'standard' }: any) {
+  const lines = [SYSTEM, '', DEPTH[pickEffort(effort)], ''];
   if (history.length) {
     lines.push('Conversation so far:');
     for (const message of history.slice(-8)) {
@@ -65,10 +82,10 @@ function normalize(envelope: any, fallbackTitle: string) {
   };
 }
 
-export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false }: any) {
+export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort }: any) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: buildPrompt({ instruction, history, followUp }),
-    model: AI_MODEL,
+    prompt: buildPrompt({ instruction, history, followUp, effort }),
+    model: pickModel(model),
     response_json_schema: TASK_SCHEMA,
   });
   return normalize(result, title);
@@ -89,20 +106,24 @@ export function errorEvent(message: string) {
   return { role: 'error', content: String(message || 'The run failed.').slice(0, 600), ts: Date.now() };
 }
 
-export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '' }: any) {
+export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort }: any) {
+  const chosenModel = pickModel(model);
+  const chosenEffort = pickEffort(effort);
+
   const record = await base44.asServiceRole.entities.StudioTask.create({
     created_by_id: userId,
     title: String(title || instruction).slice(0, 120),
     instruction: String(instruction).slice(0, 6000),
     status: 'running',
     engine: 'native',
-    model: AI_MODEL,
+    model: chosenModel,
+    effort: chosenEffort,
     agent_id: agentId || '',
     events: [userEvent(instruction)],
   });
 
   try {
-    const out = await runInstruction(base44, { instruction, title });
+    const out = await runInstruction(base44, { instruction, title, model: chosenModel, effort: chosenEffort });
     return await base44.asServiceRole.entities.StudioTask.update(record.id, {
       title: out.title || record.title,
       status: 'stopped',
@@ -118,7 +139,7 @@ export async function createNativeTask(base44: any, { userId, title, instruction
   }
 }
 
-export async function followUpNativeTask(base44: any, { task, message }: any) {
+export async function followUpNativeTask(base44: any, { task, message, model, effort }: any) {
   const history = (task.events || [])
     .filter((event: any) => event.role === 'user' || event.role === 'assistant')
     .map((event: any) => ({ role: event.role, content: event.content }));
@@ -131,6 +152,8 @@ export async function followUpNativeTask(base44: any, { task, message }: any) {
       title: task.title,
       history,
       followUp: true,
+      model: model || task.model,
+      effort: effort || task.effort,
     });
     return await base44.asServiceRole.entities.StudioTask.update(task.id, {
       status: 'stopped',
