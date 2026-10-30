@@ -11,8 +11,9 @@ const STATUS = {
   live: { label: 'Live', tone: 'bg-emerald-600 text-white' },
 };
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, pageCount }) {
   const status = STATUS[project.status] || STATUS.draft;
+  const pages = pageCount === undefined ? null : `${pageCount} page${pageCount === 1 ? '' : 's'}`;
 
   return (
     <Link
@@ -32,7 +33,10 @@ export default function ProjectCard({ project }) {
         <p className="mt-1 text-[12px] text-muted-foreground">{project.client_name || 'Unassigned client'}</p>
 
         <div className="mt-auto flex items-center justify-between border-t border-border pt-3 text-[10.5px] text-muted-foreground">
-          <span className="truncate">{project.template_name || 'Blank canvas'}</span>
+          <span className="truncate">
+            {pages && <span className="text-foreground/70">{pages} · </span>}
+            {project.template_name || 'Blank canvas'}
+          </span>
           <span className="shrink-0">{project.updated_date ? moment(project.updated_date).fromNow() : 'New'}</span>
         </div>
       </div>

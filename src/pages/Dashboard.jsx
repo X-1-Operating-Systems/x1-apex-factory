@@ -6,7 +6,8 @@ import Composer from '@/components/dashboard/Composer';
 import OnboardingChecklist from '@/components/dashboard/OnboardingChecklist';
 import NewProjectDialog from '@/components/NewProjectDialog';
 import ModelPicker from '@/components/composer/ModelPicker';
-import PageCanvas from '@/components/studio/PageCanvas';
+import ProjectGrid from '@/components/dashboard/ProjectGrid';
+import TemplateRow from '@/components/dashboard/TemplateRow';
 import StatusPill from '@/components/manus/StatusPill';
 import { createTask } from '@/lib/taskEngine';
 import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
@@ -99,35 +100,7 @@ export default function Dashboard() {
 
         <OnboardingChecklist />
 
-        {templates.length > 0 && (
-          <div className="mt-12">
-            <p className="mb-3 text-[12.5px] text-muted-foreground">Start from a template</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {templates.slice(0, 4).map((t) => (
-                <button key={t.id} type="button" onClick={() => open('', t.id)} className="group text-left">
-                  <div className="overflow-hidden rounded-lg border border-border bg-card transition-colors group-hover:border-foreground/25">
-                    <div className="pointer-events-none h-[104px] overflow-hidden">
-                      <PageCanvas
-                        blocks={t.blocks || []}
-                        tokens={{
-                          accent: t.accent || '#b4532a',
-                          surface: t.surface || 'light',
-                          headlineFont: t.headline_font || 'serif',
-                        }}
-                        showSelection={false}
-                      />
-                    </div>
-                  </div>
-                  <p className="mt-1.5 truncate text-[11.5px] font-medium">{t.name}</p>
-                  <p className="truncate text-[10.5px] text-muted-foreground">{t.category.replace('_', ' ')}</p>
-                </button>
-              ))}
-            </div>
-            <Link to="/templates" className="mt-3 inline-block text-[11.5px] text-muted-foreground hover:text-foreground">
-              View all templates
-            </Link>
-          </div>
-        )}
+        <ProjectGrid onNew={() => open('')} />
 
         {recent.length > 0 && (
           <div className="mt-10">
@@ -146,6 +119,8 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        <TemplateRow templates={templates} onOpen={(id) => open('', id)} />
 
         <p className="mt-10 text-center text-[10.5px] leading-relaxed text-muted-foreground">
           X1 is an AI agent and can make mistakes. Please double-check before use.

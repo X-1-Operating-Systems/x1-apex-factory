@@ -57,6 +57,12 @@ Verification rule: a gap is only `closed` when the production build is green AND
 |---|---|---|---|---|
 | G-13 | closed | src/pages/Studio.jsx, src/components/studio/PageSwitcher.jsx, src/components/studio/PageDialog.jsx, src/components/studio/PageCanvas.jsx, src/components/studio/Inspector.jsx, base44/functions/deployRelease/entry.ts, base44/shared/bundle.ts, base44/shared/qa.ts, base44/functions/studioAgent/entry.ts | Studio lists every page of a project, switches the canvas per page, and creates/renames/deletes pages with per-page SEO. Release ran against a real two-page project (`/` v2, `/about` v3): bundle produced `index.html`, `about/index.html`, `vercel.json`, `manifest.json`; manifest carried both pages with their own versions and section lists; page_version froze at the highest page version and the QA gate scored worst-of across pages. Probe records (deployment, QA run, pages, project) deleted afterwards. Build green. | A stale `audit` reference in the release response was found by this probe and removed. |
 
+### Batch 8 — project-first dashboard (G-12 dashboard half)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-12 (dashboard half) | closed | src/pages/Dashboard.jsx, src/components/dashboard/ProjectGrid.jsx, src/components/dashboard/TemplateRow.jsx, src/components/ProjectCard.jsx | Dashboard order is now composer → projects → recent tasks → templates, so the studio is the primary surface and task history sits below it. Project cards carry a live page count from one grouped aggregate; the grid loads from the server and has its own empty state with a working "New project" path. Verified against real records: a two-page project came back through the grid's exact queries as `{pages: 2, template: 'Atelier'}`, and deleting it left zero projects. Build green. | `ProjectCard` is now shared and takes an optional `pageCount`. |
+
 ## Register state
 
 | id | sev | state |
@@ -72,7 +78,7 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-09 | HIGH | closed |
 | G-10 | HIGH | closed |
 | G-11 | HIGH | closed |
-| G-12 | HIGH | doing — sidebar sections live; project grouping inside sessions pending |
+| G-12 | HIGH | doing — sidebar sections and project-first dashboard live; project grouping inside sessions pending |
 | G-13 | HIGH | closed |
 | G-14 | HIGH | open — Files has no search or type filter over uploads |
 | G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
@@ -81,9 +87,9 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 8)
+## Next batch (Batch 9)
 
-G-12 remainder — the dashboard becomes project-first: projects with page counts and direct entry into the studio as the primary workspace, task history demoted below, templates last. Then G-14 (upload search/filter).
+G-14 upload search and type filter on Files · then G-12's remaining half (project grouping inside the session list).
 G-15 and G-16 get re-scoped at the start of the batch after verifying the current Search and computer-panel behaviour.
 
 ## Blockers needing the operator
