@@ -1,4 +1,5 @@
-import { PAGE_ACTIONS, hostRequest } from "./browserHost.ts";
+import { PAGE_ACTIONS, hostRequest, signedFrameUrl } from "./browserHost.ts";
+import { recordSession } from "./hostStore.ts";
 
 /** Actions the reasoning loop may take. Screenshots and page reads are context, not steps. */
 const LOOP_ACTIONS = PAGE_ACTIONS.filter((name) => !["screenshot", "url", "wait"].includes(name));
@@ -23,7 +24,47 @@ async function sessionFor(base44, run, contextId) {
     context_id: contextId || undefined,
   });
   if (!created.ok) throw new Error(created.error || "The browser host refused to open a session.");
-  return String(created.data.id);
+  const sessionId = String(created.data.id);
+  await registerSession(base44, sessionId, created);
+  return sessionId;
+}
+
+/**
+ * A session opened by the loop is still a session this app owns, so it belongs
+ * in the session list and the host ledger like one opened from the control
+ * plane. Best effort: a bookkeeping failure must never stop the run.
+ */
+async function registerSession(base44, sessionId, created) {
+  const startedAt = created?.data?.started_at || new Date().toISOString();
+  const timeoutSeconds = Number(created?.data?.timeout_seconds) || 600;
+  const contextId = created?.data?.context_id || null;
+  let liveUrl = null;
+  try {
+    liveUrl = await signedFrameUrl(sessionId);
+  } catch {
+    liveUrl = null;
+  }
+  await base44.entities.BrowserSession
+    .create({
+      session_id: sessionId,
+      status: "RUNNING",
+      live_url: liveUrl || undefined,
+      timeout_seconds: timeoutSeconds,
+      keep_alive: true,
+      started_at: startedAt,
+      last_action: "sessions.create",
+      last_status: created?.status,
+      action_count: 1,
+      note: contextId ? `context ${contextId} · opened by an agent run` : "opened by an agent run",
+    })
+    .catch(() => null);
+  await recordSession({
+    id: sessionId,
+    status: "RUNNING",
+    context_id: contextId,
+    started_at: startedAt,
+    meta: { keep_alive: true, timeout_seconds: timeoutSeconds, opened_by: "agent-run" },
+  });
 }
 
 function decidePrompt(run, agent, snapshot, history, errorNote) {
