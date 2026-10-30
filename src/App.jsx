@@ -43,6 +43,7 @@ import SettingsUsage from '@/pages/settings/SettingsUsage';
 import SettingsTeam from '@/pages/settings/SettingsTeam';
 import SettingsSecurity from '@/pages/settings/SettingsSecurity';
 import SettingsData from '@/pages/settings/SettingsData';
+import AdminControl from '@/pages/AdminControl';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -81,6 +82,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/admin" element={<AdminControl />} />
           <Route path="/studio/:id" element={<Studio />} />
           <Route path="/new" element={<NewTask />} />
           <Route path="/task/:id" element={<TaskDetail />} />

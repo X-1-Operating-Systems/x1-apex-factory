@@ -18,6 +18,7 @@ import {
   Rocket,
   Plug,
   Settings,
+  ShieldCheck,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -25,6 +26,10 @@ import NotificationBell from '@/components/shell/NotificationBell';
 import UsageMeter from '@/components/shell/UsageMeter';
 
 const NAV_SECTIONS = [
+  {
+    label: 'Control',
+    items: [{ to: '/admin', label: 'Control plane', icon: ShieldCheck }],
+  },
   {
     label: 'Workspace',
     items: [

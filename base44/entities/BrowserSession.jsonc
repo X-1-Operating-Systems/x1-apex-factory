@@ -1,0 +1,102 @@
+{
+  "name": "BrowserSession",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "live_url": {
+      "type": "string"
+    },
+    "debugger_url": {
+      "type": "string"
+    },
+    "connect_url": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "type": "number"
+    },
+    "keep_alive": {
+      "type": "boolean",
+      "default": false
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_action": {
+      "type": "string"
+    },
+    "last_status": {
+      "type": "number"
+    },
+    "action_count": {
+      "type": "number",
+      "default": 0
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

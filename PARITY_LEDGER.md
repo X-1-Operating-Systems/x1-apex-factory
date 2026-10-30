@@ -195,6 +195,46 @@ Guessed paths that did **not** answer (endpoint to be confirmed during build, no
 | G-55 | End-to-end proof on a published test app: success path, failure path + recovery, context reuse across two sessions, webhook received, usage recorded, record before/after, probes deleted | — | open |
 | G-56 | Enterprise bar: secrets server-side only, RLS on every new entity, per-user isolation, audit trail, cost guardrails, security scan clean | — | open |
 
+### Batch 20 — Browserbase installed, driven from one admin chat page
+
+Autonomy defaults taken this turn (recorded, not asked): session timeout 600s default with a 1800s hard cap; 5 concurrent sessions; destructive actions require a confirm token in the same thread; probe records deleted at the end of the turn; a capability with no reachable endpoint is stated as not exposed instead of faked; design uses existing tokens only.
+
+Built: `base44/shared/browserbase.ts` (35-action registry, fixed host and method per action, validated and encoded params, 15s timeout, 3 attempts with backoff on 429/5xx, 3.5k output trim, key read server-side only) · `base44/functions/browserbase/entry.ts` (admin-gated dispatcher, concurrency guard, confirm gate, record persistence) · `base44/functions/browserbaseChat/entry.ts` (resolves one message to one registry action with typed params through a JSON-schema LLM call) · `base44/functions/browserbaseWebhook/entry.ts` (stores events, marks the run) · entities BrowserSession, BrowserAgent, BrowserRun, BrowserWebhookEvent, BrowserGuardrail, each owner-or-admin · `/admin` control plane (chat thread, result cards, confirm chips, guardrail bar, live computer panel) · sidebar entry.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-30 | closed | session created 201, region us-west-2, `168d0cd4-41ec-4167-8225-9eb2234706e6`, status RUNNING, timeout honoured, connectUrl + signingKey returned; recorded to BrowserSession |
+| G-31 | closed | `sessions.list` 200, `sessions.get` 200 with createdAt/startedAt/expiresAt |
+| G-32 | closed | release without a confirm token answered 409 `needs_confirmation`; with `confirm: true` answered 200 and the session moved to COMPLETED with endedAt |
+| G-33 | closed | `sessions.debug` 200 returning `debuggerFullscreenUrl` and `debuggerUrl`; LiveFrame embeds it in the thread and in the computer panel |
+| G-34 | closed | `sessions.logs` 200 (pre-build probe on a recorded session); action wired with a limit |
+| G-35 | closed | `sessions.downloads` 200 on the same session |
+| G-36 | not exposed | `/sessions/{id}/recording` 410, `/sessions/{id}/replay` 404 — the account exposes no recording or replay route, so the card offers them and reports the API's own error |
+| G-37 | closed | context `40487797-b173-4574-967c-078dc5c2ebc1` created 201, read 200, attached to session `f6c09a2c-c4f0-4c4e-8bd5-7a0d6a5463af` (contextId echoed on the session), deleted 204 |
+| G-38 | closed | `projects.get` 200 — project "xtreme takeoff", defaultTimeout 300, concurrency 25. `projects.update` wired (name, default timeout, allowed domains) but deliberately not run: changing project settings was not asked for |
+| G-39 | closed (wired) | `proxies` (true or array with geolocation/domain patterns) and `verified`/`os` pass through validation into `browserSettings`; not exercised because proxied sessions cost more |
+| G-40 | not exposed | screenshot, PDF and in-session upload are browser-client features; the agreed architecture has no local Playwright, and no REST route exists for them |
+| G-41 | not exposed | `GET /v1/extensions` 404 |
+| G-42 | closed (functions events only) | endpoint registered 201 → webhook `c460fec6-367c-4d66-9740-9ae7923bbe28` subscribed to `functions.invocations.completed`/`failed`. Delivery proven: a probe POST to the public function URL stored a BrowserWebhookEvent and stamped `session.completed` onto the run. **Browserbase emits no session or agent-run events**, only Functions ones, so polling stays for runs |
+| G-43 | closed | `projects/{id}/usage` 200 — browserMinutes 2 (now 3), proxyBytes 0; shown in the guardrail bar and the usage card |
+| G-44 | closed (implemented) | 3 attempts with backoff on 429 and 5xx, 15s abort per call, the API's own message surfaced; no 429 was provoked |
+| G-45 | closed | 4 agents created through the API: Form Filler `952ffad7-c5a3-49ad-b032-33eff58f7572`, Deep Research `796eccfe-731a-4ed6-8ca1-d183334346e9`, Site Monitor `c96e8342-8821-4dd0-9195-162211ca525c`, Structured Extraction `0296e8ad-0903-4170-8e98-cbf1cf1cf6fa`; get/update/delete wired |
+| G-46 | closed | run `3318df44-bfcc-4186-92fa-33751ac460db` → PENDING → COMPLETED in 18.4s, session `a563ea7f-8bef-4b15-a7a1-ca24e29cce8e`. It opened https://httpbin.org/forms/post, filled custname "Ada Lovelace", custtel 555-0142, size large, topping cheese, submitted, and returned `submitted: true` with the echoed values. Transcript 200 showing real tool calls (httpProbe, navigate, type, click) |
+| G-47 | partial | `functions.list` 200 (empty account); invoke wired, nothing to invoke |
+| G-48 | closed | `certificates.list` 200 |
+| G-49 | not exposed | `POST /v1/search/web` 404, `GET /v1/fetch` 404 on this account |
+| G-50 | not exposed | `GET /v1/identities` 404 |
+| G-51 | not exposed | no REST endpoint confirmed for the model gateway |
+| G-52 | closed (wired) | allowed domains ride `projects.update`; IP allowlisting and certificate validation have no route on this account |
+| G-53 | closed | `/admin` control plane: thread, per-action result cards (session with embedded live view, run with output and step transcript, agent, context, webhook, usage), confirm chips, guardrail bar, live computer panel |
+| G-54 | closed | the chat page drives every action; the computer panel on `/admin` shows the active session's live browser. Task-detail's computer panel is unchanged |
+| G-55 | closed | success (form filled and submitted), failure + recovery (`contexts.delete` first answered 400 because DELETE carried an empty JSON body — fixed in the shared client, retested 204), context reuse (`contextId` echoed on a second session), webhook stored and stamped on the run, usage recorded (2 → 3 min). Probe records deleted: 1 event, 2 sessions, 1 run — 0 left. Agents kept as the seeded templates |
+| G-56 | partial | Browserbase key and project id are read only inside the function and never reach the client bundle; all five entities carry owner-or-admin RLS; every action is admin-gated; destructive actions need a confirm token; session caps and concurrency enforced. Outstanding: the dashboard security scan is an operator action, and webhook signature verification stays off until BROWSERBASE_WEBHOOK_SECRET is set |
+
+Resolved during the build and worth recording: `GET /v1/contexts` is 404 but `GET`/`DELETE /v1/contexts/{id}` work; session live view is `/debug`, not `/live`; `DELETE` must be sent with no JSON content type; webhook `eventTypes` accepts only the seven `functions.*` values; the agent run payload is `task` + `agentId` + `variables` + `resultSchema`, and the answer is at `result.output`.
+
 ## Blockers needing the operator
 
-Awaiting approval of the G-30..G-56 register before any build work begins (as instructed).
+- Railway: nothing to host. Browserbase runs the browser and every call is a server-side fetch from this app's own functions, so there is no worker process to deploy. No Railway token is set and none is needed for the parity above; if a hosted worker is wanted later for long pollers, a token makes it one function.
+- Webhook signature verification: set BROWSERBASE_WEBHOOK_SECRET to the `whsec_…` value shown on the Browserbase webhooks page and events are verified on arrival instead of stored unverified.
+- The dashboard security scan is an operator action.

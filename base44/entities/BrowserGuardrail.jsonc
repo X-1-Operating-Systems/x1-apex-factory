@@ -1,0 +1,72 @@
+{
+  "name": "BrowserGuardrail",
+  "type": "object",
+  "properties": {
+    "max_session_seconds": {
+      "type": "number",
+      "default": 600
+    },
+    "hard_cap_seconds": {
+      "type": "number",
+      "default": 1800
+    },
+    "max_concurrent": {
+      "type": "number",
+      "default": 5
+    },
+    "warn_percent": {
+      "type": "number",
+      "default": 80
+    },
+    "confirm_destructive": {
+      "type": "boolean",
+      "default": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
