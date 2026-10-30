@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import StepFrame from '@/components/admin/StepFrame';
 import RunStopButton from '@/components/admin/RunStopButton';
+import RunResumeButton from '@/components/admin/RunResumeButton';
 
 const LIVE = ['RUNNING', 'PENDING', 'QUEUED'];
+const RESUMABLE = ['STOPPED', 'FAILED', 'ERROR', 'TIMED_OUT', 'PAUSED'];
 
 const STATUS_TONE = {
   COMPLETED: 'text-foreground',
@@ -23,6 +25,7 @@ export default function RunCard({ action, data, onAction }) {
   const steps = data && Array.isArray(data.steps) ? data.steps : [];
   const framed = steps.filter((step) => step.frame_uri).length;
   const Live = LIVE.includes(String(status).toUpperCase());
+  const resumable = RESUMABLE.includes(String(status).toUpperCase());
 
   return (
     <div className="space-y-1.5 rounded-lg border border-border bg-card p-2.5">
@@ -36,6 +39,7 @@ export default function RunCard({ action, data, onAction }) {
             {status}
           </span>
           {Live && runId && onAction && <RunStopButton runId={runId} onAction={onAction} />}
+          {!Live && resumable && runId && onAction && <RunResumeButton runId={runId} onAction={onAction} />}
         </div>
       </div>
 

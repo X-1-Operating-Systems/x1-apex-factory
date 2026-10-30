@@ -58,7 +58,8 @@ export default function useBrowserChat() {
           role: 'assistant',
           content: `${action} ${payload.ok ? 'succeeded' : `failed: ${payload.error || 'unknown error'}`}`,
         });
-        if (action === 'runs.create' && payload.ok) {
+        // a resumed run is live again, so it needs the same polling a fresh one gets
+        if ((action === 'runs.create' || action === 'runs.resume') && payload.ok) {
           const runId = (payload.data && (payload.data.runId || payload.data.id)) || null;
           if (runId) await pollRun(id, runId);
         }
