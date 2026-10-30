@@ -27,6 +27,63 @@ export async function manusCall(path: string, options: any = {}) {
   return data;
 }
 
+const asText = (value: any): string => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof value.content === 'string') return value.content;
+  return '';
+};
+
+const asFiles = (list: any[]) =>
+  (list || [])
+    .filter((file) => file?.url)
+    .map((file) => ({ name: String(file.filename || 'Attachment').slice(0, 120), url: String(file.url) }));
+
+export function normalizeEvents(messages: any[]) {
+  const ordered = [...(messages || [])].reverse();
+  return ordered
+    .map((event: any) => {
+      const base = {
+        id: String(event?.id || ''),
+        type: String(event?.type || ''),
+        timestamp: Number(event?.timestamp || 0),
+      };
+      const type = base.type;
+
+      if (type === 'user_message') {
+        const message = event.user_message || {};
+        return { ...base, role: 'user', content: asText(message.content).slice(0, 4000), attachments: asFiles(message.attachments) };
+      }
+      if (type === 'assistant_message') {
+        const message = event.assistant_message || {};
+        return {
+          ...base,
+          role: 'assistant',
+          content: asText(message.content).slice(0, 6000),
+          attachments: asFiles(message.attachments),
+          options: (message.question_expectation?.options || []).slice(0, 6).map((o: any) => String(o).slice(0, 120)),
+        };
+      }
+      if (type === 'tool_used') {
+        const tool = event.tool_used || {};
+        return { ...base, role: 'agent', content: String(tool.brief || tool.description || tool.tool || 'Worked on a step').slice(0, 200), attachments: [] };
+      }
+      if (type === 'error_message') {
+        return { ...base, role: 'error', content: String(event.error_message?.content || 'The task failed.').slice(0, 400), attachments: [] };
+      }
+      if (type === 'user_stop') {
+        return { ...base, role: 'system', content: 'Task stopped.', attachments: [] };
+      }
+      if (type === 'explanation') {
+        return { ...base, role: 'agent', content: asText(event.explanation?.content || event.explanation).slice(0, 600), attachments: [] };
+      }
+      if (type === 'new_plan_step') {
+        return { ...base, role: 'agent', content: String(event.new_plan_step?.title || event.new_plan_step?.description || '').slice(0, 200), attachments: [] };
+      }
+      return { ...base, role: 'system', content: '', attachments: [] };
+    })
+    .filter((event) => event.role !== 'system' || event.content);
+}
+
 export function digestTask(messages: any[]) {
   const ordered = [...(messages || [])].reverse();
   let agentStatus = 'running';

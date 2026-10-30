@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { manusCall, digestTask } from '../../shared/manus.ts';
+import { manusCall, digestTask, normalizeEvents } from '../../shared/manus.ts';
 
 const TASK_ID = /^[A-Za-z0-9_-]{4,80}$/;
 
@@ -43,6 +43,51 @@ export default async function (req: Request): Promise<Response> {
         query: { task_id: taskId, order: 'desc', limit: 30, verbose: true },
       });
       return Response.json(digestTask(listed.messages || []));
+    }
+
+    if (action === 'earlier') {
+      const taskId = String(body?.task_id || '');
+      if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
+
+      const listed = await manusCall('/v2/task.listMessages', {
+        query: { task_id: taskId, order: 'desc', limit: 40, verbose: true, cursor: body?.cursor || undefined },
+      });
+      return Response.json({
+        events: normalizeEvents(listed.messages || []),
+        next_cursor: listed.next_cursor || null,
+        has_more: Boolean(listed.has_more),
+      });
+    }
+
+    if (action === 'detail') {
+      const taskId = String(body?.task_id || '');
+      if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
+
+      const [detail, listed] = await Promise.all([
+        manusCall('/v2/task.detail', { query: { task_id: taskId } }),
+        manusCall('/v2/task.listMessages', {
+          query: { task_id: taskId, order: 'desc', limit: 60, verbose: true },
+        }),
+      ]);
+
+      const task = detail.task || {};
+      return Response.json({
+        task: {
+          id: task.id || taskId,
+          title: task.title || '',
+          status: task.status || 'running',
+          type: task.task_type || 'standard',
+          created_at: task.created_at || 0,
+          updated_at: task.updated_at || 0,
+          task_url: task.task_url || '',
+          credit_usage: task.credit_usage || 0,
+          visibility: task.share_visibility || 'private',
+        },
+        events: normalizeEvents(listed.messages || []),
+        digest: digestTask(listed.messages || []),
+        next_cursor: listed.next_cursor || null,
+        has_more: Boolean(listed.has_more),
+      });
     }
 
     if (action === 'send') {

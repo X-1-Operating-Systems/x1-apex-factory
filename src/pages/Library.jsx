@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ExternalLink, Loader2, Search, Square } from 'lucide-react';
 import StatusPill from '@/components/manus/StatusPill';
@@ -119,7 +120,7 @@ export default function Library() {
         <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {visible.map((task) => (
             <div key={task.id} className="flex items-center gap-3 px-3.5 py-2.5">
-              <div className="min-w-0 flex-1">
+              <Link to={`/task/${task.id}`} className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <p className="truncate text-[12.5px] font-medium">{task.title || 'Untitled task'}</p>
                   <StatusPill status={task.status} />
@@ -127,7 +128,7 @@ export default function Library() {
                 <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
                   {task.type.replace('_', ' ')} · {when(task.created_at)}
                 </p>
-              </div>
+              </Link>
               {(task.status === 'running' || task.status === 'waiting') && (
                 <button
                   type="button"
