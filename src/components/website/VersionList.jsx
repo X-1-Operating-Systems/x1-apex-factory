@@ -14,7 +14,7 @@ const stamp = (value) => {
   });
 };
 
-export default function VersionList({ checkpoints, publishedVersionId }) {
+export default function VersionList({ checkpoints, publishedVersionId, onRollback, rollingBackId }) {
   if (!checkpoints?.length) {
     return <p className="text-[11.5px] text-muted-foreground">No versions yet. Ask the agent to build the site.</p>;
   }
@@ -52,6 +52,16 @@ export default function VersionList({ checkpoints, publishedVersionId }) {
                 {checkpoint.status ? ` · ${checkpoint.status}` : ''}
               </p>
             </div>
+            {onRollback && !live && (
+              <button
+                type="button"
+                onClick={() => onRollback(checkpoint)}
+                disabled={rollingBackId === checkpoint.version_id}
+                className="shrink-0 self-center rounded-full border border-border px-2 py-[3px] text-[10.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+              >
+                {rollingBackId === checkpoint.version_id ? 'Sending' : 'Roll back'}
+              </button>
+            )}
           </li>
         );
       })}

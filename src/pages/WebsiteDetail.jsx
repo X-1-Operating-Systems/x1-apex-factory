@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Loader2, Monitor, Rocket } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import VersionList from '@/components/website/VersionList';
+import VersionActivity from '@/components/website/VersionActivity';
+import DomainPanel from '@/components/website/DomainPanel';
 
 const TONE = {
   published: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
@@ -13,12 +15,14 @@ const TONE = {
 
 export default function WebsiteDetail() {
   const { taskId } = useParams();
+  const navigate = useNavigate();
   const [site, setSite] = useState(null);
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibility, setVisibility] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [rollingBackId, setRollingBackId] = useState('');
 
   const load = useCallback(async () => {
     const [statusRes, historyRes] = await Promise.all([
@@ -64,6 +68,24 @@ export default function WebsiteDetail() {
       setError(err?.response?.data?.error || err.message);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const rollback = async (checkpoint) => {
+    setRollingBackId(checkpoint.version_id);
+    setError('');
+    try {
+      await base44.functions.invoke('manusAgent', {
+        action: 'send',
+        task_id: taskId,
+        message: `Roll this website back to version ${checkpoint.version_id}${
+          checkpoint.message ? ` (${checkpoint.message})` : ''
+        }. Restore that checkpoint's content, then publish it.`,
+      });
+      navigate(`/task/${taskId}`);
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+      setRollingBackId('');
     }
   };
 
@@ -150,9 +172,26 @@ export default function WebsiteDetail() {
 
       {error && <p className="mt-3 text-[11.5px] text-destructive">{error}</p>}
 
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <DomainPanel taskId={taskId} websiteId={site?.website_id} siteUrl={site?.site_url} />
+        <VersionActivity
+          checkpoints={history?.checkpoints || []}
+          publishedVersionId={history?.published_version_id || site?.published_version_id}
+        />
+      </div>
+
       <div className="mt-5">
         <p className="mb-2 text-[10.5px] uppercase tracking-wide text-muted-foreground">Version history</p>
-        <VersionList checkpoints={history?.checkpoints || []} publishedVersionId={history?.published_version_id} />
+        <VersionList
+          checkpoints={history?.checkpoints || []}
+          publishedVersionId={history?.published_version_id}
+          onRollback={rollback}
+          rollingBackId={rollingBackId}
+        />
+        <p className="mt-2 text-[10.5px] leading-relaxed text-muted-foreground">
+          Rolling back asks the agent to restore that checkpoint's content and publish it, so the site returns to that
+          version.
+        </p>
       </div>
     </div>
   );
