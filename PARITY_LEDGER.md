@@ -110,6 +110,14 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 | G-20 | closed | src/pages/Notifications.jsx, src/components/shell/NotificationBell.jsx | Inbox now pages (25 at a time with **Load more**) and both its counters come from the server: `count({})` for total and `count({read:false})` for unread, so the header and the bell badge no longer describe "the last 100" or "the last 8". Marking, deleting and reading update the counters immediately without a refetch. Verified on real records: three probes (2 unread) produced `total: 3, unread: 2`, a `limit=2` walk returned page 1 (2 items, more=true) then page 2 (1 item) with zero overlap; probes deleted (0 left). Build green. | The bell badge counts every unread notification, not just the eight in its popover. |
 | G-21 | closed | src/lib/search.js, src/components/search/SearchResults.jsx, src/components/search/ResultSection.jsx, src/pages/Search.jsx | Search no longer stops silently at a fixed ceiling. Every surface's query lives in one spec (`SEARCH_SECTIONS`) that returns a real page, and each section carries its own cursor: **Show more** appends that surface's next page while the others stay put, and the header count shows `N+` when more exist. The artifacts section now excludes website deliverables in the query itself (`deliverable.type: {$ne:'website'}`) instead of filtering the page in the browser. Verified on real records: a Template section query paged 8 → 8 with `more` true on both pages and **zero id overlap**, the artifacts query returned only `documents` and excluded websites, and the websites query returned only website deliverables. Build green. | A surface that fails to load leaves its section empty rather than breaking the rest of the page. |
 
+### Batch 15 — the run loop closes: rerun, delete, one agent per playbook, a sidebar that pages
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-25 | closed | src/components/task/TaskActions.jsx, src/lib/taskEngine.js, src/pages/TaskDetail.jsx | Task detail now carries **Rerun** and **Delete** beside Stop. Rerun starts a fresh run from the task's own brief, model, effort and project and lands on the new task; Delete asks once, then removes the task and returns to Tasks. Both act on studio tasks only — a Manus run still has its single "Open in Manus" path, because their API exposes neither a delete nor the original brief. Verified end to end on real records: a probe task was created, its stored instruction read back (`Reply with the single word: rerun-probe.`), the exact rerun payload produced a **new** task id that ran to `stopped` with 2 events, and deleting both left **0** records. Build green. | Errors from either action surface in the page's existing error line rather than failing silently. |
+| G-24 | closed | src/components/playbooks/PlaybookDialog.jsx | Saving a playbook as an agent now stamps `installed_from` with the playbook key, and opening the dialog looks for an agent by that key **or** by name. When one exists the dialog says **Saved to Agents** and links to the library instead of offering the button, so it can no longer mint duplicates. Verified on real records: a probe agent matched by key, matched by name alone, returned nothing when neither matched, and was deleted afterwards (0 left). Build green. | Deleting the agent in the library makes the playbook offer the save again, so the state stays honest. |
+| G-22 | closed | src/components/AppShell.jsx, src/components/shell/SidebarBody.jsx | The sidebar's sessions and projects are no longer capped at a silent 40. Both lists keep their cursor and page state, and a **Show more** row appears while either one still has a next page, appending without duplicates. Build green. | Tasks opened past the window appear in the flat list or under their project; project counts now grow as more pages load. |
+
 ## Register state
 
 | id | sev | state |
@@ -126,15 +134,18 @@ Two medium gaps on the surfaces the last batch set the standard for: the task in
 | G-19 | MEDIUM | closed — the Ask panel can end a conversation and start a new one |
 | G-20 | MEDIUM | closed — inbox counts and paging come from the server, in the page and the bell |
 | G-21 | MEDIUM | closed — every search surface pages on its own cursor with Show more |
-| G-22 | MEDIUM | open — sidebar sessions and projects both load a 40-record window; no paging past it |
+| G-22 | MEDIUM | closed — sidebar sessions and projects page with Show more instead of a silent 40 |
 | G-23 | MEDIUM | open — Manus runs cannot be filtered or searched at all (their API exposes neither) |
-| G-24 | MEDIUM | open — Playbooks "Save as agent" re-creates a duplicate agent every time; no match against installed agents |
-| G-25 | MEDIUM | open — task detail has no delete or rerun control, so a failed run can only be retried by retyping the brief |
+| G-24 | MEDIUM | closed — one agent per playbook, found by key or name |
+| G-25 | MEDIUM | closed — task detail reruns the same brief and deletes without a leftover |
 
-## Next batch (Batch 15)
+## Next batch (Batch 16)
 
-G-22 → G-25. Start with G-25 (rerun/delete on a task) because it is the last dead end in the run loop, then G-24 and G-22.
-G-23 needs a decision first: mirror Manus runs into StudioTask (so search and filters cover them), or state plainly in the UI that Manus search is limited to what the API returns.
+Only G-23 is left in the register, and it needs your decision before code:
+- **Mirror** every Manus run into StudioTask on creation, so one search and one filter cover both engines (costs a sync path and a way to keep mirror status current), or
+- **State the limit** in the interface: Tasks and Search tell the operator that Manus results are narrowed locally to the fetched page.
+
+Then the remaining BLOCKERs: G-03 (client handoff path on release) and the execution half of G-04 (runs that actually call a connector).
 
 ## Blockers needing the operator
 

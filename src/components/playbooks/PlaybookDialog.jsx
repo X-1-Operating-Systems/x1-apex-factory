@@ -11,22 +11,18 @@ export default function PlaybookDialog({ playbook, open, onOpenChange }) {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [existing, setExisting] = useState(null);
 
   // A playbook becomes one agent: reopening it finds the agent it already made.
   useEffect(() => {
     if (!open || !playbook) return;
     setError('');
     setSaved(false);
-    setExisting(null);
     base44.entities.StudioAgent.filter(
       { $or: [{ installed_from: playbook.key }, { name: playbook.name }] },
       { limit: 1 }
     )
       .then((page) => {
-        const hit = page.items?.[0] || null;
-        setExisting(hit);
-        setSaved(Boolean(hit));
+        setSaved(Boolean(page.items?.[0]));
       })
       .catch(() => {});
   }, [open, playbook]);
@@ -53,7 +49,7 @@ export default function PlaybookDialog({ playbook, open, onOpenChange }) {
     setBusy('agent');
     setError('');
     try {
-      const agent = await base44.entities.StudioAgent.create({
+      await base44.entities.StudioAgent.create({
         name: playbook.name,
         role: playbook.summary,
         category: playbook.agentCategory,
@@ -62,7 +58,6 @@ export default function PlaybookDialog({ playbook, open, onOpenChange }) {
         task_title: playbook.name,
         installed_from: playbook.key,
       });
-      setExisting(agent);
       setSaved(true);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
