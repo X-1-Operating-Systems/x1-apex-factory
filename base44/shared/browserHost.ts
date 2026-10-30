@@ -38,26 +38,92 @@ export const PAGE_ACTIONS = [
 export const NOT_CONNECTED =
   "The browser host is not connected yet. Deploy the container in browser-host/ and set BROWSER_HOST_URL and BROWSER_HOST_TOKEN.";
 
+/**
+ * The host this app owns, provisioned in the operator's own Railway workspace.
+ * Resolution order: explicit secrets first (operator override), then the Railway
+ * project itself, so the app runs without anyone pasting a token by hand.
+ */
+export const RAILWAY = {
+  endpoint: "https://backboard.railway.app/graphql/v2",
+  projectId: "71393748-6467-45a9-a42d-3f7d457ec687",
+  projectName: "x1-browser-host",
+  environmentId: "0e252a15-65fa-42d2-aaa9-dc376686e1ba",
+  environmentName: "production",
+  serviceId: "4baa6339-9910-4582-b5f4-da6d372016a7",
+  serviceName: "browser-host",
+};
+
+const CACHE_MS = 5 * 60 * 1000;
+const resolved = { url: null, token: null, at: 0, source: null };
+
+function fromSecrets() {
+  const url = secrets.get("BROWSER_HOST_URL");
+  const token = secrets.get("BROWSER_HOST_TOKEN");
+  if (url && token) return { url: String(url).replace(/\/+$/, ""), token: String(token), source: "secret" };
+  return null;
+}
+
+export async function railwayGraphQL(query, variables) {
+  const key = secrets.get("RAILWAY_API_KEY");
+  if (!key) throw new Error("RAILWAY_API_KEY is not set, so the host cannot be resolved from Railway.");
+  const response = await fetch(RAILWAY.endpoint, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  return { ok: response.ok && !payload.errors, status: response.status, data: payload.data || null, errors: payload.errors || null };
+}
+
+async function fromRailway() {
+  const result = await railwayGraphQL(
+    `query($p:String!,$e:String!,$s:String!){ project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } variables(projectId:$p, environmentId:$e, serviceId:$s) }`,
+    { p: RAILWAY.projectId, e: RAILWAY.environmentId, s: RAILWAY.serviceId }
+  );
+  if (!result.ok) return null;
+  const vars = result.data.variables || {};
+  const domains = (result.data.project?.services?.edges || [])
+    .filter((edge) => edge.node.id === RAILWAY.serviceId)
+    .flatMap((edge) => (edge.node.serviceInstances?.edges || []).flatMap((i) => i.node?.domains?.serviceDomains || []));
+  const token = vars.HOST_TOKEN;
+  const domain = domains[0]?.domain;
+  if (!token || !domain) return null;
+  return { url: `https://${domain}`, token: String(token), source: "railway" };
+}
+
+/** Warm the connection once per function invocation. */
+export async function ensureHost(force = false) {
+  if (!force && resolved.url && Date.now() - resolved.at < CACHE_MS) return resolved;
+  let found = fromSecrets();
+  if (!found) found = await fromRailway().catch(() => null);
+  resolved.url = found ? found.url : null;
+  resolved.token = found ? found.token : null;
+  resolved.source = found ? found.source : null;
+  resolved.at = Date.now();
+  return resolved;
+}
+
 function baseUrl() {
-  const value = secrets.get("BROWSER_HOST_URL");
-  if (!value) throw new Error(NOT_CONNECTED);
-  return String(value).replace(/\/+$/, "");
+  if (!resolved.url) throw new Error(NOT_CONNECTED);
+  return resolved.url;
 }
 
 function token() {
-  const value = secrets.get("BROWSER_HOST_TOKEN");
-  if (!value) throw new Error(NOT_CONNECTED);
-  return String(value);
+  if (!resolved.token) throw new Error(NOT_CONNECTED);
+  return resolved.token;
 }
 
 export function hostConfigured() {
-  try {
-    baseUrl();
-    token();
-    return true;
-  } catch {
-    return false;
-  }
+  return Boolean(resolved.url && resolved.token);
+}
+
+export function hostUrl() {
+  return resolved.url;
+}
+
+export function hostSource() {
+  return resolved.source;
 }
 
 async function hmacHex(key, message) {
