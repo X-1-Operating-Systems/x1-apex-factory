@@ -364,3 +364,14 @@ One engine change was needed for the button to be honest rather than cosmetic: `
 | id | state | files changed | verification (live, this turn) |
 |---|---|---|---|
 | G-61 | closed | src/components/admin/RunResumeButton.jsx (new), src/components/admin/RunCard.jsx, src/hooks/useBrowserChat.js | Probe run `b6792d76-37ee-4067-a30e-7bfa795f41ab` ("open https://example.com and tell me the headline"): polled live to `COMPLETED` with 3 steps, stopped with the card's own call (`runs.stop`, confirm true) → `STOPPED`, then resumed with exactly the call the new button makes (`runs.resume`, no confirm) → `RUNNING`, then the next poll advanced it to `COMPLETED` with **4 steps** — it really went back to work rather than only changing a label. Probe run deleted, its session released, no probe runs left, host healthy with 0 sessions running and usage at 40 browser minutes / 20 sessions opened. Build green. |
+
+### Batch 30 — the plane stops describing the stack it no longer has
+
+The audit turned to copy and readouts instead of controls, and found two places still narrating the rented browser vendor removed in Batch 21. Neither was cosmetic: one printed a number that could never be anything but zero, the other suggested an instruction the owned host cannot carry out.
+
+1. **`UsageCard` carried a proxy meter and an invented quota.** It read `data.proxyBytes`, a field the owned host has never returned (it has no proxies at all), so it printed "Proxy 0 bytes" under every usage answer, beside a progress bar measured against a "600 min review line" that is not a limit anywhere in this app. The card now reads the fields the host actually reports — browser minutes, sessions opened, sessions running against its real concurrency cap, and page actions — and says plainly that the host is doing the counting.
+2. **The empty thread's starter examples were vendor examples.** One read "Open a recorded session in us-west-2 and show me the live view": the owned host records nothing and has no regions, so the plane was teaching the operator an instruction it cannot honour.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-62 | closed | src/components/admin/UsageCard.jsx, src/components/admin/ControlThread.jsx | `usage.get` against the live host returned exactly `browserMinutes, browserSeconds, sessions_opened, sessions_running, actions, max_sessions` and **no `proxyBytes`**, so the old line was permanently zero by construction. The rewritten card resolves against that same payload to `{minutes: 40, opened: 20, running: 0, actions: 57, maxSessions: 5}` — every number a real counter. The starters now name only what the host does: live view, minutes, a run that opens example.com, a transcript then release. Build green. |

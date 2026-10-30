@@ -12,9 +12,9 @@ export default function ControlThread({ messages, busy, onConfirm, onCancel, onA
           typed parameters before anything executes, and destructive actions ask first.
         </p>
         <div className="mt-2 space-y-1.5 text-left text-[11.5px] leading-relaxed text-muted-foreground">
-          <p>· Open a recorded session in us-west-2 and show me the live view</p>
+          <p>· Open a session and show me its live view</p>
           <p>· How many browser minutes has this project used</p>
-          <p>· Start a run that fills the demo order form and returns the values</p>
+          <p>· Start a run that opens example.com and reads the headline</p>
           <p>· Show the transcript of the last run, then release its session</p>
         </div>
       </div>
