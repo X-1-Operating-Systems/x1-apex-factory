@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Paperclip, X } from 'lucide-react';
+import { registerFiles } from '@/lib/files';
 
-export default function AttachmentPicker({ files, onChange, disabled }) {
+export default function AttachmentPicker({ files, onChange, disabled, task }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -18,9 +19,10 @@ export default function AttachmentPicker({ files, onChange, disabled }) {
       const uploaded = [];
       for (const file of picked) {
         const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-        uploaded.push({ name: file.name, file_uri, mime_type: file.type });
+        uploaded.push({ name: file.name, file_uri, mime_type: file.type, size: file.size });
       }
       onChange([...files, ...uploaded].slice(0, 5));
+      await registerFiles(uploaded, { task, source: task ? 'task' : 'studio' }).catch(() => []);
     } catch (err) {
       setError(err?.message || 'That file could not be attached.');
     } finally {

@@ -224,6 +224,7 @@ export default function TaskDetail() {
 
       <div className="shrink-0 pt-2">
         <TaskFollowUp
+          task={task}
           onSend={send}
           placeholder={waiting?.description || 'Send a follow-up to this task'}
           options={data?.engine === 'native' ? options : null}

@@ -21,6 +21,7 @@ import TemplateLibrary from '@/pages/TemplateLibrary';
 import Releases from '@/pages/Releases';
 import Library from '@/pages/Library';
 import Artifacts from '@/pages/Artifacts';
+import Files from '@/pages/Files';
 import Computers from '@/pages/Computers';
 import Agents from '@/pages/Agents';
 import Skills from '@/pages/Skills';
@@ -83,6 +84,7 @@ const AuthenticatedApp = () => {
           <Route path="/releases" element={<Releases />} />
           <Route path="/library" element={<Library />} />
           <Route path="/artifacts" element={<Artifacts />} />
+          <Route path="/files" element={<Files />} />
           <Route path="/computers" element={<Computers />} />
           <Route path="/agents" element={<Agents />} />
           <Route path="/skills" element={<Skills />} />

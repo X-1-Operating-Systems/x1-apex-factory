@@ -85,17 +85,41 @@ function normalize(envelope: any, fallbackTitle: string) {
   };
 }
 
-export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort, context = '' }: any) {
+export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort, context = '', fileUrls = [] }: any) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt: buildPrompt({ instruction, history, followUp, effort, context }),
     model: pickModel(model),
     response_json_schema: TASK_SCHEMA,
+    ...(fileUrls.length ? { file_urls: fileUrls } : {}),
   });
   return normalize(result, title);
 }
 
-export function userEvent(content: string) {
-  return { role: 'user', content: String(content).slice(0, 6000), ts: Date.now() };
+export function userEvent(content: string, attachments: any[] = []) {
+  return {
+    role: 'user',
+    content: String(content).slice(0, 6000),
+    ts: Date.now(),
+    ...(attachments.length ? { attachments } : {}),
+  };
+}
+
+export async function saveAttachments(base44: any, attachments: any[] = []) {
+  const saved: any[] = [];
+  for (const file of attachments.slice(0, 5)) {
+    if (!file?.file_uri) continue;
+    const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+      file_uri: file.file_uri,
+      expires_in: 3600,
+    }).catch(() => null);
+    saved.push({
+      name: String(file.name || 'File').slice(0, 160),
+      file_uri: file.file_uri,
+      mime_type: file.mime_type || '',
+      url: signed?.signed_url || '',
+    });
+  }
+  return saved;
 }
 
 export function outputEvents(out: any) {
@@ -109,9 +133,10 @@ export function errorEvent(message: string) {
   return { role: 'error', content: String(message || 'The run failed.').slice(0, 600), ts: Date.now() };
 }
 
-export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort }: any) {
+export async function createNativeTask(base44: any, { userId, title, instruction, agentId = '', model, effort, attachments = [] }: any) {
   const chosenModel = pickModel(model);
   const chosenEffort = pickEffort(effort);
+  const files = await saveAttachments(base44, attachments);
 
   const record = await base44.asServiceRole.entities.StudioTask.create({
     created_by_id: userId,
@@ -122,7 +147,7 @@ export async function createNativeTask(base44: any, { userId, title, instruction
     model: chosenModel,
     effort: chosenEffort,
     agent_id: agentId || '',
-    events: [userEvent(instruction)],
+    events: [userEvent(instruction, files)],
   });
 
   try {
@@ -133,6 +158,7 @@ export async function createNativeTask(base44: any, { userId, title, instruction
       model: chosenModel,
       effort: chosenEffort,
       context,
+      fileUrls: files.map((f: any) => f.url).filter(Boolean),
     });
     return await base44.asServiceRole.entities.StudioTask.update(record.id, {
       title: out.title || record.title,
@@ -149,12 +175,13 @@ export async function createNativeTask(base44: any, { userId, title, instruction
   }
 }
 
-export async function followUpNativeTask(base44: any, { task, message, model, effort }: any) {
+export async function followUpNativeTask(base44: any, { task, message, model, effort, attachments = [] }: any) {
   const history = (task.events || [])
     .filter((event: any) => event.role === 'user' || event.role === 'assistant')
     .map((event: any) => ({ role: event.role, content: event.content }));
 
-  const withMessage = [...(task.events || []), userEvent(message)];
+  const files = await saveAttachments(base44, attachments);
+  const withMessage = [...(task.events || []), userEvent(message, files)];
 
   try {
     const context = await loadStudioContext(base44, task.created_by_id);
@@ -166,6 +193,7 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
       model: model || task.model,
       effort: effort || task.effort,
       context,
+      fileUrls: files.map((f: any) => f.url).filter(Boolean),
     });
     return await base44.asServiceRole.entities.StudioTask.update(task.id, {
       status: 'stopped',

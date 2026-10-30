@@ -3,7 +3,7 @@ import { ArrowUp, Loader2 } from 'lucide-react';
 import AttachmentPicker from '@/components/task/AttachmentPicker';
 import ModelPicker from '@/components/composer/ModelPicker';
 
-export default function TaskFollowUp({ onSend, placeholder, disabled, options, onOptionsChange }) {
+export default function TaskFollowUp({ onSend, placeholder, disabled, options, onOptionsChange, task }) {
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,7 @@ export default function TaskFollowUp({ onSend, placeholder, disabled, options, o
         />
         <div className="flex items-end justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
+            <AttachmentPicker files={files} onChange={setFiles} disabled={busy} task={task} />
             {options && onOptionsChange && (
               <ModelPicker options={options} onChange={onOptionsChange} disabled={busy || disabled} />
             )}

@@ -21,18 +21,13 @@ const when = (value) => {
   return new Date(ts > 1e12 ? ts : ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
-export default function ArtifactCard({ artifact }) {
+export default function ArtifactCard({ artifact, onSelect }) {
   const meta = TYPES[artifact.type] || TYPES.others;
   const Icon = meta.icon;
 
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20">
-      <a
-        href={artifact.url || (artifact.task_id ? `/task/${artifact.task_id}` : '#')}
-        target={artifact.url ? '_blank' : undefined}
-        rel="noreferrer"
-        className="block"
-      >
+      <button type="button" onClick={() => onSelect?.(artifact)} className="block w-full text-left">
         <div className="relative h-32 bg-secondary">
           {artifact.cover_image ? (
             <Image src={artifact.cover_image} alt={artifact.name} fittingType="fill" className="h-32 w-full" />
@@ -47,7 +42,7 @@ export default function ArtifactCard({ artifact }) {
             </span>
           )}
         </div>
-      </a>
+      </button>
       <div className="p-3">
         <div className="flex items-start gap-1.5">
           <Icon size={12} className="mt-[3px] shrink-0 text-muted-foreground" />
@@ -58,6 +53,15 @@ export default function ArtifactCard({ artifact }) {
           {artifact.updated_at ? ` · ${when(artifact.updated_at)}` : ''}
         </p>
         <div className="mt-2 flex items-center gap-1.5">
+          {onSelect && (
+            <button
+              type="button"
+              onClick={() => onSelect(artifact)}
+              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] transition-colors hover:bg-secondary"
+            >
+              Details
+            </button>
+          )}
           {artifact.url && (
             <a
               href={artifact.url}

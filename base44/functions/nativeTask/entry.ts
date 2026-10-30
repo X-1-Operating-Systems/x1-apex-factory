@@ -27,6 +27,7 @@ function shape(task: any, includeEvents = false) {
             role: event.role,
             content: event.content,
             ts: event.ts,
+            attachments: Array.isArray(event.attachments) ? event.attachments : [],
           })),
         }
       : {}),
@@ -54,6 +55,7 @@ export default async function (req: Request): Promise<Response> {
         agentId: String(body?.agent_id || ''),
         model: body?.model,
         effort: body?.effort,
+        attachments: Array.isArray(body?.attachments) ? body.attachments : [],
       });
 
       if (task.status === 'error') {
@@ -95,7 +97,13 @@ export default async function (req: Request): Promise<Response> {
       const task = await base44.entities.StudioTask.get(taskId).catch((e: any) => (e.status === 404 ? null : Promise.reject(e)));
       if (!task) return Response.json({ error: 'Not found' }, { status: 404 });
 
-      await followUpNativeTask(base44, { task, message, model: body?.model, effort: body?.effort });
+      await followUpNativeTask(base44, {
+        task,
+        message,
+        model: body?.model,
+        effort: body?.effort,
+        attachments: Array.isArray(body?.attachments) ? body.attachments : [],
+      });
       return Response.json({ ok: true });
     }
 

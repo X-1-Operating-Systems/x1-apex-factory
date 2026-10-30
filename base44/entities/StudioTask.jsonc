@@ -53,6 +53,30 @@
           },
           "ts": {
             "type": "number"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "file_uri": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "mime_type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "file_uri"
+              ]
+            }
           }
         },
         "required": [

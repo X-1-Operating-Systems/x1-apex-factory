@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Search } from 'lucide-react';
 import ArtifactCard from '@/components/manus/ArtifactCard';
+import ArtifactDetailDialog from '@/components/manus/ArtifactDetailDialog';
 import { listArtifacts } from '@/lib/taskEngine';
 
 const FILTERS = [
@@ -25,6 +26,7 @@ export default function Artifacts() {
   const [loading, setLoading] = useState(true);
   const [moreBusy, setMoreBusy] = useState(false);
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -124,7 +126,7 @@ export default function Artifacts() {
         <>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((artifact) => (
-              <ArtifactCard key={artifact.id} artifact={artifact} />
+              <ArtifactCard key={artifact.id} artifact={artifact} onSelect={setSelected} />
             ))}
           </div>
           {hasMore && (
@@ -141,6 +143,8 @@ export default function Artifacts() {
           )}
         </>
       )}
+
+      <ArtifactDetailDialog artifact={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
