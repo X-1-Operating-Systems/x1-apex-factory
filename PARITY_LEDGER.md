@@ -51,6 +51,12 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-05b | closed | base44/entities/StudioFile.jsonc, base44/shared/projects.ts, base44/shared/native.ts, src/lib/files.js, src/components/studio/ProjectFiles.jsx, src/components/studio/ProjectSettingsDialog.jsx | Files added to a project (stored privately) are attached to the create and follow-up runs of every task in that project and named in the project brief; Manus runs receive the names. Verified with a real run: a task created inside a project holding `brand-voice.txt` answered with exactly that file name. Round-trip of the `project_id` filter verified against real records (create → matched → delete → zero remaining). Build green. | Capped at 4 signed files per run to bound payload size; the brief always lists up to 12 names. |
 | G-10 | closed | src/components/files/FileUploadButton.jsx, src/pages/Files.jsx, src/lib/files.js | Files screen can now upload directly (stored privately), the new record appears at the top of the list immediately and the counter increments; upload errors surface inline. Build green. | Uploads made outside a task carry `source: 'library'`; project uploads carry `source: 'studio'` plus `project_id`. |
 
+### Batch 7 — multi-page projects (G-13)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-13 | closed | src/pages/Studio.jsx, src/components/studio/PageSwitcher.jsx, src/components/studio/PageDialog.jsx, src/components/studio/PageCanvas.jsx, src/components/studio/Inspector.jsx, base44/functions/deployRelease/entry.ts, base44/shared/bundle.ts, base44/shared/qa.ts, base44/functions/studioAgent/entry.ts | Studio lists every page of a project, switches the canvas per page, and creates/renames/deletes pages with per-page SEO. Release ran against a real two-page project (`/` v2, `/about` v3): bundle produced `index.html`, `about/index.html`, `vercel.json`, `manifest.json`; manifest carried both pages with their own versions and section lists; page_version froze at the highest page version and the QA gate scored worst-of across pages. Probe records (deployment, QA run, pages, project) deleted afterwards. Build green. | A stale `audit` reference in the release response was found by this probe and removed. |
+
 ## Register state
 
 | id | sev | state |
@@ -67,7 +73,7 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-10 | HIGH | closed |
 | G-11 | HIGH | closed |
 | G-12 | HIGH | doing — sidebar sections live; project grouping inside sessions pending |
-| G-13 | HIGH | open — projects are single-page: studio loads one page (`limit: 1`) and release bundles one page, while StudioPage supports many paths |
+| G-13 | HIGH | closed |
 | G-14 | HIGH | open — Files has no search or type filter over uploads |
 | G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
 | G-16 | HIGH | open — computer panel streams run steps but has no live browser view |
@@ -75,9 +81,9 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 7)
+## Next batch (Batch 8)
 
-G-13 multi-page projects (page list in the studio, per-page canvas + SEO, release bundles every page) · then G-14 (upload search/filter).
+G-12 remainder — the dashboard becomes project-first: projects with page counts and direct entry into the studio as the primary workspace, task history demoted below, templates last. Then G-14 (upload search/filter).
 G-15 and G-16 get re-scoped at the start of the batch after verifying the current Search and computer-panel behaviour.
 
 ## Blockers needing the operator
