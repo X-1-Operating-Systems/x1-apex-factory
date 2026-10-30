@@ -69,6 +69,12 @@ Verification rule: a gap is only `closed` when the production build is green AND
 |---|---|---|---|---|
 | G-14 | closed | src/lib/files.js, src/pages/Files.jsx, src/components/files/FileTypeFilter.jsx | Search now combines with a type filter (All / Images / Documents / Video / Audio) in one server query, and the header count reflects the active filters instead of the whole library. `fileFilter` is shared by list and count so the two can never disagree; paging carries both filters. Verified on real records: three probe uploads (png, txt, mp4) returned exactly one image, one document, and one video-with-term, term-only search matched by name, the filtered count came back 1, and all probes were deleted afterwards (0 left). Build green. | Files already had search; the missing half was type filtering and an honest filtered count. |
 
+### Batch 10 — sessions grouped by project (G-12 closed)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-12 (session half) | closed | src/components/shell/ProjectList.jsx, src/components/SessionList.jsx, src/components/shell/SessionRow.jsx, src/components/shell/SidebarBody.jsx | Every sidebar project row now expands into that project's tasks with a live count, and the flat list below keeps only tasks with no live project, still grouped by recency. Row markup is shared through one `SessionRow`, so status dots and active states cannot drift between the two lists. Verified on real records: a project with two tasks rendered both under it (`nestedTaskCount: 2`), a project-less task and a task pointing at a deleted project both fell back to the flat list, and all probes were deleted afterwards (0 tasks, 0 projects left). Build green. | Sidebar loads 40 tasks; a project's count reflects the loaded window. |
+
 ## Register state
 
 | id | sev | state |
@@ -84,7 +90,7 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-09 | HIGH | closed |
 | G-10 | HIGH | closed |
 | G-11 | HIGH | closed |
-| G-12 | HIGH | doing — sidebar sections and project-first dashboard live; project grouping inside sessions pending |
+| G-12 | HIGH | closed |
 | G-13 | HIGH | closed |
 | G-14 | HIGH | closed |
 | G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
@@ -93,9 +99,9 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 10)
+## Next batch (Batch 11)
 
-G-12's remaining half — project grouping inside the session list — then G-15 search coverage across artifacts, files and websites.
+G-15 search coverage — verify what the Search page actually queries and extend it to artifacts, files and websites.
 G-16 gets re-scoped at the start of the batch after verifying the current computer-panel behaviour.
 
 ## Blockers needing the operator

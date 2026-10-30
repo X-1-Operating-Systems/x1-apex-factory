@@ -125,9 +125,9 @@ export default function SidebarBody({ tasks, projects, onNavigate }) {
       </div>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
-        <ProjectList projects={projects} />
+        <ProjectList projects={projects} tasks={tasks} onNavigate={onNavigate} />
         <div className="mt-4">
-          <SessionList tasks={tasks} />
+          <SessionList tasks={tasks} projects={projects} onNavigate={onNavigate} />
         </div>
       </div>
 
