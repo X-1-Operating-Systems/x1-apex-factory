@@ -21,6 +21,7 @@ import Library from '@/pages/Library';
 import Computers from '@/pages/Computers';
 import Agents from '@/pages/Agents';
 import Websites from '@/pages/Websites';
+import Automations from '@/pages/Automations';
 import Plugins from '@/pages/Plugins';
 // Add page imports here
 
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
           <Route path="/computers" element={<Computers />} />
           <Route path="/agents" element={<Agents />} />
           <Route path="/websites" element={<Websites />} />
+          <Route path="/automations" element={<Automations />} />
           <Route path="/plugins" element={<Plugins />} />
         </Route>
       </Route>
