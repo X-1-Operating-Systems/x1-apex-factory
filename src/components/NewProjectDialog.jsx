@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
-export default function NewProjectDialog({ open, onOpenChange, templates, initialTemplateId }) {
+export default function NewProjectDialog({ open, onOpenChange, templates, initialTemplateId, initialName }) {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [client, setClient] = useState('');
@@ -16,12 +16,12 @@ export default function NewProjectDialog({ open, onOpenChange, templates, initia
 
   useEffect(() => {
     if (open) {
-      setName('');
+      setName(initialName || '');
       setClient('');
       setError('');
       setTemplateId(initialTemplateId || templates?.[0]?.id || '');
     }
-  }, [open, initialTemplateId, templates]);
+  }, [open, initialTemplateId, templates, initialName]);
 
   const create = async (e) => {
     e.preventDefault();
