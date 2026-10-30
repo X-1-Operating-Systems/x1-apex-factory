@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Loader2, Search as SearchIcon } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import StatusPill from '@/components/manus/StatusPill';
+import { ResultRow, ResultSection } from '@/components/search/ResultSection';
+import { prettySize } from '@/lib/files';
 
 const like = (value) => ({ $regex: value, $options: 'i' });
+const artifactMatch = (query) => ({
+  $or: [{ 'deliverable.name': like(query) }, { 'deliverable.detail': like(query) }],
+});
 
 export default function Search() {
   const [params, setParams] = useSearchParams();
@@ -21,7 +26,7 @@ export default function Search() {
     let live = true;
     setLoading(true);
     const run = async () => {
-      const [tasks, projects, agents, automations, templates] = await Promise.all([
+      const [tasks, projects, agents, automations, templates, artifacts, sites, files] = await Promise.all([
         base44.entities.StudioTask.filter(
           { $or: [{ title: like(query) }, { instruction: like(query) }] },
           { sort: '-created_date', limit: 12 }
@@ -30,11 +35,23 @@ export default function Search() {
         base44.entities.StudioAgent.filter({ name: like(query) }, { limit: 8 }),
         base44.entities.Automation.filter({ title: like(query) }, { limit: 8 }),
         base44.entities.Template.filter({ name: like(query) }, { limit: 8 }),
+        base44.entities.StudioTask.filter(artifactMatch(query), { sort: '-created_date', limit: 12 }),
+        base44.entities.StudioTask.filter(
+          { 'deliverable.type': 'website', ...artifactMatch(query) },
+          { sort: '-created_date', limit: 8 }
+        ),
+        base44.entities.StudioFile.filter({ name: like(query) }, { sort: '-created_date', limit: 8 }),
       ]);
       if (!live) return;
+      const websiteIds = new Set(sites.items.map((task) => task.id));
       setResults({
         tasks: tasks.items,
         projects: projects.items,
+        websites: sites.items,
+        artifacts: artifacts.items.filter(
+          (task) => !websiteIds.has(task.id) && task.deliverable?.type !== 'website'
+        ),
+        files: files.items,
         agents: agents.items,
         automations: automations.items,
         templates: templates.items,
@@ -67,7 +84,7 @@ export default function Search() {
           value={term}
           onChange={(e) => setTerm(e.target.value)}
           autoFocus
-          placeholder="Search tasks, projects, agents, automations, templates"
+          placeholder="Search tasks, projects, websites, artifacts, files, agents"
           aria-label="Search everything"
           className="w-full bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
         />
@@ -96,64 +113,66 @@ export default function Search() {
 
       {!loading && total > 0 && (
         <div className="mt-4 space-y-5">
-          <Section title="Tasks" count={results.tasks.length}>
+          <ResultSection title="Tasks" count={results.tasks.length}>
             {results.tasks.map((task) => (
-              <Row key={task.id} to={`/task/${task.id}`} title={task.title || 'Untitled task'} meta={task.summary || task.instruction}>
+              <ResultRow key={task.id} to={`/task/${task.id}`} title={task.title || 'Untitled task'} meta={task.summary || task.instruction}>
                 <StatusPill status={task.status} />
-              </Row>
+              </ResultRow>
             ))}
-          </Section>
+          </ResultSection>
 
-          <Section title="Projects" count={results.projects.length}>
+          <ResultSection title="Projects" count={results.projects.length}>
             {results.projects.map((project) => (
-              <Row key={project.id} to={`/studio/${project.id}`} title={project.name} meta={project.client_name || project.description} />
+              <ResultRow key={project.id} to={`/studio/${project.id}`} title={project.name} meta={project.client_name || project.description} />
             ))}
-          </Section>
+          </ResultSection>
 
-          <Section title="Agents" count={results.agents.length}>
+          <ResultSection title="Websites" count={results.websites.length}>
+            {results.websites.map((task) => (
+              <ResultRow key={task.id} to={`/websites/${task.id}`} title={task.deliverable?.name} meta={task.deliverable?.detail || task.title} />
+            ))}
+          </ResultSection>
+
+          <ResultSection title="Artifacts" count={results.artifacts.length}>
+            {results.artifacts.map((task) => (
+              <ResultRow key={task.id} to={`/task/${task.id}`} title={task.deliverable?.name} meta={task.deliverable?.detail || task.title}>
+                <span className="shrink-0 rounded-full border border-border px-1.5 py-[1px] text-[10px] capitalize text-muted-foreground">
+                  {task.deliverable?.type || 'file'}
+                </span>
+              </ResultRow>
+            ))}
+          </ResultSection>
+
+          <ResultSection title="Files" count={results.files.length}>
+            {results.files.map((file) => (
+              <ResultRow
+                key={file.id}
+                to="/files"
+                title={file.name}
+                meta={[file.mime_type, file.size ? prettySize(file.size) : ''].filter(Boolean).join(' · ')}
+              />
+            ))}
+          </ResultSection>
+
+          <ResultSection title="Agents" count={results.agents.length}>
             {results.agents.map((agent) => (
-              <Row key={agent.id} to="/agents" title={agent.name} meta={agent.role || agent.instructions} />
+              <ResultRow key={agent.id} to="/agents" title={agent.name} meta={agent.role || agent.instructions} />
             ))}
-          </Section>
+          </ResultSection>
 
-          <Section title="Scheduled" count={results.automations.length}>
+          <ResultSection title="Scheduled" count={results.automations.length}>
             {results.automations.map((automation) => (
-              <Row key={automation.id} to="/automations" title={automation.title} meta={automation.instruction} />
+              <ResultRow key={automation.id} to="/automations" title={automation.title} meta={automation.instruction} />
             ))}
-          </Section>
+          </ResultSection>
 
-          <Section title="Templates" count={results.templates.length}>
+          <ResultSection title="Templates" count={results.templates.length}>
             {results.templates.map((template) => (
-              <Row key={template.id} to="/templates" title={template.name} meta={template.tagline || template.description} />
+              <ResultRow key={template.id} to="/templates" title={template.name} meta={template.tagline || template.description} />
             ))}
-          </Section>
+          </ResultSection>
         </div>
       )}
     </div>
-  );
-}
-
-function Section({ title, count, children }) {
-  if (!count) return null;
-  return (
-    <section>
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
-        <span className="text-[10.5px] text-muted-foreground">{count}</span>
-      </div>
-      <div className="mt-1.5 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">{children}</div>
-    </section>
-  );
-}
-
-function Row({ to, title, meta, children }) {
-  return (
-    <Link to={to} className="block px-3.5 py-2.5 transition-colors hover:bg-secondary/50">
-      <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{title}</p>
-        {children}
-      </div>
-      {meta && <p className="mt-0.5 line-clamp-1 text-[10.5px] text-muted-foreground">{meta}</p>}
-    </Link>
   );
 }

@@ -75,6 +75,12 @@ Verification rule: a gap is only `closed` when the production build is green AND
 |---|---|---|---|---|
 | G-12 (session half) | closed | src/components/shell/ProjectList.jsx, src/components/SessionList.jsx, src/components/shell/SessionRow.jsx, src/components/shell/SidebarBody.jsx | Every sidebar project row now expands into that project's tasks with a live count, and the flat list below keeps only tasks with no live project, still grouped by recency. Row markup is shared through one `SessionRow`, so status dots and active states cannot drift between the two lists. Verified on real records: a project with two tasks rendered both under it (`nestedTaskCount: 2`), a project-less task and a task pointing at a deleted project both fell back to the flat list, and all probes were deleted afterwards (0 tasks, 0 projects left). Build green. | Sidebar loads 40 tasks; a project's count reflects the loaded window. |
 
+### Batch 11 — search across artifacts, files and websites (G-15 closed)
+
+| id | state | files changed | verification | notes |
+|---|---|---|---|---|
+| G-15 | closed | src/pages/Search.jsx, src/components/search/ResultSection.jsx | Search now runs eight parallel server queries instead of five: task titles/instructions, projects, **websites**, **artifacts**, **files**, agents, automations, templates. Websites match a task's deliverable where the type is `website` and link to `/websites/:taskId`; artifacts match any other deliverable by name or detail and link to their build task; files match by name and show mime type plus size. A website deliverable is filtered out of the artifacts section so nothing is listed twice. `ResultSection`/`ResultRow` moved into their own component so the page stays readable. Verified on real records: one site task, one deck task and one upload produced exactly `websites: ["zephyr site"]`, `artifacts: ["zephyr growth deck"]`, `files: ["zephyr brief.pdf (application/pdf)"]`, with the title query catching the site task and the unrelated deliverable excluded; all probes deleted afterwards (0 tasks, 0 files). Build green. |
+
 ## Register state
 
 | id | sev | state |
@@ -93,16 +99,16 @@ Verification rule: a gap is only `closed` when the production build is green AND
 | G-12 | HIGH | closed |
 | G-13 | HIGH | closed |
 | G-14 | HIGH | closed |
-| G-15 | HIGH | open — Search page coverage not yet verified against artifacts, files and websites |
+| G-15 | HIGH | closed |
 | G-16 | HIGH | open — computer panel streams run steps but has no live browser view |
 | G-17 | HIGH | closed |
 | G-18..G-25 | MEDIUM | open |
 | G-26..G-29 | LOW / EXTRAS | open |
 
-## Next batch (Batch 11)
+## Next batch (Batch 12)
 
-G-15 search coverage — verify what the Search page actually queries and extend it to artifacts, files and websites.
-G-16 gets re-scoped at the start of the batch after verifying the current computer-panel behaviour.
+G-16 — re-scope the computer panel against what it renders today, then decide between a live browser view and closing it as "streamed steps are the view".
+Medium gaps G-18..G-25 come after that.
 
 ## Blockers needing the operator
 
