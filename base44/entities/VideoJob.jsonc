@@ -1,0 +1,101 @@
+{
+  "name": "VideoJob",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "default": "heygen"
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "avatar_video",
+        "template",
+        "translate",
+        "talking_photo"
+      ],
+      "default": "avatar_video"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "submitted"
+    },
+    "avatar_id": {
+      "type": "string"
+    },
+    "voice_id": {
+      "type": "string"
+    },
+    "script": {
+      "type": "string"
+    },
+    "ratio": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "number"
+    },
+    "error": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

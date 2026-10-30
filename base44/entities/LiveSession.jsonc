@@ -1,0 +1,89 @@
+{
+  "name": "LiveSession",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "default": "liveavatar"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "context_id": {
+      "type": "string"
+    },
+    "avatar_id": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "LITE",
+        "FULL"
+      ],
+      "default": "LITE"
+    },
+    "status": {
+      "type": "string",
+      "default": "started"
+    },
+    "embed_url": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
