@@ -1,0 +1,94 @@
+{
+  "name": "Deployment",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string",
+      "enum": [
+        "vercel",
+        "railway",
+        "docker",
+        "github_pages"
+      ],
+      "default": "vercel"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready_for_approval",
+        "approved",
+        "blocked",
+        "superseded"
+      ],
+      "default": "blocked"
+    },
+    "manifest_hash": {
+      "type": "string"
+    },
+    "page_version": {
+      "type": "number"
+    },
+    "qa_score": {
+      "type": "number"
+    },
+    "url": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "project_name",
+    "target",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

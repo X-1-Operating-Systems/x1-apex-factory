@@ -1,0 +1,116 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "editing",
+        "review",
+        "ready",
+        "live"
+      ],
+      "default": "draft"
+    },
+    "template_id": {
+      "type": "string"
+    },
+    "template_name": {
+      "type": "string"
+    },
+    "accent": {
+      "type": "string",
+      "default": "#b4532a"
+    },
+    "surface": {
+      "type": "string",
+      "enum": [
+        "light",
+        "dark"
+      ],
+      "default": "light"
+    },
+    "headline_font": {
+      "type": "string",
+      "enum": [
+        "serif",
+        "sans",
+        "display"
+      ],
+      "default": "serif"
+    },
+    "github_repo": {
+      "type": "string"
+    },
+    "supabase_project": {
+      "type": "string"
+    },
+    "live_url": {
+      "type": "string"
+    },
+    "deploy_target": {
+      "type": "string",
+      "enum": [
+        "vercel",
+        "railway",
+        "docker",
+        "github_pages"
+      ],
+      "default": "vercel"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
