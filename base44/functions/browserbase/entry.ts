@@ -167,7 +167,13 @@ async function runActions(base44, action, params) {
   }
 
   if (action === 'runs.files') {
-    return { ok: true, data: [] };
+    if (!record.session_id) return { ok: true, data: [] };
+    if (!hostConfigured()) return { ok: false, error: NOT_CONNECTED, status: 503 };
+    const listed = await hostCall('sessions.downloads', { session_id: record.session_id });
+    // the host forgets a session once it is released, so a finished run simply has nothing left to list
+    if (!listed.ok && listed.status === 404) return { ok: true, data: [] };
+    if (!listed.ok) return { ok: false, error: listed.error || 'The host could not list this run\'s files', status: 502 };
+    return { ok: true, data: Array.isArray(listed.data) ? listed.data : [] };
   }
 
   if (action === 'runs.get') {

@@ -1,6 +1,7 @@
 import React from 'react';
 import SessionCard from './SessionCard';
 import RunCard from './RunCard';
+import TranscriptCard from './TranscriptCard';
 import UsageCard from './UsageCard';
 
 function GenericCard({ action, data }) {
@@ -29,6 +30,16 @@ export default function ResultCard({ action, result }) {
 
   const data = result.data;
 
+  // payload-shaped answers: print what came back instead of the session/run frame
+  if (action === 'runs.messages') return <TranscriptCard data={data} />;
+  if (
+    action === 'runs.files' ||
+    action === 'sessions.logs' ||
+    action === 'sessions.downloads' ||
+    action === 'sessions.list'
+  ) {
+    return <GenericCard action={action} data={data} />;
+  }
   if (action.startsWith('sessions.')) return <SessionCard action={action} data={data} />;
   if (action.startsWith('runs.')) return <RunCard action={action} data={data} />;
   if (action === 'usage.get') return <UsageCard data={data} />;
