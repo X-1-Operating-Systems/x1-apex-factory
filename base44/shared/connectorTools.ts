@@ -32,6 +32,55 @@ const num = (value: any, fallback: number, max: number) => {
 
 const json = (body: any) => ({ 'Content-Type': 'application/json' });
 
+const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/** base64url without padding, for Gmail's `raw` field. */
+function b64url(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i];
+    const b = bytes[i + 1];
+    const c = bytes[i + 2];
+    out += B64URL[a >> 2];
+    out += B64URL[((a & 3) << 4) | ((b ?? 0) >> 4)];
+    if (b === undefined) break;
+    out += B64URL[((b & 15) << 2) | ((c ?? 0) >> 6)];
+    if (c === undefined) break;
+    out += B64URL[c & 63];
+  }
+  return out;
+}
+
+/**
+ * Workspace-owned OAuth apps (BYO_SHARED) are not reachable through
+ * getConnection(type) — they are keyed by their connector id, so a key with an
+ * entry here is resolved through getWorkspaceConnection instead.
+ */
+const WORKSPACE_CONNECTOR_IDS: Record<string, string> = {
+  github: '6ab15ad1cf868907e918178e',
+  supabase: '69e521c8418f5cecefb2567c',
+};
+
+async function resolveAccessToken(base44: any, key: string): Promise<string> {
+  try {
+    const shared = await base44.asServiceRole.connectors.getConnection(key);
+    if (shared?.accessToken) return shared.accessToken;
+  } catch {
+    // fall through to a workspace-owned connection
+  }
+  const workspaceId = WORKSPACE_CONNECTOR_IDS[key];
+  if (workspaceId) {
+    try {
+      const own = await base44.asServiceRole.connectors.getWorkspaceConnection(workspaceId);
+      if (own?.accessToken) return own.accessToken;
+    } catch {
+      // nothing connected for this key
+    }
+  }
+  return '';
+}
+
 export const CONNECTOR_SPECS: Record<string, ConnectorSpec> = {
   gmail: {
     label: 'Gmail',
@@ -191,6 +240,38 @@ export const CONNECTOR_SPECS: Record<string, ConnectorSpec> = {
           headers: { Accept: 'application/vnd.github+json' },
         }),
       },
+      {
+        id: 'list_pull_requests',
+        label: 'List open pull requests',
+        write: false,
+        params: [
+          { name: 'owner', note: 'repository owner', required: true },
+          { name: 'repo', note: 'repository name', required: true },
+          { name: 'limit', note: '1-20, default 10' },
+        ],
+        request: (p) => ({
+          url: `https://api.github.com/repos/${seg(p.owner)}/${seg(p.repo)}/pulls?state=open&per_page=${num(p.limit, 10, 20)}`,
+          method: 'GET',
+          headers: { Accept: 'application/vnd.github+json' },
+        }),
+      },
+      {
+        id: 'create_issue',
+        label: 'Open an issue',
+        write: true,
+        params: [
+          { name: 'owner', note: 'repository owner', required: true },
+          { name: 'repo', note: 'repository name', required: true },
+          { name: 'title', note: 'issue title', required: true },
+          { name: 'body', note: 'issue description' },
+        ],
+        request: (p) => ({
+          url: `https://api.github.com/repos/${seg(p.owner)}/${seg(p.repo)}/issues`,
+          method: 'POST',
+          headers: { Accept: 'application/vnd.github+json', ...json(null) },
+          body: { title: String(p.title || '').slice(0, 200), body: String(p.body || '').slice(0, 4000) },
+        }),
+      },
     ],
   },
   hubspot: {
@@ -236,6 +317,184 @@ export const CONNECTOR_SPECS: Record<string, ConnectorSpec> = {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `channel=${seg(p.channel)}&text=${encodeURIComponent(String(p.text || '').slice(0, 3000))}`,
+        }),
+      },
+    ],
+  },
+  googleworkspace: {
+    label: 'Google Workspace',
+    tools: [
+      {
+        id: 'search_mail',
+        label: 'Search Gmail',
+        write: false,
+        params: [
+          { name: 'query', note: 'Gmail search syntax, e.g. from:anna newer_than:7d', required: true },
+          { name: 'limit', note: '1-20, default 8' },
+        ],
+        request: (p) => ({
+          url: `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${num(p.limit, 8, 20)}&q=${encodeURIComponent(String(p.query || ''))}`,
+          method: 'GET',
+        }),
+      },
+      {
+        id: 'read_mail',
+        label: 'Read one Gmail message',
+        write: false,
+        params: [{ name: 'message_id', note: 'the id returned by search_mail', required: true }],
+        request: (p) => ({
+          url: `https://gmail.googleapis.com/gmail/v1/users/me/messages/${seg(p.message_id)}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          method: 'GET',
+        }),
+      },
+      {
+        id: 'send_mail',
+        label: 'Send mail',
+        write: true,
+        params: [
+          { name: 'to', note: 'recipient address', required: true },
+          { name: 'subject', note: 'subject line', required: true },
+          { name: 'body', note: 'plain-text body', required: true },
+        ],
+        request: (p) => {
+          const raw = `To: ${String(p.to || '')}\r\nSubject: ${String(p.subject || '').slice(0, 200)}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset="UTF-8"\r\n\r\n${String(p.body || '').slice(0, 8000)}`;
+          return {
+            url: 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            method: 'POST',
+            headers: json(null),
+            body: { raw: b64url(raw) },
+          };
+        },
+      },
+      {
+        id: 'list_events',
+        label: 'List calendar events',
+        write: false,
+        params: [
+          { name: 'time_min', note: 'ISO date-time to start from, e.g. 2026-11-01T00:00:00Z', required: true },
+          { name: 'time_max', note: 'ISO date-time to end at' },
+          { name: 'limit', note: '1-20, default 10' },
+        ],
+        request: (p) => {
+          const query = [
+            'singleEvents=true',
+            'orderBy=startTime',
+            `maxResults=${num(p.limit, 10, 20)}`,
+            `timeMin=${encodeURIComponent(String(p.time_min || ''))}`,
+            p.time_max ? `timeMax=${encodeURIComponent(String(p.time_max))}` : '',
+          ].filter(Boolean).join('&');
+          return { url: `https://www.googleapis.com/calendar/v3/calendars/primary/events?${query}`, method: 'GET' };
+        },
+      },
+      {
+        id: 'create_event',
+        label: 'Create a calendar event',
+        write: true,
+        params: [
+          { name: 'summary', note: 'event title', required: true },
+          { name: 'start', note: 'ISO date-time', required: true },
+          { name: 'end', note: 'ISO date-time', required: true },
+          { name: 'description', note: 'agenda or notes' },
+        ],
+        request: (p) => ({
+          url: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+          method: 'POST',
+          headers: json(null),
+          body: {
+            summary: String(p.summary || '').slice(0, 200),
+            description: String(p.description || '').slice(0, 4000),
+            start: { dateTime: String(p.start || '') },
+            end: { dateTime: String(p.end || '') },
+          },
+        }),
+      },
+      {
+        id: 'search_drive',
+        label: 'Search Drive',
+        write: false,
+        params: [
+          { name: 'query', note: "Drive query, e.g. name contains 'proposal'", required: true },
+          { name: 'limit', note: '1-20, default 10' },
+        ],
+        request: (p) => ({
+          url: `https://www.googleapis.com/drive/v3/files?pageSize=${num(p.limit, 10, 20)}&fields=${encodeURIComponent('files(id,name,mimeType,modifiedTime,webViewLink)')}&q=${encodeURIComponent(String(p.query || ''))}`,
+          method: 'GET',
+        }),
+      },
+      {
+        id: 'read_drive_file',
+        label: 'Read a Doc or file as text',
+        write: false,
+        params: [
+          { name: 'file_id', note: 'the id returned by search_drive', required: true },
+          { name: 'format', note: 'text, csv or html; default text' },
+        ],
+        request: (p) => {
+          const choice = String(p.format || 'text').toLowerCase();
+          const mime = choice === 'csv' ? 'text/csv' : choice === 'html' ? 'text/html' : 'text/plain';
+          return {
+            url: `https://www.googleapis.com/drive/v3/files/${seg(p.file_id)}/export?mimeType=${encodeURIComponent(mime)}`,
+            method: 'GET',
+          };
+        },
+      },
+      {
+        id: 'read_doc',
+        label: 'Read a Google Doc structure',
+        write: false,
+        params: [{ name: 'document_id', note: 'the id from the Doc URL', required: true }],
+        request: (p) => ({
+          url: `https://docs.googleapis.com/v1/documents/${seg(p.document_id)}`,
+          method: 'GET',
+        }),
+      },
+      {
+        id: 'read_sheet',
+        label: 'Read a spreadsheet range',
+        write: false,
+        params: [
+          { name: 'spreadsheet_id', note: 'the id from the Sheet URL', required: true },
+          { name: 'range', note: 'A1 notation, e.g. Leads!A1:F20', required: true },
+        ],
+        request: (p) => ({
+          url: `https://sheets.googleapis.com/v4/spreadsheets/${seg(p.spreadsheet_id)}/values/${seg(p.range)}`,
+          method: 'GET',
+        }),
+      },
+      {
+        id: 'append_sheet_rows',
+        label: 'Append rows to a sheet',
+        write: true,
+        params: [
+          { name: 'spreadsheet_id', note: 'the id from the Sheet URL', required: true },
+          { name: 'range', note: 'A1 notation of the table, e.g. Leads!A1', required: true },
+          { name: 'values', note: 'array of rows, each an array of cell values', required: true },
+        ],
+        request: (p) => {
+          const rows = Array.isArray(p.values) ? p.values.slice(0, 50) : [];
+          return {
+            url: `https://sheets.googleapis.com/v4/spreadsheets/${seg(p.spreadsheet_id)}/values/${seg(p.range)}:append?valueInputOption=USER_ENTERED`,
+            method: 'POST',
+            headers: json(null),
+            body: {
+              values: rows.map((row: any) =>
+                Array.isArray(row) ? row.slice(0, 30).map((cell: any) => String(cell).slice(0, 500)) : [String(row).slice(0, 500)]
+              ),
+            },
+          };
+        },
+      },
+      {
+        id: 'search_contacts',
+        label: 'Search contacts',
+        write: false,
+        params: [
+          { name: 'query', note: 'name or email fragment', required: true },
+          { name: 'limit', note: '1-20, default 10' },
+        ],
+        request: (p) => ({
+          url: `https://people.googleapis.com/v1/people:searchContacts?query=${encodeURIComponent(String(p.query || ''))}&readMask=names,emailAddresses,phoneNumbers&pageSize=${num(p.limit, 10, 20)}`,
+          method: 'GET',
         }),
       },
     ],
@@ -335,8 +594,7 @@ export async function runConnectorTool(
   }
 
   try {
-    const connection = await base44.asServiceRole.connectors.getConnection(cleanKey);
-    const token = connection?.accessToken;
+    const token = await resolveAccessToken(base44, cleanKey);
     if (!token) {
       return {
         key: cleanKey,

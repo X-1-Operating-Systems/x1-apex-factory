@@ -47,6 +47,14 @@ export const CONNECTORS = [
     scopes: ['Read chats', 'Post messages'],
   },
   {
+    key: 'googleworkspace',
+    name: 'Google Workspace',
+    category: 'Productivity',
+    description:
+      'One connection for Gmail, Calendar, Drive, Docs, Sheets and Contacts — search mail, read files, plan around real openings.',
+    scopes: ['Read mail', 'Send mail', 'Calendar', 'Drive', 'Docs', 'Sheets', 'Contacts'],
+  },
+  {
     key: 'googlecalendar',
     name: 'Google Calendar',
     category: 'Productivity',
