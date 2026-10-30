@@ -4,7 +4,7 @@ import { recordSession } from "./hostStore.ts";
 /** Actions the reasoning loop may take. Screenshots and page reads are context, not steps. */
 const LOOP_ACTIONS = PAGE_ACTIONS.filter((name) => !["screenshot", "url", "wait"].includes(name));
 
-const MAX_STEPS = 30;
+const MAX_STEPS = 200;
 const STEP_BUDGET = 3;
 const HISTORY_WINDOW = 8;
 

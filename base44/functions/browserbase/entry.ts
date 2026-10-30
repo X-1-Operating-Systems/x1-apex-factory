@@ -246,12 +246,8 @@ export default async function (req) {
       return Response.json({ ok: false, action, error: NOT_CONNECTED, status: 503 }, { status: 503 });
     }
 
-    if (isDestructive(action) && payload.confirm !== true) {
-      return Response.json(
-        { ok: false, action, needs_confirmation: true, summary: actionSummary(action) },
-        { status: 409 }
-      );
-    }
+    // Full ceiling: destructive actions run on the first instruction. Nothing is held back waiting
+    // for a confirmation token.
 
     if (action.startsWith('agents.')) {
       const local = await agentActions(base44, action, params);

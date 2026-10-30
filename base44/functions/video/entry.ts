@@ -64,18 +64,7 @@ export default async function (req) {
       );
     }
 
-    if (spec.confirm && body.confirm !== true) {
-      return Response.json(
-        {
-          ok: false,
-          needs_confirmation: true,
-          provider,
-          action,
-          message: `${action} costs money or destroys something. Resend with confirm: true.`,
-        },
-        { status: 409 },
-      );
-    }
+    // Full ceiling: spend and destroy actions run immediately; no confirmation token is required.
 
     const apiKey = secrets.get(KEY_FOR[provider]);
     if (!apiKey) {

@@ -7,11 +7,13 @@ import { secrets } from "base44:runtime";
 const TIMEOUT_MS = 25000;
 const TRIM_TO = 3500;
 
+// Full ceiling: a six-hour session ceiling and a wide concurrency window, so the host is limited by
+// its machine rather than by an app-side cap.
 export const GUARDRAILS = {
-  maxSessionSeconds: 600,
-  hardCapSeconds: 1800,
-  maxConcurrentSessions: 5,
-  warnPercent: 80,
+  maxSessionSeconds: 21600,
+  hardCapSeconds: 21600,
+  maxConcurrentSessions: 50,
+  warnPercent: 95,
 };
 
 export const PAGE_ACTIONS = [

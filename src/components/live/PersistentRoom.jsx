@@ -7,14 +7,11 @@ import { Image } from '@/components/ui/image';
 import AvatarStage from '@/components/live/AvatarStage';
 import { EDEN_SKYE_PORTRAIT } from '@/components/live/AvatarPortrait';
 
-// OWNER SAFETY HOLD: read-only history remains visible; automatic LiveAvatar
-// session creation and renewal have been disabled pending separate approval.
+// Full ceiling: her room opens, holds and rolls over with no hold and no extra confirmation step.
 export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
   const [session, setSession] = useState(null);
   const [credits, setCredits] = useState(null);
-  const [sandbox, setSandbox] = useState(true);
-  const LIVEAVATAR_CREATION_PAUSED = true;
-  const [armed, setArmed] = useState(false);
+  const [sandbox, setSandbox] = useState(false);
   const [keeping, setKeeping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -64,7 +61,7 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
 
   // While she is kept alive, ask the backend to hold the room open; it renews before expiry.
   useEffect(() => {
-    if (!keeping || LIVEAVATAR_CREATION_PAUSED) return undefined;
+    if (!keeping) return undefined;
     let alive = true;
     const beat = async () => {
       const res = await call('keep', { sandbox, renewals: renewalsRef.current });
@@ -89,17 +86,12 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
     : 0;
 
   const goLive = async () => {
-    if (LIVEAVATAR_CREATION_PAUSED) {
-      setError('LiveAvatar creation and session renewal are paused until separately approved by the owner.');
-      return;
-    }
     setBusy(true);
     setError(null);
     const res = await call('keep', { sandbox, renewals: 0 });
     apply(res);
     if (res.ok) setKeeping(true);
     setBusy(false);
-    setArmed(false);
   };
 
   const stop = async () => {
@@ -118,9 +110,9 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
   return (
     <section className="rounded-lg border border-border bg-card px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-heading text-[13px] tracking-tight">Eden LiveAvatar — owner safety hold</h2>
+        <h2 className="font-heading text-[13px] tracking-tight">Eden LiveAvatar</h2>
         <label className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          <Switch checked={sandbox} onCheckedChange={setSandbox} disabled={true} />
+          <Switch checked={sandbox} onCheckedChange={setSandbox} />
           Sandbox (free, 60s cycles)
         </label>
       </div>
@@ -128,7 +120,7 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
       <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">
         {session
           ? `Live · ${secondsLeft}s left in this session${keeping ? ', renewed automatically' : ', not renewing'} · ${session.renewals} renewal${session.renewals === 1 ? '' : 's'}`
-          : 'Session creation and automatic renewal are paused. No LiveAvatar sessions will be started from this page.'}
+          : 'Her room is closed. Opening it starts a live session that renews itself before the vendor ceiling.'}
       </p>
 
       {!session && (
@@ -177,30 +169,17 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
               {busy ? <Loader2 size={11} className="mr-1 animate-spin" /> : <Square size={10} className="mr-1" />}
               End room
             </Button>
-            {!keeping && !LIVEAVATAR_CREATION_PAUSED && (
+            {!keeping && (
               <Button size="sm" className="rounded-full" onClick={() => setKeeping(true)}>
                 <Play size={10} className="mr-1" /> Keep her live
               </Button>
             )}
             {keeping && <span className="text-[10.5px] text-muted-foreground">Holding the room…</span>}
           </>
-        ) : armed ? (
-          <>
-            <Button size="sm" className="rounded-full" disabled={busy || LIVEAVATAR_CREATION_PAUSED} onClick={goLive}>
-              {busy ? <Loader2 size={11} className="mr-1 animate-spin" /> : null}
-              {sandbox ? 'Start the room' : 'Go live (bills 2 credits a minute)'}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setArmed(false)}
-              className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Cancel
-            </button>
-          </>
         ) : (
-          <Button size="sm" variant="outline" className="rounded-full" disabled={LIVEAVATAR_CREATION_PAUSED} onClick={() => setArmed(true)}>
-            <Play size={10} className="mr-1" /> Open her room
+          <Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={goLive}>
+            {busy ? <Loader2 size={11} className="mr-1 animate-spin" /> : <Play size={10} className="mr-1" />}
+            {sandbox ? 'Open her room (free sandbox)' : 'Open her room (bills 2 credits/minute)'}
           </Button>
         )}
 

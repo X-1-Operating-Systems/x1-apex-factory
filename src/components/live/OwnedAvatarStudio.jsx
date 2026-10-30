@@ -115,7 +115,7 @@ export default function OwnedAvatarStudio() {
         <div className="min-w-0">
           <Textarea
             value={text}
-            onChange={(event) => setText(event.target.value.slice(0, 1200))}
+            onChange={(event) => setText(event.target.value.slice(0, 20000))}
             rows={3}
             className="text-[12px]"
             placeholder="What should she say?"
@@ -130,7 +130,7 @@ export default function OwnedAvatarStudio() {
               {running ? job.status : 'Render her'}
             </Button>
             <span className="text-[10.5px] text-muted-foreground">
-              {text.length}/1200 · CPU render, a short line takes a few minutes
+              {text.length}/20000 · CPU render, no length ceiling worth hitting
             </span>
           </div>
           {job?.status === 'failed' && <p className="mt-2 text-[11px] text-destructive">{job.error}</p>}

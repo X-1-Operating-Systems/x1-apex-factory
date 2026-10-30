@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Loader2, Square } from 'lucide-react';
 
 export default function RunStopButton({ runId, onAction }) {
-  const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
 
   const stop = async () => {
@@ -11,7 +10,6 @@ export default function RunStopButton({ runId, onAction }) {
       await onAction('runs.stop', { run_id: runId }, 'Stop run', true);
     } finally {
       setWorking(false);
-      setConfirming(false);
     }
   };
 
@@ -23,34 +21,13 @@ export default function RunStopButton({ runId, onAction }) {
     );
   }
 
-  if (!confirming) {
-    return (
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-destructive"
-      >
-        <Square size={9} /> Stop
-      </button>
-    );
-  }
-
   return (
-    <span className="inline-flex items-center gap-1">
-      <button
-        type="button"
-        onClick={stop}
-        className="rounded-md bg-destructive px-1.5 py-0.5 text-[10px] text-destructive-foreground"
-      >
-        Confirm stop
-      </button>
-      <button
-        type="button"
-        onClick={() => setConfirming(false)}
-        className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
-      >
-        Keep running
-      </button>
-    </span>
+    <button
+      type="button"
+      onClick={stop}
+      className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-destructive"
+    >
+      <Square size={9} /> Stop
+    </button>
   );
 }

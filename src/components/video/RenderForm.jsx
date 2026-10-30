@@ -14,7 +14,6 @@ export default function RenderForm({ groups, voices, persona, onCreated }) {
   const [script, setScript] = useState('');
   const [ratio, setRatio] = useState('16:9');
   const [resolution, setResolution] = useState('1080p');
-  const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -48,7 +47,6 @@ export default function RenderForm({ groups, voices, persona, onCreated }) {
       true,
     );
     setBusy(false);
-    setArmed(false);
     if (!result.ok) {
       setError(result.error || 'HeyGen refused the render.');
       return;
@@ -124,25 +122,10 @@ export default function RenderForm({ groups, voices, persona, onCreated }) {
       {error && <p className="mt-1.5 text-[10.5px] leading-relaxed text-destructive">{error}</p>}
 
       <div className="mt-2 flex items-center gap-2">
-        {armed ? (
-          <>
-            <Button size="sm" className="rounded-full" disabled={busy} onClick={submit}>
-              {busy ? <Loader2 size={11} className="mr-1 animate-spin" /> : null}
-              Confirm render (spends credits)
-            </Button>
-            <button
-              type="button"
-              onClick={() => setArmed(false)}
-              className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <Button size="sm" variant="outline" className="rounded-full" onClick={() => setArmed(true)}>
-            Render
-          </Button>
-        )}
+        <Button size="sm" className="rounded-full" disabled={busy} onClick={submit}>
+          {busy ? <Loader2 size={11} className="mr-1 animate-spin" /> : null}
+          {busy ? 'Rendering' : 'Render'}
+        </Button>
       </div>
     </section>
   );
