@@ -1,65 +1,89 @@
 import React, { useState } from 'react';
-import { Plus, ArrowUp } from 'lucide-react';
+import { Plus, ArrowUp, Presentation, Code2, Gamepad2, Video } from 'lucide-react';
 
-const CHIPS = ['Build a website', 'Landing page', 'Full multi-page site', 'Rebrand an existing site'];
+const CHIPS = [
+  { label: 'Create slides', icon: Presentation, brief: 'Create slides for ', isNew: false },
+  { label: 'Build website', icon: Code2, brief: 'Build website for ', isNew: false },
+  { label: 'Create games', icon: Gamepad2, brief: 'Create game for ', isNew: true },
+  { label: 'Video', icon: Video, brief: 'Video for ', isNew: true },
+];
 
 export default function Composer({ onSubmit, onBlank }) {
   const [text, setText] = useState('');
+  const active = Boolean(text.trim());
 
   const send = () => {
-    if (!text.trim()) return;
+    if (!active) return;
     onSubmit(text.trim());
     setText('');
   };
 
   return (
-    <div className="glass-panel rounded-3xl p-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            send();
-          }
-        }}
-        rows={2}
-        aria-label="Describe the build"
-        placeholder="Assign a build or ask anything"
-        className="w-full resize-none bg-transparent px-2 pt-2 text-[14px] leading-relaxed outline-none placeholder:text-muted-foreground"
-      />
+    <div className="w-full">
+      <div className="composer-shell rounded-[22px] px-4 pb-3 pt-4">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          rows={2}
+          aria-label="Assign a task or ask anything"
+          placeholder="Assign a task or ask anything"
+          className="min-h-[52px] w-full resize-none bg-transparent px-1 text-[14.5px] leading-relaxed outline-none placeholder:text-muted-foreground"
+        />
 
-      <div className="mt-1 flex items-center justify-between gap-2 px-1">
+        <div className="mt-1 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBlank}
+            aria-label="Attach or start from a template"
+            className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-colors hover:bg-secondary"
+          >
+            <Plus size={18} strokeWidth={1.7} />
+          </button>
+
+          <button
+            type="button"
+            onClick={send}
+            disabled={!active}
+            aria-label="Start the task"
+            className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
+              active ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground'
+            }`}
+          >
+            <ArrowUp size={17} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        {CHIPS.map(({ label, icon: Icon, brief, isNew }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setText(brief)}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-[12.5px] text-foreground transition-colors hover:bg-secondary"
+          >
+            <Icon size={14} strokeWidth={1.7} className="text-muted-foreground" />
+            {label}
+            {isNew && (
+              <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-blue-600">
+                New
+              </span>
+            )}
+          </button>
+        ))}
         <button
           type="button"
           onClick={onBlank}
-          aria-label="Start from a template"
-          className="glass-frost grid h-9 w-9 place-items-center rounded-full"
+          className="rounded-full px-3 py-2 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          <Plus size={16} />
+          More
         </button>
-        <button
-          type="button"
-          onClick={send}
-          disabled={!text.trim()}
-          aria-label="Start the build"
-          className="glass-blue grid h-9 w-9 place-items-center rounded-full disabled:pointer-events-none disabled:opacity-45"
-        >
-          <ArrowUp size={16} />
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5 px-1 pb-1">
-        {CHIPS.map((chip) => (
-          <button
-            key={chip}
-            type="button"
-            onClick={() => setText(chip)}
-            className="glass-frost rounded-full px-3 py-1.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {chip}
-          </button>
-        ))}
       </div>
     </div>
   );

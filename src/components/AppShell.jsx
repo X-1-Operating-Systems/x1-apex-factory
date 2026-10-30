@@ -1,73 +1,103 @@
-import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutGrid, Layers, Rocket, LogOut } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Plus, Layers, Rocket, LogOut } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
+import SessionList from '@/components/SessionList';
 
 const NAV = [
-  { to: '/', label: 'Projects', icon: LayoutGrid, end: true },
   { to: '/templates', label: 'Templates', icon: Layers },
   { to: '/releases', label: 'Releases', icon: Rocket },
 ];
 
 function Wordmark() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="glass-blue grid h-9 w-9 place-items-center rounded-[10px] display-title text-[15px] tracking-tight">
+    <div className="flex items-center gap-2">
+      <div className="grid h-[26px] w-[26px] place-items-center rounded-[7px] bg-foreground text-[10.5px] font-semibold tracking-tight text-background">
         X1
       </div>
-      <div className="leading-tight">
-        <p className="text-[14px] font-semibold tracking-tight">X1 Studio</p>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Build systems</p>
-      </div>
+      <span className="text-[13.5px] font-medium tracking-tight">apex factory</span>
     </div>
   );
 }
 
 export default function AppShell() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const page = await base44.entities.Project.filter({}, { sort: '-updated_date', limit: 60 });
+      setProjects(page.items);
+    };
+    load();
+  }, []);
+
+  const initials = (user?.full_name || user?.email || 'X')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-white/60 bg-white/45 px-4 py-6 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:flex">
-        <div className="px-2">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+        <div className="flex h-[54px] shrink-0 items-center justify-between px-4">
           <Wordmark />
+          <ThemeToggle compact />
         </div>
 
-        <nav className="mt-9 flex flex-col gap-1">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                  isActive ? 'glass-blue' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                }`
-              }
-            >
-              <Icon size={16} strokeWidth={1.8} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="px-2.5">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors hover:bg-sidebar-accent"
+          >
+            <Plus size={15} strokeWidth={1.9} className="text-muted-foreground" />
+            New task
+          </button>
 
-        <div className="mt-auto space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between px-2">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Theme</span>
-            <ThemeToggle compact />
-          </div>
-          <div className="glass-panel flex items-center justify-between gap-2 rounded-xl px-3 py-2">
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-medium">{user?.full_name || 'Studio operator'}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{user?.email || ''}</p>
+          <nav className="mt-0.5 space-y-0.5">
+            {NAV.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
+                    isActive
+                      ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
+                  }`
+                }
+              >
+                <Icon size={15} strokeWidth={1.7} className="text-muted-foreground" />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
+          <SessionList projects={projects} />
+        </div>
+
+        <div className="shrink-0 border-t border-sidebar-border p-2.5">
+          <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-[10.5px] font-medium text-foreground">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-medium leading-tight">{user?.full_name || 'Studio operator'}</p>
+              <p className="truncate text-[10.5px] leading-tight text-muted-foreground">Studio plan</p>
             </div>
             <button
               type="button"
               onClick={() => base44.auth.logout()}
               aria-label="Sign out"
-              className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
             >
               <LogOut size={14} />
             </button>
@@ -76,27 +106,26 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-white/60 bg-white/45 px-4 py-3 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
+        <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:hidden">
           <Wordmark />
-          <ThemeToggle compact />
+          <div className="flex items-center gap-1">
+            {NAV.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                aria-label={label}
+                className={({ isActive }) =>
+                  `grid h-8 w-8 place-items-center rounded-full ${
+                    isActive ? 'bg-foreground text-background' : 'text-muted-foreground'
+                  }`
+                }
+              >
+                <Icon size={15} strokeWidth={1.8} />
+              </NavLink>
+            ))}
+            <ThemeToggle compact />
+          </div>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-white/60 bg-white/45 px-3 py-2 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-medium ${
-                  isActive ? 'glass-blue' : 'text-muted-foreground'
-                }`
-              }
-            >
-              <Icon size={14} strokeWidth={1.8} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
 
         <main className="min-h-0 flex-1 overflow-y-auto scroll-thin">
           <Outlet />

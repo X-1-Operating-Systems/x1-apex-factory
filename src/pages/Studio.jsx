@@ -12,10 +12,14 @@ import { Button } from '@/components/ui/button';
 import { blockHash, uid } from '@/components/studio/blockTheme';
 import {
   ArrowLeft,
+  ArrowRight,
+  ExternalLink,
   Loader2,
+  Lock,
   MessageSquare,
   Monitor,
   Rocket,
+  RotateCw,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
@@ -349,15 +353,15 @@ export default function Studio() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/60 bg-white/55 px-3 py-2.5 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05] lg:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Link to="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground" aria-label="Back to projects">
+      <header className="flex h-[52px] shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 lg:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link to="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" aria-label="Back to tasks">
             <ArrowLeft size={15} />
           </Link>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-semibold">{project.name}</p>
+            <p className="truncate text-[13px] font-medium">{project.name}</p>
             <p className="truncate text-[10.5px] text-muted-foreground">
-              {project.client_name || 'No client'} · v{page.version} · {saving ? 'saving' : 'saved'}
+              {saving ? 'Saving…' : `Saved · v${page.version}`}
             </p>
           </div>
         </div>
@@ -385,7 +389,7 @@ export default function Studio() {
           <button
             type="button"
             onClick={() => setDesignOpen(true)}
-            className="grid h-8 w-8 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground xl:hidden"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:hidden"
             aria-label="Design inspector"
           >
             <SlidersHorizontal size={14} />
@@ -395,20 +399,20 @@ export default function Studio() {
             type="button"
             onClick={runQa}
             disabled={qaBusy}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="flex h-8 items-center gap-1.5 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
           >
             {qaBusy ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
             <span className="hidden sm:inline">Review</span>
           </button>
 
-          <Button size="sm" className="h-8 gap-1.5 rounded-md px-3 text-[11.5px]" onClick={() => setReleaseOpen(true)}>
+          <Button size="sm" className="h-8 gap-1.5 px-3" onClick={() => setReleaseOpen(true)}>
             <Rocket size={13} /> <span className="hidden sm:inline">Release</span>
           </Button>
 
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground md:hidden"
+            className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-background md:hidden"
             aria-label="Open agent"
           >
             <MessageSquare size={14} />
@@ -417,15 +421,29 @@ export default function Studio() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <div className="hidden w-[350px] shrink-0 border-r border-border md:block">
+        <div className="hidden w-[368px] shrink-0 border-r border-border md:block">
           <StudioChat messages={messages} busy={busy} onSend={send} />
         </div>
 
-        <div className="min-w-0 flex-1 overflow-auto scroll-thin bg-secondary/40 p-3 lg:p-6" onClick={() => setSelectedId(null)}>
+        <div className="min-w-0 flex-1 overflow-auto scroll-thin bg-secondary/50 p-3 lg:p-5" onClick={() => setSelectedId(null)}>
           <div
-            className="mx-auto overflow-hidden rounded-lg border border-border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.14)]"
+            className="mx-auto overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-24px_rgba(0,0,0,0.28)]"
             style={{ width: '100%', maxWidth: active.width }}
           >
+            <div className="flex items-center gap-2 border-b border-border bg-secondary/60 px-3 py-1.5">
+              <div className="flex items-center gap-1.5 text-muted-foreground/70">
+                <ArrowLeft size={12} />
+                <ArrowRight size={12} />
+                <RotateCw size={11} />
+              </div>
+              <div className="mx-auto flex h-6 min-w-0 max-w-[360px] flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3">
+                <Lock size={9} className="shrink-0 text-muted-foreground" />
+                <span className="truncate text-[10.5px] text-muted-foreground">
+                  {project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.x1.dev
+                </span>
+              </div>
+              <ExternalLink size={12} className="text-muted-foreground/70" />
+            </div>
             <PageCanvas
               blocks={page.blocks || []}
               tokens={tokens}
@@ -435,7 +453,7 @@ export default function Studio() {
           </div>
         </div>
 
-        <aside className="hidden w-[298px] shrink-0 border-l border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05] xl:block">{inspector}</aside>
+        <aside className="hidden w-[288px] shrink-0 border-l border-border bg-card xl:block">{inspector}</aside>
       </div>
 
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
