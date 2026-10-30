@@ -8,6 +8,25 @@
     "role": {
       "type": "string"
     },
+    "category": {
+      "type": "string",
+      "enum": [
+        "website",
+        "marketing",
+        "revenue",
+        "research",
+        "ops",
+        "documents"
+      ],
+      "default": "website"
+    },
+    "tone": {
+      "type": "string",
+      "default": "Direct"
+    },
+    "installed_from": {
+      "type": "string"
+    },
     "instructions": {
       "type": "string"
     },

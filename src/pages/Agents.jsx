@@ -6,6 +6,7 @@ import AgentFormDialog from '@/components/agents/AgentFormDialog';
 import RunAgentDialog from '@/components/agents/RunAgentDialog';
 import StudioAgentCard from '@/components/agents/StudioAgentCard';
 import AgentCard from '@/components/manus/AgentCard';
+import AgentStore from '@/components/agents/AgentStore';
 
 export default function Agents() {
   const { toast } = useToast();
@@ -17,6 +18,8 @@ export default function Agents() {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [runAgent, setRunAgent] = useState(null);
+  const [tab, setTab] = useState('library');
+  const [installingId, setInstallingId] = useState('');
 
   const load = async () => {
     const page = await base44.entities.StudioAgent.list('-created_date', 50);
@@ -72,6 +75,27 @@ export default function Agents() {
     toast({ title: 'Agent deleted' });
   };
 
+  const install = async (preset) => {
+    setInstallingId(preset.id);
+    try {
+      await base44.entities.StudioAgent.create({
+        name: preset.name,
+        role: preset.role,
+        instructions: preset.instructions,
+        task_title: preset.task_title,
+        category: preset.category,
+        tone: preset.tone,
+        installed_from: preset.id,
+      });
+      await load();
+      toast({ title: `${preset.name} added`, description: 'Find it in your library.' });
+    } catch (err) {
+      toast({ title: 'Could not add that persona', description: err?.message, variant: 'destructive' });
+    } finally {
+      setInstallingId('');
+    }
+  };
+
   if (loading) {
     return (
       <div className="grid place-items-center py-24">
@@ -98,13 +122,33 @@ export default function Agents() {
           }}
           className="glass-blue inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium"
         >
-          <Plus size={13} /> New agent
+          <Plus size={13} /> New persona
         </button>
       </div>
 
-      {error && <p className="mt-6 text-[12.5px] text-destructive">{error}</p>}
+      <div className="mt-4 flex items-center gap-1 rounded-full border border-border bg-card p-0.5">
+        {[
+          { id: 'library', label: 'My library' },
+          { id: 'store', label: 'Agent store' },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={`rounded-full px-3 py-1 text-[11.5px] transition-colors ${
+              tab === item.id ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-      {agents.length === 0 ? (
+      {error && <p className="mt-4 text-[12.5px] text-destructive">{error}</p>}
+
+      {tab === 'store' ? (
+        <AgentStore agents={agents} onInstall={install} installingId={installingId} />
+      ) : agents.length === 0 ? (
         <div className="mt-5 rounded-xl border border-border bg-card px-4 py-8 text-center">
           <Bot size={18} className="mx-auto text-muted-foreground" />
           <p className="mt-2 text-[12.5px] font-medium">No agents yet</p>
@@ -129,7 +173,7 @@ export default function Agents() {
         </div>
       )}
 
-      {manus.length > 0 && (
+      {tab === 'library' && manus.length > 0 && (
         <div className="mt-8">
           <p className="text-[11.5px] font-medium">Connected Manus agents</p>
           <p className="mt-1 text-[11px] text-muted-foreground">Custom agents on your Manus account, each with its own thread.</p>

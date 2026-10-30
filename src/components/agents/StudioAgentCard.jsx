@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Pencil, Play, Trash2 } from 'lucide-react';
+import { categoryLabel } from '@/lib/agentPresets';
 
 export default function StudioAgentCard({ agent, onRun, onEdit, onDelete }) {
   const initials = agent.name.slice(0, 2).toUpperCase();
@@ -14,9 +15,15 @@ export default function StudioAgentCard({ agent, onRun, onEdit, onDelete }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-[12.5px] font-medium">{agent.name}</p>
           <p className="truncate text-[11px] text-muted-foreground">
-            {agent.role || 'Studio agent'} · {agent.run_count || 0} run{(agent.run_count || 0) === 1 ? '' : 's'}
+            {agent.role || 'Studio agent'} · {categoryLabel(agent.category)} · {agent.run_count || 0} run
+            {(agent.run_count || 0) === 1 ? '' : 's'}
           </p>
         </div>
+        {agent.tone && (
+          <span className="shrink-0 rounded-full border border-border px-1.5 py-[1px] text-[10px] text-muted-foreground">
+            {agent.tone}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => onDelete(agent)}

@@ -29,6 +29,7 @@ export default function RunAgentDialog({ open, onOpenChange, agent, onRan }) {
     try {
       const instruction = [
         `You are ${agent.name}${agent.role ? `, ${agent.role}` : ''}.`,
+        agent.tone ? `Tone: ${agent.tone}.` : '',
         '',
         'Standing instructions:',
         agent.instructions,
