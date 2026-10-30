@@ -352,3 +352,15 @@ The audit moved from what the panel shows to what the thread lets you do. Every 
 | id | state | files changed | verification (live, this turn) |
 |---|---|---|---|
 | G-60 | closed | src/components/admin/RunStopButton.jsx (new), src/components/admin/RunCard.jsx, src/components/admin/ResultCard.jsx, src/components/admin/ControlThread.jsx, src/pages/AdminControl.jsx | Probe run `c70dd17c-d657-403c-8ba8-657db17afac7` ("open example.com, then describe the page in detail") was polled once while live, then stopped with exactly the call the button makes: `runs.stop` with `confirm: true`. The run came back `STOPPED` with an `ended_at` and **4 steps** — advanced, then ended early, not completed — and its session was released (`released`). The same call **without** the confirm token was refused with `409 needs_confirmation`, so the two-step gate is real and not decoration. Probe run and session records deleted: 0 runs left. Build green. |
+
+### Batch 29 — a stopped run can be put back to work
+
+Batch 28 gave a live run card a Stop, which immediately exposed the mirror question: after stopping, what then? The registry has `runs.resume` and the function implements it, but the only way to reach it was to copy the run id out of the card and type "resume run <id>" into the composer. So the card could end a run and then leave it there for good — the same class of dead end Stop had just removed, one step further along.
+
+`RunResumeButton` now sits on the run card when the run is terminal but resumable (`STOPPED`, `FAILED`, `ERROR`, `TIMED_OUT`, `PAUSED`) and disappears for `COMPLETED` / `SUCCEEDED` / `CANCELLED`, where there is nothing to resume. It is one click, not two: `runs.resume` is a plain write in the registry, so the confirm gate that guards the destructive Stop does not apply. The card stops showing Stop and starts showing Resume the moment the status changes, because both are derived from the same status field.
+
+One engine change was needed for the button to be honest rather than cosmetic: `useBrowserChat` only auto-polled a run it had just created, so a resumed run would have gone back to `RUNNING` and then sat there, advanced by nothing. Resume now gets the same poll loop a new run gets, so the card keeps moving to the terminal state.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-61 | closed | src/components/admin/RunResumeButton.jsx (new), src/components/admin/RunCard.jsx, src/hooks/useBrowserChat.js | Probe run `b6792d76-37ee-4067-a30e-7bfa795f41ab` ("open https://example.com and tell me the headline"): polled live to `COMPLETED` with 3 steps, stopped with the card's own call (`runs.stop`, confirm true) → `STOPPED`, then resumed with exactly the call the new button makes (`runs.resume`, no confirm) → `RUNNING`, then the next poll advanced it to `COMPLETED` with **4 steps** — it really went back to work rather than only changing a label. Probe run deleted, its session released, no probe runs left, host healthy with 0 sessions running and usage at 40 browser minutes / 20 sessions opened. Build green. |
