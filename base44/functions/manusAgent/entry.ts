@@ -230,6 +230,32 @@ export default async function (req: Request): Promise<Response> {
         visibility: site.visibility || 'public',
         site_url: (site.site_urls || [])[0] || '',
         published_version_id: site.published_version_id || '',
+        preview_url: site.preview_url || '',
+        sandbox_status: site.sandbox_status || '',
+      });
+    }
+
+    if (action === 'checkpoints') {
+      const taskId = String(body?.task_id || '');
+      const websiteId = String(body?.website_id || '');
+      if (!taskId && !websiteId) {
+        return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
+      }
+
+      const listed = await manusCall('/v2/website.listCheckpoints', {
+        query: taskId ? { task_id: taskId } : { website_id: websiteId },
+      });
+
+      return Response.json({
+        title: listed.title || '',
+        published_version_id: listed.published_version_id || '',
+        checkpoints: (listed.data || []).map((item: any) => ({
+          version_id: item.version_id || '',
+          message: String(item.message || '').slice(0, 300),
+          status: item.status || '',
+          created_at: item.created_at || 0,
+          screenshot_url: item.screenshot_url || '',
+        })),
       });
     }
 

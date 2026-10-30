@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ExternalLink, Globe, Loader2, Rocket } from 'lucide-react';
+import { ExternalLink, Globe, History, Loader2, Rocket } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 
 const PUBLISH_TONE = {
@@ -54,7 +55,9 @@ export default function WebsiteCard({ site }) {
       </div>
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-[12.5px] font-medium">{state?.title || site.name}</p>
+          <Link to={`/websites/${site.task_id}`} className="truncate text-[12.5px] font-medium hover:underline">
+            {state?.title || site.name}
+          </Link>
           <span className={`shrink-0 rounded-full border px-1.5 py-[1px] text-[10px] font-medium ${tone}`}>
             {state?.publish_status === 'published' ? 'Live' : state?.publish_status || 'Checking'}
           </span>
@@ -71,6 +74,12 @@ export default function WebsiteCard({ site }) {
             {publishing ? <Loader2 size={10} className="animate-spin" /> : <Rocket size={10} />}
             {publishing ? 'Deploying' : 'Publish'}
           </button>
+          <Link
+            to={`/websites/${site.task_id}`}
+            className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] transition-colors hover:bg-secondary"
+          >
+            <History size={10} /> Versions
+          </Link>
           {liveUrl && (
             <a
               href={liveUrl}
