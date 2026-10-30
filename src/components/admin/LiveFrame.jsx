@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Monitor, ExternalLink } from 'lucide-react';
+import { Monitor } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
+/**
+ * Live view of the app's own browser host: a signed frame URL, refreshed on a short cycle.
+ * The token never reaches this page — the backend signs one session-scoped URL.
+ */
 export default function LiveFrame({ sessionId, heightClass = 'h-[240px]' }) {
-  const [url, setUrl] = useState(null);
-  const [state, setState] = useState('loading');
+  const [frameUrl, setFrameUrl] = useState(null);
+  const [src, setSrc] = useState(null);
+  const [state, setState] = useState('offline');
 
   useEffect(() => {
     let alive = true;
+    setFrameUrl(null);
+    setSrc(null);
     if (!sessionId) {
       setState('offline');
       return undefined;
@@ -18,9 +25,9 @@ export default function LiveFrame({ sessionId, heightClass = 'h-[240px]' }) {
       .then((res) => {
         if (!alive) return;
         const payload = res.data || {};
-        const next = payload.data && (payload.data.debuggerFullscreenUrl || payload.data.debuggerUrl);
+        const next = payload.data && payload.data.frameUrl;
         if (payload.ok && next) {
-          setUrl(next);
+          setFrameUrl(next);
           setState('ready');
         } else {
           setState('offline');
@@ -34,10 +41,29 @@ export default function LiveFrame({ sessionId, heightClass = 'h-[240px]' }) {
     };
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!frameUrl) return undefined;
+    let alive = true;
+    const tick = () => {
+      if (alive) setSrc(`${frameUrl}&t=${Date.now()}`);
+    };
+    tick();
+    const timer = setInterval(tick, 1500);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [frameUrl]);
+
   return (
     <div className={`overflow-hidden rounded-lg border border-border bg-secondary ${heightClass}`}>
-      {state === 'ready' && url ? (
-        <iframe src={url} title={`Live browser ${sessionId}`} className="h-full w-full" allow="clipboard-read; clipboard-write" />
+      {state === 'ready' && src ? (
+        <img
+          src={src}
+          alt={`Live browser for session ${sessionId}`}
+          className="h-full w-full bg-background object-contain"
+          onError={() => setState('offline')}
+        />
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-1.5 px-4 text-center">
           {state === 'loading' ? (
@@ -49,23 +75,16 @@ export default function LiveFrame({ sessionId, heightClass = 'h-[240px]' }) {
             <>
               <Monitor size={16} className="text-muted-foreground" />
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                {sessionId ? 'This session is closed. Open the replay for the recording.' : 'No live session yet.'}
+                {sessionId ? 'This session has closed.' : 'No live session yet.'}
               </p>
             </>
           )}
         </div>
       )}
-      {url && (
+      {sessionId && state === 'ready' && (
         <div className="flex items-center justify-between border-t border-border px-2 py-1">
           <span className="truncate font-mono text-[9.5px] text-muted-foreground">{sessionId}</span>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Open <ExternalLink size={9} />
-          </a>
+          <span className="text-[10px] text-muted-foreground">your host</span>
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import {
   actionSummary,
   isDestructive,
   listActions,
-} from '../../shared/browserbase.ts';
+} from '../../shared/browserHost.ts';
 
 export default async function (req) {
   try {
@@ -27,13 +27,13 @@ export default async function (req) {
       .map((entry) => `${entry.role === 'user' ? 'Operator' : 'Control plane'}: ${entry.content}`)
       .join('\n');
 
-    const prompt = `You are the command resolver for the X1 Apex Factory control plane. You never chat freely and never explain capabilities: you map one operator message onto exactly one Browserbase action from the registry, with typed parameters, or onto no action when the message is conversation only.
+    const prompt = `You are the command resolver for the X1 Apex Factory control plane. You never chat freely and never explain capabilities: you map one operator message onto exactly one browser action from the registry, with typed parameters, or onto no action when the message is conversation only.
 
 REGISTRY — the only actions that exist:
 ${actionLines}
 
 RULES
-1. action is one exact registry name, or an empty string when the message is not a Browserbase operation or cannot be mapped.
+1. action is one exact registry name, or an empty string when the message is not a browser operation or cannot be mapped.
 2. params contains only the keys that action's summary names. Never invent a session id, run id, agent id, context id or webhook id; if one is required and missing, leave action empty and ask for it.
 3. needs_confirmation is true only for a [destructive] action.
 4. If the request is ambiguous, keep action empty, ask exactly one short disambiguating line in reply, and name what is missing in summary.
@@ -64,7 +64,7 @@ ${conversation ? `Conversation so far:\n${conversation}\n\n` : ''}Operator messa
 
     return Response.json({
       ok: true,
-      reply: (plan && plan.reply) || (chosen ? 'Ready.' : 'Which Browserbase operation do you want?'),
+      reply: (plan && plan.reply) || (chosen ? 'Ready.' : 'Which browser operation do you want?'),
       action: chosen,
       params,
       needs_confirmation: chosen ? isDestructive(chosen) : false,

@@ -233,8 +233,32 @@ Built: `base44/shared/browserbase.ts` (35-action registry, fixed host and method
 
 Resolved during the build and worth recording: `GET /v1/contexts` is 404 but `GET`/`DELETE /v1/contexts/{id}` work; session live view is `/debug`, not `/live`; `DELETE` must be sent with no JSON content type; webhook `eventTypes` accepts only the seven `functions.*` values; the agent run payload is `task` + `agentId` + `variables` + `resultSchema`, and the answer is at `result.output`.
 
+### Batch 21 — the browser layer is ours (Browserbase removed)
+
+Decision this turn, at the operator's instruction: the rented browser stack is gone. Every capability the last batch bought from Browserbase is now served by a container this app owns, and the reasoning that used to run as Browserbase's hosted agent now runs on this app's own engine.
+
+Removed from the app: `base44/shared/browserbase.ts` (all 35 rented endpoints), `base44/functions/browserbaseWebhook`, and every Browserbase reference in copy and code. The `browserbase` and `browserbaseChat` function names stay so no caller changed, but both now talk to the owned host.
+
+Added: `browser-host/` — one Docker image (Playwright + Chromium) with `server.mjs` (sessions, per-session browser contexts, page actions, live JPEG frames, saved contexts on a volume, project config, own usage accounting, concurrency and hard time caps, idle reaper), a `Dockerfile`, and a README with the deploy recipe · `base44/shared/browserHost.ts` (host client, guardrails, signed frame URLs, action registry) · `base44/shared/browserAgentLoop.ts` (the run loop: read the page, decide one step with InvokeLLM, act through the host, record the step) · rewritten `base44/functions/browserbase/entry.ts` (admin gate, confirm gate, concurrency guard, agents and runs stored on this app instead of a vendor) · `LiveFrame` now shows a signed frame from the owned host.
+
+| id | capability | state | evidence |
+|---|---|---|---|
+| G-30..G-35 | sessions create / list / detail / release / live view / logs / downloads | closed (implemented) | served by `browser-host`; registry live via `registry.list`, an unconfigured call answers honestly with the deploy instruction rather than a fake success |
+| G-36 | recording and replay | dropped on purpose | an owned host would need its own screencast recorder for a capability the vendor never exposed either; not replaced |
+| G-37 | contexts: cookies and sign-ins reused across sessions | closed (implemented) | `POST/GET/DELETE /contexts`, storageState persisted per context on the volume, attached on session create |
+| G-38, G-39, G-52 | project config, timeouts, allowed domains, caps | closed (implemented) | `/project` read/write, `allowed_domains` enforced on every `goto`, `MAX_SESSIONS` + `HARD_CAP_SECONDS` enforced server-side |
+| G-42 | webhooks | dropped on purpose | the host owns its events; runs are polled in-app, so no inbound webhook and no signature secret are needed |
+| G-43 | usage and spend | closed (implemented) | `/usage` counts browser minutes, sessions and actions from the host's own counters — no vendor meter |
+| G-45, G-46 | agents and runs | closed (implemented) | agents stored in `BrowserAgent`; `runs.create` opens a run, `runs.get` advances it three steps per poll through the LLM loop, stop/resume/transcript wired. No hosted agent involved |
+| G-47..G-51 | vendor functions, certificates, extensions, identities, search/fetch, model gateway | removed | these only ever existed as vendor endpoints and had no reachable route; they are not part of this app's surface any more |
+| G-53, G-54 | control plane + live computer panel | closed | `/admin` unchanged in shape: thread, result cards, confirm chips, guardrail bar; the panel now renders signed frames from the owned host |
+| G-55 | end-to-end proof | **awaits the operator's container** | build green and the function's own behaviour verified (registry lists the owned actions, `host.status` fails closed with the deploy instruction). A live session cannot be exercised from here because no host URL exists yet |
+| G-56 | enterprise bar | partial | token read server-side only and never shipped to the browser (frames use a session-scoped HMAC signature), every action admin-gated, destructive actions need a confirm token, all five entities owner-or-admin, caps enforced by the host itself. Outstanding: a deployed host, and the dashboard security scan |
+
+Account hygiene: the four agents and the webhook on the Browserbase account were deleted before the client was removed (204 each), so nothing continues to bill there.
+
 ## Blockers needing the operator
 
-- Railway: nothing to host. Browserbase runs the browser and every call is a server-side fetch from this app's own functions, so there is no worker process to deploy. No Railway token is set and none is needed for the parity above; if a hosted worker is wanted later for long pollers, a token makes it one function.
-- Webhook signature verification: set BROWSERBASE_WEBHOOK_SECRET to the `whsec_…` value shown on the Browserbase webhooks page and events are verified on arrival instead of stored unverified.
+- Deploy `browser-host/` (Railway: root directory `browser-host`, `HOST_TOKEN`, volume at `/data`) and set `BROWSER_HOST_URL` + `BROWSER_HOST_TOKEN`. Until then the control plane states it is not connected instead of pretending.
+- That container is the only deployment surface: the app needs no vendor token, hosts nothing else, and no paid account is involved. Railway is one option among Docker host, Fly, Render or a plain VPS.
 - The dashboard security scan is an operator action.

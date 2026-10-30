@@ -44,7 +44,7 @@ export default function AdminControl() {
       <div className="mx-auto max-w-[520px] px-6 py-16 text-center">
         <h1 className="display-title text-[22px]">Admins only</h1>
         <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">
-          The control plane drives the workspace Browserbase account. Ask a workspace admin for access.
+          The control plane drives this workspace&apos;s own browser host. Ask a workspace admin for access.
         </p>
       </div>
     );

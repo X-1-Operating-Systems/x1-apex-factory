@@ -119,7 +119,7 @@ export default function useBrowserChat() {
   const cancel = useCallback(
     (id) => {
       patch(id, { resolved: true });
-      add({ role: 'assistant', text: 'Cancelled. Nothing was sent to Browserbase.' });
+      add({ role: 'assistant', text: 'Cancelled. Nothing was run.' });
     },
     [add, patch]
   );

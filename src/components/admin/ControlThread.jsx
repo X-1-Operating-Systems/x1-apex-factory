@@ -8,7 +8,7 @@ export default function ControlThread({ messages, busy, onConfirm, onCancel }) {
       <div className="mx-auto flex max-w-[620px] flex-col gap-3 px-1 py-12 text-center">
         <h2 className="display-title text-[27px]">Control plane</h2>
         <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-          Every Browserbase capability runs from this thread. Your message resolves to one named action with
+          Every browser capability runs from this thread. Your message resolves to one named action with
           typed parameters before anything executes, and destructive actions ask first.
         </p>
         <div className="mt-2 space-y-1.5 text-left text-[11.5px] leading-relaxed text-muted-foreground">

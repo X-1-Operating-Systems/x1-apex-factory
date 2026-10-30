@@ -1,12 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import {
   GUARDRAILS,
+  NOT_CONNECTED,
   actionExists,
   actionSummary,
-  bbRequest,
+  hostCall,
+  hostConfigured,
   isDestructive,
   listActions,
-} from '../../shared/browserbase.ts';
+  signedFrameUrl,
+} from '../../shared/browserHost.ts';
+import { advanceRun } from '../../shared/browserAgentLoop.ts';
+
+function objectOrNull(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
+}
 
 async function touchSession(base44, sessionId, patch) {
   if (!sessionId) return null;
@@ -18,18 +26,159 @@ async function touchSession(base44, sessionId, patch) {
   return base44.entities.BrowserSession.update(items[0].id, patch);
 }
 
-async function touchRun(base44, runId, patch) {
-  if (!runId) return null;
-  const { items } = await base44.entities.BrowserRun.filter(
-    { run_id: String(runId) },
-    { sort: '-created_date', limit: 1 }
-  );
-  if (!items.length) return null;
-  return base44.entities.BrowserRun.update(items[0].id, patch);
+async function runRecord(base44, runId) {
+  const { items } = await base44.entities.BrowserRun.filter({ run_id: String(runId) }, { sort: '-created_date', limit: 1 });
+  return items[0] || null;
 }
 
-function objectOrNull(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
+function runView(record) {
+  return {
+    id: record.run_id,
+    status: record.status,
+    task: record.task,
+    agent_id: record.agent_id,
+    agent_name: record.agent_name,
+    session_id: record.session_id,
+    output: record.output || null,
+    urls: record.urls || [],
+    steps: record.steps || [],
+    error: record.error || null,
+    started_at: record.started_at,
+    ended_at: record.ended_at,
+  };
+}
+
+async function agentActions(base44, action, params) {
+  if (action === 'agents.list') {
+    const { items } = await base44.entities.BrowserAgent.list('-created_date', Math.min(50, Number(params.limit) || 50));
+    return {
+      ok: true,
+      data: items.map((item) => ({
+        agentId: item.agent_id,
+        name: item.name,
+        systemPrompt: item.system_prompt,
+        resultSchema: item.result_schema,
+        runs: item.runs_count || 0,
+      })),
+    };
+  }
+
+  if (action === 'agents.create') {
+    if (!params.name) return { ok: false, error: 'name is required', status: 400 };
+    const record = await base44.entities.BrowserAgent.create({
+      agent_id: crypto.randomUUID(),
+      name: String(params.name),
+      system_prompt: params.system_prompt ? String(params.system_prompt) : undefined,
+      result_schema: objectOrNull(params.result_schema),
+      notes: 'Stored on this app and run by its own engine',
+    });
+    return { ok: true, data: { agentId: record.agent_id, name: record.name }, record };
+  }
+
+  if (!params.agent_id) return { ok: false, error: 'agent_id is required', status: 400 };
+  const { items } = await base44.entities.BrowserAgent.filter({ agent_id: String(params.agent_id) }, { limit: 1 });
+  if (!items.length) return { ok: false, error: 'No agent with that id', status: 404 };
+  const agent = items[0];
+
+  if (action === 'agents.get') {
+    return { ok: true, data: { agentId: agent.agent_id, name: agent.name, systemPrompt: agent.system_prompt, resultSchema: agent.result_schema } };
+  }
+
+  if (action === 'agents.update') {
+    const record = await base44.entities.BrowserAgent.update(agent.id, {
+      name: params.name ? String(params.name) : undefined,
+      system_prompt: params.system_prompt ? String(params.system_prompt) : undefined,
+      result_schema: objectOrNull(params.result_schema),
+    });
+    return { ok: true, data: { agentId: record.agent_id, name: record.name }, record };
+  }
+
+  if (action === 'agents.delete') {
+    await base44.entities.BrowserAgent.delete(agent.id);
+    return { ok: true, data: { deleted: agent.agent_id } };
+  }
+
+  return { ok: false, error: 'Unsupported agent action', status: 400 };
+}
+
+async function runActions(base44, action, params) {
+  if (action === 'runs.create') {
+    if (!params.task) return { ok: false, error: 'task is required', status: 400 };
+    if (!hostConfigured()) return { ok: false, error: NOT_CONNECTED, status: 503 };
+    let agent = null;
+    if (params.agent_id) {
+      const { items } = await base44.entities.BrowserAgent.filter({ agent_id: String(params.agent_id) }, { limit: 1 });
+      agent = items[0] || null;
+    }
+    const runId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const record = await base44.entities.BrowserRun.create({
+      run_id: runId,
+      agent_id: agent ? agent.agent_id : undefined,
+      agent_name: agent ? agent.name : undefined,
+      task: String(params.task),
+      status: 'RUNNING',
+      started_at: now,
+      steps: [{ at: now, kind: 'task', text: String(params.task).slice(0, 600) }],
+      webhook_state: 'in-app',
+    });
+    if (agent) {
+      await base44.entities.BrowserAgent.update(agent.id, {
+        runs_count: (agent.runs_count || 0) + 1,
+        last_run_id: runId,
+      });
+    }
+    return { ok: true, data: runView(record), record };
+  }
+
+  if (action === 'runs.list') {
+    const query = {};
+    if (params.status) query.status = String(params.status).toUpperCase();
+    const page = await base44.entities.BrowserRun.filter(query, {
+      sort: '-created_date',
+      limit: Math.min(50, Number(params.limit) || 20),
+    });
+    return { ok: true, data: page.items.map(runView) };
+  }
+
+  if (!params.run_id) return { ok: false, error: 'run_id is required', status: 400 };
+  const record = await runRecord(base44, params.run_id);
+  if (!record) return { ok: false, error: 'No run with that id', status: 404 };
+
+  if (action === 'runs.stop') {
+    const stopped = await base44.entities.BrowserRun.update(record.id, {
+      status: 'STOPPED',
+      ended_at: new Date().toISOString(),
+    });
+    return { ok: true, data: runView(stopped), record: stopped };
+  }
+
+  if (action === 'runs.resume') {
+    const resumed = await base44.entities.BrowserRun.update(record.id, { status: 'RUNNING', error: null, ended_at: null });
+    return { ok: true, data: runView(resumed), record: resumed };
+  }
+
+  if (action === 'runs.messages') {
+    return { ok: true, data: record.steps || [] };
+  }
+
+  if (action === 'runs.files') {
+    return { ok: true, data: [] };
+  }
+
+  if (action === 'runs.get') {
+    if (record.status !== 'RUNNING') return { ok: true, data: runView(record), record };
+    if (!hostConfigured()) return { ok: false, error: NOT_CONNECTED, status: 503, data: runView(record) };
+    let agent = null;
+    if (record.agent_id) {
+      const { items } = await base44.entities.BrowserAgent.filter({ agent_id: record.agent_id }, { limit: 1 });
+      agent = items[0] || null;
+    }
+    const advanced = await advanceRun(base44, record, agent);
+    return { ok: true, data: runView(advanced), record: advanced };
+  }
+
+  return { ok: false, error: 'Unsupported run action', status: 400 };
 }
 
 export default async function (req) {
@@ -42,9 +191,22 @@ export default async function (req) {
     const payload = await req.json().catch(() => ({}));
     const action = payload.action;
     const params = objectOrNull(payload.params) || {};
+    const started = Date.now();
 
     if (action === 'registry.list') {
-      return Response.json({ ok: true, action, data: listActions(), guardrails: GUARDRAILS });
+      return Response.json({
+        ok: true,
+        action,
+        data: listActions(),
+        guardrails: GUARDRAILS,
+        host_configured: hostConfigured(),
+      });
+    }
+
+    if (action === 'host.status') {
+      if (!hostConfigured()) return Response.json({ ok: false, action, error: NOT_CONNECTED, status: 503 });
+      const health = await hostCall('usage.get', {});
+      return Response.json({ ok: health.ok, action, data: health.data, error: health.error, status: health.status });
     }
 
     if (!action || !actionExists(action)) {
@@ -54,6 +216,10 @@ export default async function (req) {
       );
     }
 
+    if (!hostConfigured() && !action.startsWith('agents.')) {
+      return Response.json({ ok: false, action, error: NOT_CONNECTED, status: 503 }, { status: 503 });
+    }
+
     if (isDestructive(action) && payload.confirm !== true) {
       return Response.json(
         { ok: false, action, needs_confirmation: true, summary: actionSummary(action) },
@@ -61,99 +227,66 @@ export default async function (req) {
       );
     }
 
+    if (action.startsWith('agents.')) {
+      const local = await agentActions(base44, action, params);
+      return Response.json({ ...local, action, ms: Date.now() - started }, { status: local.ok ? 200 : local.status || 400 });
+    }
+
+    if (action.startsWith('runs.')) {
+      const local = await runActions(base44, action, params);
+      return Response.json({ ...local, action, ms: Date.now() - started }, { status: local.ok ? 200 : local.status || 400 });
+    }
+
     if (action === 'sessions.create') {
-      const running = await bbRequest('sessions.list', { status: 'RUNNING', limit: 50 });
+      const running = await hostCall('sessions.list', { status: 'RUNNING', limit: 50 });
       const active = running.ok && Array.isArray(running.data) ? running.data.length : 0;
       if (active >= GUARDRAILS.maxConcurrentSessions) {
         return Response.json(
           {
             ok: false,
             action,
-            error: `${active} sessions are already running and the limit is ${GUARDRAILS.maxConcurrentSessions}. Release one first.`,
+            error: `${active} sessions are already running on your host and the limit is ${GUARDRAILS.maxConcurrentSessions}. Release one first.`,
           },
           { status: 429 }
         );
       }
     }
 
-    const result = await bbRequest(action, params);
+    const result = await hostCall(action, params);
     const data = objectOrNull(result.data) || {};
     const now = new Date().toISOString();
     let saved = null;
 
     if (result.ok && action === 'sessions.create' && data.id) {
+      let liveUrl = null;
+      try {
+        liveUrl = await signedFrameUrl(String(data.id));
+      } catch {
+        liveUrl = null;
+      }
       saved = await base44.entities.BrowserSession.create({
         session_id: String(data.id),
-        status: data.status || 'CREATED',
-        live_url: data.debuggerFullscreenUrl || undefined,
-        debugger_url: data.debuggerUrl || undefined,
-        connect_url: data.connectUrl || undefined,
-        region: data.region || params.region || undefined,
-        timeout_seconds: Number(data.timeout) || GUARDRAILS.maxSessionSeconds,
-        keep_alive: Boolean(data.keepAlive),
-        started_at: now,
+        status: data.status || 'RUNNING',
+        live_url: liveUrl || undefined,
+        region: undefined,
+        timeout_seconds: Number(data.timeout_seconds) || GUARDRAILS.maxSessionSeconds,
+        keep_alive: Boolean(data.keep_alive),
+        started_at: data.started_at || now,
         last_action: action,
         last_status: result.status,
         action_count: 1,
+        note: data.context_id ? `context ${data.context_id}` : undefined,
       });
     }
 
-    if (result.ok && action === 'agents.create' && (data.agentId || data.id)) {
-      saved = await base44.entities.BrowserAgent.create({
-        agent_id: String(data.agentId || data.id),
-        name: data.name || params.name || 'Untitled agent',
-        system_prompt: data.systemPrompt || params.system_prompt || undefined,
-        result_schema: objectOrNull(data.resultSchema) || objectOrNull(params.result_schema),
-        notes: 'Created from the control plane',
-      });
-    }
-
-    if (result.ok && action === 'agents.delete' && params.agent_id) {
-      const { items } = await base44.entities.BrowserAgent.filter({ agent_id: String(params.agent_id) }, { limit: 5 });
-      if (items.length) {
-        await base44.entities.BrowserAgent.deleteMany({ agent_id: String(params.agent_id) });
-        saved = { deleted: items.length };
-      }
-    }
-
-    if (result.ok && action === 'runs.create' && (data.id || data.runId)) {
-      saved = await base44.entities.BrowserRun.create({
-        run_id: String(data.id || data.runId),
-        agent_id: params.agent_id ? String(params.agent_id) : data.agentId ? String(data.agentId) : undefined,
-        agent_name: data.agentName || undefined,
-        task: String(params.task || ''),
-        status: data.status || 'PENDING',
-        session_id: data.sessionId ? String(data.sessionId) : undefined,
-        started_at: now,
-        webhook_state: 'awaiting',
-        audit: [{ at: now, action, status: result.status, ok: true }],
-      });
-    }
-
-    if (result.ok && (action === 'runs.get' || action === 'runs.resume' || action === 'runs.stop') && params.run_id) {
-      const patch = {
-        status: data.status || undefined,
-        ended_at: data.endedAt || data.completedAt || undefined,
-        error: data.error ? String(data.error).slice(0, 500) : undefined,
-      };
-      const output = objectOrNull(data.output) || objectOrNull(data.result);
-      if (output) patch.output = output;
-      saved = await touchRun(base44, params.run_id, patch);
-    }
-
-    if (action === 'runs.messages' && Array.isArray(data)) {
-      const steps = data.slice(-40).map((item) => ({
-        at: item.createdAt || item.at || now,
-        kind: item.type || item.role || 'step',
-        text: String(item.content || item.text || item.message || JSON.stringify(item).slice(0, 400)).slice(0, 800),
-      }));
-      saved = await touchRun(base44, params.run_id, { steps });
+    if (action === 'usage.get' && result.ok && data.browserMinutes !== undefined) {
+      saved = null;
     }
 
     if (params.session_id && action !== 'sessions.create') {
       const patch = { last_action: action, last_status: result.status };
       if (action === 'sessions.release' && result.ok) {
-        patch.status = 'REQUEST_RELEASE';
+        patch.status = 'COMPLETED';
         patch.ended_at = now;
       }
       saved = (await touchSession(base44, params.session_id, patch)) || saved;
