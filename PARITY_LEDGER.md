@@ -439,7 +439,21 @@ Closing the invocation audit. Every backend function the client can reach was ch
 
 **Invocation audit, final state:** client → `manusAgent` (26 calls, ten actions), `shareLink` (handoff, list, resolve, revoke), `browserbase` (registry actions), `nativeTask` (create, list, detail, send, stop, artifacts), `deployRelease` (run, approve), `studioAgent`, `qaAudit`, `siteDomain`, `runAutomations`, `hostProvision` (four actions), `browserbaseChat` — every call resolves to a handled branch. `automationEvents` and `seedTemplates` are reached by workflows and seeding rather than the client, which is correct. No function unreachable, no invocation unhandled.
 
-## Register state (through Batch 34)
+### Batch 35 — decisions recorded: the app's own address, and HeyGen retained
+
+No code changed this turn. Two operator decisions were taken and written down so no later pass re-litigates them.
+
+1. **The app runs on its built-in Base44 domain**, `https://x1-apex-factory.base44.app`. No custom domain is attached, and nothing in the app needs one: every link the app hands out (client handoff links, share links, function URLs registered elsewhere) is built from `window.location.origin` or the function's own host, so it follows the domain automatically if one is attached later.
+2. **The HeyGen and LiveAvatar secrets are kept on purpose.** They were listed for possible deletion in Batch 34 as orphans; the operator has confirmed HeyGen is the next system to be cloned, so they are inventory for the next batch rather than dead credentials.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-67 | closed | `HEYGEN_API_KEY` authenticates against the HeyGen API: `GET /v2/avatars` **200** (1 254 avatars available), `GET /v2/voices` **200** (2 970 voices). `HEYGEN_AVATAR_ID` is also present. `GET /v2/user/me` answers **404**, so that route is not exposed on this account — the key itself is proven by the two 200s, and the account identity will be read from a route that does answer when the clone is built. |
+| G-68 | open | `LIVEAVATAR_API_KEY` answered **401** on `GET /v1/users/me`. Either the route differs from the guess or the key is stale; not resolvable without the provider's own endpoint list, so it is recorded as unconfirmed rather than called broken. Nothing depends on it yet. |
+
+**Still unused and still safe to delete:** `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, `BROWSERBASE_WEBHOOK_SECRET` — leftovers of the rented browser stack removed in Batch 21.
+
+## Register state (through Batch 35)
 
 | id | sev | state |
 |---|---|---|
@@ -453,7 +467,8 @@ Closing the invocation audit. Every backend function the client can reach was ch
 
 ## Blockers needing the operator (current)
 
-- Three orphaned secret groups to delete if unwanted: `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, `BROWSERBASE_WEBHOOK_SECRET`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `LIVEAVATAR_API_KEY`.
+- ~~Three orphaned secret groups to delete if unwanted~~ — resolved in Batch 35: `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID` and `LIVEAVATAR_API_KEY` are **retained on purpose** (HeyGen is the next system to clone; its key is proven live). Only `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID` and `BROWSERBASE_WEBHOOK_SECRET` remain unused.
+- The app's public address is its built-in Base44 domain, `https://x1-apex-factory.base44.app`; no custom domain is attached and none is needed.
 - The dashboard security scan.
 - A custom domain, if wanted, is attached from the dashboard.
 - Deploys to Railway, Docker and GitHub Pages remain manual by design: the packaged files are delivered on every release, and the stage says so.
