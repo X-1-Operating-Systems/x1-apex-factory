@@ -453,7 +453,45 @@ No code changed this turn. Two operator decisions were taken and written down so
 
 **Still unused and still safe to delete:** `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, `BROWSERBASE_WEBHOOK_SECRET` — leftovers of the rented browser stack removed in Batch 21.
 
-## Register state (through Batch 35)
+### Batch 36 — HeyGen and LiveAvatar: engine installed on the current APIs
+
+Two discoveries changed the build before any code was trusted:
+
+1. **HeyGen v1/v2 retires 2026-10-31.** The legacy quota call answered with its own sunset warning naming `GET /v3/users/me`. Building the obvious v2 registry would have shipped something dead within a day, so the client is on **v3**.
+2. **LiveAvatar will not start a session with the API key.** Start and stop take a short-lived **Bearer session token** from `POST /v1/sessions/token`; only the account key reaches the rest, so the client models both auth shapes explicitly and never stores the token.
+
+Built: `base44/shared/heygen.ts` (19 v3 actions, fixed host/method/URL per action, whitelisted parameters, 30s timeout, 3 tries with backoff on 429/5xx, trimmed output) · `base44/shared/liveavatar.ts` (15 actions, dual auth) · `base44/functions/video/entry.ts` (admin-gated dispatcher, confirm gate on every spend/destroy action, registry listing, bookkeeping) · entities `VideoJob` and `LiveSession`, both owner-or-admin.
+
+| id | capability | state | evidence (live) |
+|---|---|---|---|
+| G-70 | HeyGen account and billing | closed | `GET /v3/users/me` 200 — Eden Skye, `billing_type: wallet`, `remaining_balance: 0` |
+| G-71 | HeyGen avatars | closed | `GET /v3/avatars` 200 — groups with `id, name, gender, preview_image_url, default_voice_id, looks_count`; cursor paging |
+| G-72 | HeyGen voices | closed | `GET /v3/voices` 200 — `voice_id, name, language, gender, preview_audio_url, available_engines` |
+| G-73 | HeyGen render | **blocked on funds** | `POST /v3/videos` wired as the v3 union (`type: "avatar"`, exactly one visual source), confirm-gated, deliberately not fired at balance 0 |
+| G-74 | Video Agent, templates, translation, speech, clone, webhooks | wired, unproven | present against the documented v3 routes, marked `verified: false` |
+| G-75 | LiveAvatar credits | closed | `credits_left: 1110.0` |
+| G-76 | LiveAvatar contexts | closed | 1 context, "Eden Skye" |
+| G-77 | LiveAvatar token | closed | first answered **422** ("Provide exactly one of avatar_persona or voice_agent"), fixed by always sending a persona in FULL mode, then 200 |
+| G-78 | LiveAvatar start and stop | closed | start → 201 with `session_id`, `livekit_url`, `livekit_client_token`; stop → "Successfully stopped session". Ran in the **free sandbox**, so nothing was spent |
+| G-79 | Session bookkeeping | closed | record stores `mode: FULL`, `status: ended`, `ended_at`, note "Sandbox session, no credits used". A first pass stored LITE and never flipped to ended — both fixed and re-proven |
+| G-80 | Probe hygiene | closed | 2 probe sessions deleted; 0 sessions and 0 jobs left |
+
+### Batch 37 — the two media surfaces exist
+
+The engine from Batch 36 had no screen. Both products now have one, and both read the live APIs rather than a mock.
+
+Built: `src/lib/videoApi.js` (one call path, the provider's own error surfaced) · `src/pages/VideoStudio.jsx` at `/video` — wallet and account, avatar grid from `/v3/avatars`, voice list with previews from `/v3/voices`, script/ratio/resolution/title, a two-step **Render → Confirm render (spends credits)** that sends `confirm: true`, and a renders list from `VideoJob` with per-row `videos.get` refresh and an inline player when a URL exists · `src/pages/LiveAvatar.jsx` at `/live` — credit balance, context and voice pickers, FULL/LITE, a **sandbox switch on by default**, max duration, and a session that is really started (token → start) with the room and client token copyable and an End session control that calls `sessions.stop` for that same session · `CapabilityTable` on both pages, fed by `registry.list`, so every action shows whether its route is proven or merely wired · sidebar "Media" section · both functions admin-gated in one shared `AdminGate`.
+
+Live shapes confirmed while building (they were guesses before): HeyGen `/v3/avatars` answers `{data: [{id, name, gender, preview_image_url, default_voice_id, looks_count}], has_more, next_token}`; `/v3/voices` answers `{voice_id, name, language, gender, preview_audio_url, available_engines}`; LiveAvatar contexts and voices are paginated `{count, next, previous, results}`; the LiveAvatar avatar list is **empty** on this account, so the picker offers the sandbox avatar plus anything owned later. A start session answers `{session_id, livekit_url, livekit_client_token, livekit_agent_token, max_session_duration}`.
+
+| id | state | verification |
+|---|---|---|
+| G-81 | closed | both pages build and read real data: account (`wallet.remaining_balance 0`, `billing_type wallet`), 50 avatar groups, 50 voices with previews, LiveAvatar credits 1110, 1 context; registries render 19 + 15 actions with their verified flags |
+| G-82 | closed | the sandbox session was started and stopped through the same calls the page makes, then its records deleted — 0 `LiveSession` rows left |
+| G-83 | **open — needs one package** | the live avatar streams to a LiveKit room; rendering it in the page needs the LiveKit client SDK, which is not installed. The page states this and hands over the room URL and client token instead of faking a player |
+| G-84 | **blocked on funds** | unchanged from Batch 36: HeyGen renders need a funded wallet. The render control is live, confirm-gated, and will produce video the moment the balance is topped up |
+
+## Register state (through Batch 37)
 
 | id | sev | state |
 |---|---|---|

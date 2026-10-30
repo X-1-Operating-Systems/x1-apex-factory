@@ -19,6 +19,8 @@ import {
   Plug,
   Settings,
   ShieldCheck,
+  Clapperboard,
+  Radio,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -59,6 +61,13 @@ const NAV_SECTIONS = [
   {
     label: 'Connect',
     items: [{ to: '/plugins', label: 'Connectors', icon: Plug }],
+  },
+  {
+    label: 'Media',
+    items: [
+      { to: '/video', label: 'Video studio', icon: Clapperboard },
+      { to: '/live', label: 'Live avatar', icon: Radio },
+    ],
   },
 ];
 
