@@ -54,7 +54,7 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card px-5 py-4 sm:grid-cols-4">
+      <div className="glass-panel mt-8 grid grid-cols-2 gap-4 rounded-2xl px-5 py-4 sm:grid-cols-4">
         <Stat label="Projects" value={projects.length} />
         <Stat label="Templates" value={stats.templates} />
         <Stat label="Reviews passed" value={stats.passed} />
@@ -67,7 +67,7 @@ export default function Dashboard() {
           ['02', 'Direct the agent', 'Chat edits the live canvas — copy, layout, sections.'],
           ['03', 'Review, then release', 'Validator, QA and Guardian gate every version.'],
         ].map(([n, title, body]) => (
-          <div key={n} className="rounded-xl border border-border bg-card/60 px-4 py-3.5">
+          <div key={n} className="glass-panel rounded-2xl px-4 py-3.5">
             <p className="text-[10px] tracking-[0.2em] text-primary">{n}</p>
             <p className="mt-1.5 text-[12.5px] font-medium">{title}</p>
             <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">{body}</p>
@@ -85,7 +85,7 @@ export default function Dashboard() {
       {loading ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-[148px] animate-pulse rounded-xl border border-border bg-card/60" />
+            <div key={i} className="glass-panel h-[148px] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : projects.length === 0 ? (

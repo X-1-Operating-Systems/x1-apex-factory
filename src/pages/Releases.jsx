@@ -40,7 +40,7 @@ export default function Releases() {
         one build.
       </p>
 
-      <div className="mt-6 rounded-xl border border-border bg-card/60 px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+      <div className="glass-panel mt-6 rounded-2xl px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
         Manifests are prepared here. Pushing to Vercel, Railway, GitHub or Supabase runs once those accounts are
         connected — an approved record is the handoff point, not a live site.
       </div>
@@ -48,7 +48,7 @@ export default function Releases() {
       {loading ? (
         <div className="mt-6 space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl border border-border bg-card/60" />
+            <div key={i} className="glass-panel h-16 animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : rows.length === 0 ? (
@@ -62,7 +62,7 @@ export default function Releases() {
           </Link>
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="glass-panel mt-6 overflow-hidden rounded-2xl">
           {rows.map((row) => {
             const meta = META[row.status] || META.blocked;
             const Icon = meta.icon;

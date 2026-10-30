@@ -30,7 +30,7 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border px-4 py-6 lg:flex">
+      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-white/60 bg-white/45 px-4 py-6 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:flex">
         <div className="px-2">
           <Wordmark />
         </div>
@@ -43,7 +43,7 @@ export default function AppShell() {
               end={end}
               className={({ isActive }) =>
                 `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                  isActive ? 'bg-card text-foreground hairline' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  isActive ? 'glass-blue' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 }`
               }
             >
@@ -58,7 +58,7 @@ export default function AppShell() {
             <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Theme</span>
             <ThemeToggle compact />
           </div>
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-card px-3 py-2 hairline">
+          <div className="glass-panel flex items-center justify-between gap-2 rounded-xl px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-[12px] font-medium">{user?.full_name || 'Studio operator'}</p>
               <p className="truncate text-[11px] text-muted-foreground">{user?.email || ''}</p>
@@ -76,11 +76,11 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 lg:hidden">
+        <header className="flex items-center justify-between gap-3 border-b border-white/60 bg-white/45 px-4 py-3 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
           <Wordmark />
           <ThemeToggle compact />
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2 lg:hidden">
+        <nav className="flex gap-1 overflow-x-auto border-b border-white/60 bg-white/45 px-3 py-2 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

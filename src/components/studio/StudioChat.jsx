@@ -37,7 +37,7 @@ export default function StudioChat({ messages, busy, onSend }) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-card">
+    <div className="flex h-full min-h-0 flex-col bg-white/55 backdrop-blur-2xl dark:bg-white/[0.05]">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-primary">

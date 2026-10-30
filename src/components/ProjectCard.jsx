@@ -17,7 +17,7 @@ export default function ProjectCard({ project }) {
   return (
     <Link
       to={`/studio/${project.id}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-foreground/25"
+      className="glass-panel group relative flex flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_56px_-28px_rgba(23,55,140,0.55)]"
     >
       <div className="h-1 w-full" style={{ background: project.accent || '#b4532a' }} />
       <div className="flex flex-1 flex-col p-4">

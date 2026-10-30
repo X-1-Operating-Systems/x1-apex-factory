@@ -10,7 +10,7 @@ export default function TemplateCard({ template, onUse }) {
   };
 
   return (
-    <div className="group overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-foreground/25">
+    <div className="glass-panel group overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1">
       <div className="pointer-events-none h-[168px] overflow-hidden border-b border-border">
         <PageCanvas blocks={template.blocks || []} tokens={tokens} showSelection={false} />
       </div>
@@ -23,7 +23,7 @@ export default function TemplateCard({ template, onUse }) {
         <button
           type="button"
           onClick={() => onUse(template)}
-          className="mt-1 flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+          className="glass-blue mt-1 flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold"
         >
           Use <ArrowUpRight size={12} />
         </button>

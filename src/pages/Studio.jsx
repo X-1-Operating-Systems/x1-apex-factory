@@ -349,7 +349,7 @@ export default function Studio() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2.5 lg:px-4">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/60 bg-white/55 px-3 py-2.5 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05] lg:px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <Link to="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground" aria-label="Back to projects">
             <ArrowLeft size={15} />
@@ -435,7 +435,7 @@ export default function Studio() {
           </div>
         </div>
 
-        <aside className="hidden w-[298px] shrink-0 border-l border-border bg-card xl:block">{inspector}</aside>
+        <aside className="hidden w-[298px] shrink-0 border-l border-white/60 bg-white/55 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05] xl:block">{inspector}</aside>
       </div>
 
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
