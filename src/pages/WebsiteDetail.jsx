@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import VersionList from '@/components/website/VersionList';
 import VersionActivity from '@/components/website/VersionActivity';
 import DomainPanel from '@/components/website/DomainPanel';
+import SharePanel from '@/components/website/SharePanel';
 
 const TONE = {
   published: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
@@ -177,6 +178,15 @@ export default function WebsiteDetail() {
         <VersionActivity
           checkpoints={history?.checkpoints || []}
           publishedVersionId={history?.published_version_id || site?.published_version_id}
+        />
+      </div>
+
+      <div className="mt-3">
+        <SharePanel
+          taskId={taskId}
+          websiteId={site?.website_id}
+          siteTitle={site?.title}
+          siteUrl={site?.site_url}
         />
       </div>
 

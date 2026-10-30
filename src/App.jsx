@@ -19,6 +19,7 @@ import TaskDetail from '@/pages/TaskDetail';
 import NewTask from '@/pages/NewTask';
 import TemplateLibrary from '@/pages/TemplateLibrary';
 import Playbooks from '@/pages/Playbooks';
+import SharedView from '@/pages/SharedView';
 import Releases from '@/pages/Releases';
 import Library from '@/pages/Library';
 import Artifacts from '@/pages/Artifacts';
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/share/:token" element={<SharedView />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppShell />}>
