@@ -5,15 +5,16 @@ import LiveFrame from './LiveFrame';
 const BUTTONS = [
   { action: 'sessions.logs', label: 'Logs' },
   { action: 'sessions.downloads', label: 'Downloads' },
-  { action: 'sessions.replay', label: 'Replay' },
   { action: 'sessions.get', label: 'Detail' },
 ];
 
 export default function SessionCard({ action, data }) {
   const sessionId = data && (data.id || data.sessionId || data.session_id);
   const status = (data && (data.status || data.state)) || 'unknown';
+  const running = String(status).toUpperCase() === 'RUNNING';
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   const open = async (nextAction) => {
     setLoading(nextAction);
@@ -23,6 +24,22 @@ export default function SessionCard({ action, data }) {
     });
     setDetail({ action: nextAction, payload: res.data });
     setLoading(null);
+  };
+
+  const release = async () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setLoading('sessions.release');
+    const res = await base44.functions.invoke('browserbase', {
+      action: 'sessions.release',
+      confirm: true,
+      params: { session_id: sessionId },
+    });
+    setDetail({ action: 'sessions.release', payload: res.data });
+    setLoading(null);
+    setConfirming(false);
   };
 
   return (
@@ -50,6 +67,20 @@ export default function SessionCard({ action, data }) {
             {loading === button.action ? '…' : button.label}
           </button>
         ))}
+        {running && (
+          <button
+            type="button"
+            onClick={release}
+            disabled={loading === 'sessions.release'}
+            className={`rounded-md border px-2 py-1 text-[10.5px] transition-colors disabled:opacity-50 ${
+              confirming
+                ? 'border-destructive/50 text-destructive hover:bg-destructive/10'
+                : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            {loading === 'sessions.release' ? '…' : confirming ? 'Confirm release' : 'Release'}
+          </button>
+        )}
       </div>
 
       {detail && (

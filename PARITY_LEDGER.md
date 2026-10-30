@@ -298,3 +298,15 @@ A real defect surfaced here and was fixed at the right layer: the host clips tex
 |---|---|---|
 | G-36 (evidence half) | closed | run `74d96299-0043-4390-8e8e-2d5505a08b95` on the owned host: `goto` and `done` steps both carry a `frame_uri`; the done frame signed and fetched **200, `image/jpeg`, 38 970 bytes, JPEG magic bytes present**. Build green after fixing a missing default export on the image component. Probe runs (5) and sessions (4) released and deleted, leaving 0 runs, 1 session, 1 ledger row |
 | G-36 (video replay) | dropped on purpose | unchanged: no screencast recorder is built, and no UI claims one |
+
+### Batch 24 — one dead control removed, and the computers board is the host's own
+
+Two findings from an audit of every action the client can name against the action registry in `base44/shared/browserHost.ts`:
+
+1. **`sessions.replay` was offered and does not exist.** The session card in the control plane carried a **Replay** button wired to an action the host never exposed (G-36 was dropped on purpose in Batch 21), so pressing it produced a raw "Unknown action" dump. It also contradicted the ledger's own claim that no UI offers a recorder.
+2. **The host's sessions were invisible outside the thread.** `/computers` showed only the Manus account's devices, while the browsers this app actually runs — every session opened from the control plane or by a browser run — had no board at all, even though each one is already stored as a `BrowserSession`.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-36 (claim removed) | closed | src/components/admin/SessionCard.jsx | **Replay** removed; the card's remaining controls (`logs`, `downloads`, `get`) all resolve in the registry. Added **Release** for a running session as the two-step control the destructive gate requires, since an opened session previously had no way to be ended from its card. Release with the confirm token answered 200 → `COMPLETED` (4 probes released this turn and in the previous one) |
+| G-53b | closed | src/pages/Computers.jsx, src/components/computers/HostSessions.jsx, src/components/computers/HostSessionRow.jsx | Computers now opens with **Your browser host**: the last 12 `BrowserSession` records, each with its id, status, age and note, a live signed frame for a running session (admins only — `sessions.debug` is admin-gated, so a non-admin row says so instead of pretending the session closed), and an honest empty state. Verified on a real session: created through the control plane → the board's exact query (`filter({}, {sort:'-created_date', limit:12})`) returned it as the top row with `status: RUNNING` → released `COMPLETED` → probe record and its ledger row deleted, 1 session left. Build green. |
