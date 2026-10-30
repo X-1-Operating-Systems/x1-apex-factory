@@ -375,3 +375,74 @@ The audit turned to copy and readouts instead of controls, and found two places 
 | id | state | files changed | verification (live, this turn) |
 |---|---|---|---|
 | G-62 | closed | src/components/admin/UsageCard.jsx, src/components/admin/ControlThread.jsx | `usage.get` against the live host returned exactly `browserMinutes, browserSeconds, sessions_opened, sessions_running, actions, max_sessions` and **no `proxyBytes`**, so the old line was permanently zero by construction. The rewritten card resolves against that same payload to `{minutes: 40, opened: 20, running: 0, actions: 57, maxSessions: 5}` — every number a real counter. The starters now name only what the host does: live view, minutes, a run that opens example.com, a transcript then release. Build green. |
+
+### Batch 31 — environment inventory and infrastructure proof
+
+Autonomous pass. Nothing was deleted without proof, and nothing below is remembered — every line is a live answer.
+
+**Secrets, by actual reference in code** (grep of `base44/`, `src/`, `browser-host/`):
+
+| secret | referenced by | verdict |
+|---|---|---|
+| RAILWAY_API_KEY | host resolution | in use |
+| SUPABASE_URL / SUPABASE_SERVICE_KEY / SUPABASE_ACCESS_TOKEN | host ledger (`hostStore`, `hostProvision`) | in use |
+| MANUS_API_KEY | `manusAgent` | in use |
+| BROWSER_HOST_URL / BROWSER_HOST_TOKEN | `browserHost` (optional override) | in use, optional |
+| VERCEL_API_KEY | nothing, until Batch 32 | was orphaned, now in use |
+| BROWSERBASE_API_KEY / BROWSERBASE_PROJECT_ID / BROWSERBASE_WEBHOOK_SECRET | nothing | leftover of the vendor stack removed in Batch 21 — **flagged, not deleted**: deleting a secret is an operator action and no code proves it safe |
+| HEYGEN_API_KEY / HEYGEN_AVATAR_ID / LIVEAVATAR_API_KEY | nothing | outside this app's surface; flagged the same way |
+
+**Connectors:** authorized and token-verified live — github, supabase, googleworkspace, googledrive, gmail. The workspace holds many more registered gmail/calendar slots; registered is inventory, only authorized is capability, and a run reaches the five above.
+
+**Infrastructure, one real call each:**
+
+| surface | evidence |
+|---|---|
+| Owned browser host | `host.status` ok — 40 browser minutes, 20 sessions opened, 0 running, 57 page actions, cap 5 |
+| Supabase ledger | `host_session` 8 rows · `host_run` 10 · `host_usage` 1 · `host_audit` 125, all readable with the service key |
+| Supabase buckets | `host-screenshots` and `host-downloads` both answer, both `public=false` |
+| Vercel | `/v2/user` ok as `strategic-minds-ai` |
+| Railway | GraphQL `me` ok as `jeremy@strategicmindsai.com` |
+| GitHub | `/user` ok as `x1-operator` |
+| Custom domain | the app is published; a custom domain is attached from the dashboard, so it stays an operator action |
+
+**Control-plane wiring audit:** every action string the client can emit was diffed against the 27-entry registry in `base44/shared/browserHost.ts`. The static set (`usage.get`, `sessions.debug/downloads/get/logs/release`, `runs.get`) and the two the run card passes (`runs.stop`, `runs.resume`) all resolve; nothing offered is missing from the registry. `grep -rn "process.env" src` → 0 hits, so no secret reaches the bundle. `grep TODO|FIXME` across `src` and `base44` → 0 hits.
+
+### Batch 32 — approving a release now actually ships it (G-63)
+
+The wiring audit reached its worst case: **Approve wrote a status and nothing else.** `deployRelease` packaged files, scored them, then marked the release `approved` with a stage reading "Approved by <email>" — no deployment, `Deployment.url` never set, `Project.live_url` never set, and `VERCEL_API_KEY` referenced by no line of code. A release could be approved forever and never exist anywhere.
+
+Fixed at the right layer. `base44/shared/vercel.ts` (new) uploads the packaged files and **waits for the target's own verdict** instead of assuming success; `deployRelease` `approve` signs and re-reads each artifact, pushes it, and writes an honest `deploy` stage plus `Deployment.url`; `Project.live_url` and status `live` are set **only when the build is really READY**. Targets with no automation say so (stage `skipped`, "deploys are not automated — the packaged files are on this release for a manual push") rather than showing a fake pass. `ReleaseRow` shows a **Live** link whenever a release carries a URL.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-63 | closed | base44/shared/vercel.ts (new), base44/functions/deployRelease/entry.ts, src/components/releases/ReleaseRow.jsx | Three releases against real records. **Attempt 1** exposed a real upload bug — files sent as base64 were stored as base64 text and Vercel failed with `Invalid JSON content inside file "vercel.json"`. **Attempt 2** switched to `encoding: 'utf-8'` and added a readiness poll: deployment `READY`, site **200 / 6 059 bytes**, but the probe's block props were wrong (`headline` instead of the renderer's `title`), so the body was empty and the check correctly failed. **Attempt 3** used the real block contract: release `6ae50be3d3257c3592d28c4c`, QA 84/100 `review`, approval wrote `https://probe-release-…-cvk5icfsf.vercel.app`, and the live page answered **200 with "Apex Probe Headline" and "probe@example.com" on the first poll**; `Project.live_url` set and status moved to `live`. Also proven: the gate refuses a thin page — an earlier one-hero probe was `blocked` at 38/100, so approval was impossible. Probe hygiene: 3 Vercel projects deleted (204 each), every Deployment/QaRun/StudioPage/Project probe record deleted — 0 left. Build green. |
+
+### Batch 33 — the provision controls, exercised rather than assumed
+
+The audit turned to the four buttons on the control plane's provisioning row. A first grep said three of them were dead, and that grep was wrong: its pattern excluded dots, so dotted actions (`railway.up`, `supabase.migrate`, `verify.all`) never matched. Re-run with dots allowed, all four resolve in `hostProvision`, and the client's whole action surface was re-diffed against every function — `deployRelease` (run, approve), `shareLink` (handoff, list, resolve, revoke), `nativeTask` (create, list, detail, send, stop, artifacts), `manusAgent` (ten actions), `hostProvision` (four): nothing sent is unhandled.
+
+Two of the three unexercised buttons were then actually run, because a button nobody has pressed is still a claim.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-64 | closed | `supabase.migrate` → ok, project `ykmzbphanuhcswqetsez`, all four ledger tables present, counts `session 8 · run 10 · usage 1 · audit 139` (idempotent DDL, re-runnable). `verify.all` → **ok, 7 of 7 steps**: health (40 min, 0 running, cap 5) → `sessions.create` `90f684d4-2161-49d0-9ab9-2aa09b966d64` → `goto example.com` → read the page's real text ("This domain is for use in documentation examples…") → **live view frame served** → release `COMPLETED` → usage moved 57→59 actions and 20→21 sessions. The probe released its own session, so nothing is left running. `railway.up` was deliberately **not** fired: it redeploys the live host and blocks 45s, and `status` already reads the same deployment id it would produce — recorded as wired-not-fired rather than claimed. Cleanup: one probe project left over from Batch 32's earlier attempts (`Probe Release 1793395545295`) plus its blocked deployment, QA run and page were found and deleted — 0 probe projects, 0 deployments, 0 runs remain. |
+
+## Register state (through Batch 33)
+
+| id | sev | state |
+|---|---|---|
+| G-04 | BLOCKER | closed — runs call the connectors they declare |
+| G-36 | — | dropped on purpose; evidence frames kept, no recorder claimed |
+| G-47..G-51 | — | removed with the vendor stack; not part of this surface |
+| G-55 | BLOCKER | closed — success, failure + recovery, context reuse, usage, hygiene |
+| G-56 | HIGH | partial — host token server-side only, admin gates, confirm tokens, owner-or-admin RLS everywhere; the dashboard security scan is the operator's |
+| G-58..G-62 | — | closed — responsive panel, panel follows the real session, stop and resume on the card, copy matches the owned stack |
+| G-63 | BLOCKER | closed — approval deploys, verified against a live URL that answers |
+
+## Blockers needing the operator (current)
+
+- Three orphaned secret groups to delete if unwanted: `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, `BROWSERBASE_WEBHOOK_SECRET`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `LIVEAVATAR_API_KEY`.
+- The dashboard security scan.
+- A custom domain, if wanted, is attached from the dashboard.
+- Deploys to Railway, Docker and GitHub Pages remain manual by design: the packaged files are delivered on every release, and the stage says so.
