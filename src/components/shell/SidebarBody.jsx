@@ -5,6 +5,7 @@ import {
   Search,
   LayoutList,
   Bot,
+  Sparkles,
   Repeat,
   Monitor,
   FileStack,
@@ -21,6 +22,7 @@ import UsageMeter from '@/components/shell/UsageMeter';
 const NAV = [
   { to: '/library', label: 'All tasks', icon: LayoutList },
   { to: '/agents', label: 'Agents', icon: Bot },
+  { to: '/skills', label: 'Skills', icon: Sparkles },
   { to: '/automations', label: 'Scheduled', icon: Repeat },
   { to: '/computers', label: 'Computers', icon: Monitor },
   { to: '/artifacts', label: 'Library', icon: FileStack },

@@ -1,3 +1,5 @@
+import { loadStudioContext } from './personalization.ts';
+
 export const AI_MODEL = 'gpt_5_6_sol';
 
 export const MODELS = ['gpt_5_6_sol', 'gpt_5_6_luna', 'gpt_5_4', 'claude_sonnet_5', 'gemini_3_1_pro'];
@@ -49,8 +51,9 @@ For every assignment:
 
 The studio's blocks are hero, stats, features, showcase, gallery, pricing, faq, cta, contact, text and footer. When the deliverable is a website, draft it block by block in that vocabulary.`;
 
-export function buildPrompt({ instruction, history = [], followUp = false, effort = 'standard' }: any) {
+export function buildPrompt({ instruction, history = [], followUp = false, effort = 'standard', context = '' }: any) {
   const lines = [SYSTEM, '', DEPTH[pickEffort(effort)], ''];
+  if (context) lines.push(context, '');
   if (history.length) {
     lines.push('Conversation so far:');
     for (const message of history.slice(-8)) {
@@ -82,9 +85,9 @@ function normalize(envelope: any, fallbackTitle: string) {
   };
 }
 
-export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort }: any) {
+export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort, context = '' }: any) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: buildPrompt({ instruction, history, followUp, effort }),
+    prompt: buildPrompt({ instruction, history, followUp, effort, context }),
     model: pickModel(model),
     response_json_schema: TASK_SCHEMA,
   });
@@ -123,7 +126,14 @@ export async function createNativeTask(base44: any, { userId, title, instruction
   });
 
   try {
-    const out = await runInstruction(base44, { instruction, title, model: chosenModel, effort: chosenEffort });
+    const context = await loadStudioContext(base44, userId);
+    const out = await runInstruction(base44, {
+      instruction,
+      title,
+      model: chosenModel,
+      effort: chosenEffort,
+      context,
+    });
     return await base44.asServiceRole.entities.StudioTask.update(record.id, {
       title: out.title || record.title,
       status: 'stopped',
@@ -147,6 +157,7 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
   const withMessage = [...(task.events || []), userEvent(message)];
 
   try {
+    const context = await loadStudioContext(base44, task.created_by_id);
     const out = await runInstruction(base44, {
       instruction: message,
       title: task.title,
@@ -154,6 +165,7 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
       followUp: true,
       model: model || task.model,
       effort: effort || task.effort,
+      context,
     });
     return await base44.asServiceRole.entities.StudioTask.update(task.id, {
       status: 'stopped',

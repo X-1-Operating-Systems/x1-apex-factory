@@ -9,6 +9,8 @@ export const DEFAULT_PREFERENCES = {
   task_alerts: true,
   release_alerts: true,
   weekly_summary: false,
+  personal_instructions: '',
+  memory: [],
 };
 
 export const LANGUAGES = [

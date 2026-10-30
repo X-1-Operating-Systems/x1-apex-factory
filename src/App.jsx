@@ -23,6 +23,7 @@ import Library from '@/pages/Library';
 import Artifacts from '@/pages/Artifacts';
 import Computers from '@/pages/Computers';
 import Agents from '@/pages/Agents';
+import Skills from '@/pages/Skills';
 import Websites from '@/pages/Websites';
 import WebsiteDetail from '@/pages/WebsiteDetail';
 import Automations from '@/pages/Automations';
@@ -84,6 +85,7 @@ const AuthenticatedApp = () => {
           <Route path="/artifacts" element={<Artifacts />} />
           <Route path="/computers" element={<Computers />} />
           <Route path="/agents" element={<Agents />} />
+          <Route path="/skills" element={<Skills />} />
           <Route path="/websites" element={<Websites />} />
           <Route path="/websites/:taskId" element={<WebsiteDetail />} />
           <Route path="/automations" element={<Automations />} />
