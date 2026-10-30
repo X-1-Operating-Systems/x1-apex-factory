@@ -1,3 +1,5 @@
+import { CONNECTOR_SPECS, toolCatalogue } from './connectorTools.ts';
+
 const CONNECTOR_CAP = 10;
 
 const ACCESS_LABEL: any = {
@@ -6,33 +8,60 @@ const ACCESS_LABEL: any = {
   full: 'full access',
 };
 
+export type ConnectorSetup = {
+  /** Prompt block naming the installer's connectors and the exact actions a run may take. */
+  context: string;
+  /** What the executor needs: access level, approval gate and available actions. */
+  connections: any[];
+};
+
 /**
- * Declares the operator's configured connectors to the reasoning engine.
- * The engine cannot call a connector itself, so the block is explicit about that:
- * it plans and writes the exact action, and never claims one was performed.
+ * Reads the operator's installed connectors and declares to the engine exactly
+ * which actions it may call. Any connector without an allowlist entry is declared
+ * as plan-only, so the engine never claims work it cannot perform.
  */
-export async function loadConnectorContext(base44: any, userId: string) {
-  if (!userId) return '';
+export async function loadConnectorSetup(base44: any, userId: string): Promise<ConnectorSetup> {
+  if (!userId) return { context: '', connections: [] };
 
   try {
     const list = await base44.asServiceRole.entities.StudioConnector.filter({ created_by_id: userId });
     const active = (list || []).slice(0, CONNECTOR_CAP);
-    if (!active.length) return '';
+    if (!active.length) return { context: '', connections: [] };
 
-    const lines = [
-      'Connectors configured for this operator (their own accounts, connected to the app):',
-    ];
+    const connections: any[] = [];
+    const lines = ['Connectors this operator has installed (their own accounts):'];
+
     for (const connector of active) {
+      const key = String(connector.key || '');
+      const spec = CONNECTOR_SPECS[key];
       const access = ACCESS_LABEL[connector.access] || 'read and write';
-      const gate = connector.auto_approve ? 'auto-approved' : 'needs the operator to approve each action';
-      lines.push(`- ${connector.name}${connector.category ? ` (${connector.category})` : ''}: ${access}, ${gate}.`);
+      const gate = connector.auto_approve ? 'auto-approved' : 'writes need the operator to approve on the Connectors page';
+      lines.push(`- ${connector.name || spec?.label || key} [key: ${key}] — ${access}, ${gate}.`);
+
+      if (!spec) {
+        lines.push('    No runnable action is wired for this connector yet: it is plan-only.');
+        continue;
+      }
+
+      lines.push('    Runnable actions:');
+      lines.push(toolCatalogue(key));
+      connections.push({
+        key,
+        name: connector.name || spec.label,
+        access: connector.access || 'read_write',
+        autoApprove: Boolean(connector.auto_approve),
+        connected: Boolean(connector.installed_at),
+      });
     }
+
     lines.push(
-      'You cannot call a connector from a run. When the assignment needs one, write the exact action and the payload the operator should send there, and never state or imply that an action was already taken in it.',
+      'To use one, return a connector_call instead of a final answer: {"key":"<key>","tool":"<action id>","reason":"<why>","params_json":"{\\"param\\":\\"value\\"}"}. You get the real result back and then answer. One call per turn, at most three per run.',
+      'A gated or failed call means nothing happened. Say plainly what the operator must change, and never state or imply that an action was taken when the result says otherwise.',
       ''
     );
-    return lines.join('\n');
+
+    return { context: lines.join('\n'), connections };
   } catch {
-    return '';
+    return { context: '', connections: [] };
   }
 }

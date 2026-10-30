@@ -1,6 +1,19 @@
 import { loadStudioContext } from './personalization.ts';
 import { projectBrief, joinContext } from './projects.ts';
-import { loadConnectorContext } from './connectors.ts';
+import { loadConnectorSetup } from './connectors.ts';
+import { runConnectorTool } from './connectorTools.ts';
+
+const MAX_CONNECTOR_CALLS = 3;
+
+function parseParams(value: any) {
+  if (value && typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(String(value || '{}'));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 export const AI_MODEL = 'gpt_5_6_sol';
 
@@ -36,6 +49,16 @@ const TASK_SCHEMA = {
         detail: { type: 'string' },
       },
       required: ['name', 'type', 'detail'],
+    },
+    connector_call: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'connector key, e.g. gmail' },
+        tool: { type: 'string', description: 'action id from the connector catalogue' },
+        reason: { type: 'string', description: 'why this call is needed' },
+        params_json: { type: 'string', description: 'JSON object of the action parameters as a string' },
+      },
+      required: ['key', 'tool', 'reason', 'params_json'],
     },
   },
   required: ['title', 'summary', 'steps', 'reply'],
@@ -87,14 +110,69 @@ function normalize(envelope: any, fallbackTitle: string) {
   };
 }
 
-export async function runInstruction(base44: any, { instruction, title, history = [], followUp = false, model, effort, context = '', fileUrls = [] }: any) {
-  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: buildPrompt({ instruction, history, followUp, effort, context }),
-    model: pickModel(model),
-    response_json_schema: TASK_SCHEMA,
-    ...(fileUrls.length ? { file_urls: fileUrls } : {}),
-  });
-  return normalize(result, title);
+/**
+ * Runs one instruction. When the operator has connectors installed, the model may
+ * answer with a connector_call instead of a final envelope; the call is executed
+ * server-side inside the allowlist and the real result is handed back to the model.
+ */
+export async function runInstruction(
+  base44: any,
+  { instruction, title, history = [], followUp = false, model, effort, context = '', fileUrls = [], userId = '', connections = [] }: any
+) {
+  const prompt = buildPrompt({ instruction, history, followUp, effort, context });
+  const calls: any[] = [];
+
+  for (let step = 0; step <= MAX_CONNECTOR_CALLS; step += 1) {
+    const canCall = connections.length > 0 && calls.length < MAX_CONNECTOR_CALLS;
+    const transcript = calls.length
+      ? ['Connector results so far:', ...calls.map((call, index) => `Call ${index + 1} — ${call.key}.${call.tool}: ${call.status}. ${call.message}`), ''].join('\n')
+      : '';
+    const closing = canCall
+      ? ''
+      : 'No further connector calls are available in this run. Return the final JSON envelope now, without connector_call.';
+
+    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: [prompt, transcript, closing].filter(Boolean).join('\n'),
+      model: pickModel(model),
+      response_json_schema: TASK_SCHEMA,
+      ...(fileUrls.length ? { file_urls: fileUrls } : {}),
+    });
+
+    const requested = result && typeof result === 'object' ? (result as any).connector_call : null;
+    if (!canCall || !requested?.key) return { envelope: normalize(result, title), calls };
+
+    const signature = `${requested.key}.${requested.tool}.${String(requested.params_json || '')}`;
+    const repeated = calls.some((call) => call.signature === signature);
+    if (repeated) {
+      return {
+        envelope: normalize(null, title),
+        calls: [
+          ...calls,
+          {
+            key: String(requested.key),
+            tool: String(requested.tool),
+            status: 'error',
+            message: 'That exact call was already attempted and did not succeed, so it was not repeated. Report what happened to the operator.',
+            signature,
+          },
+        ],
+      };
+    }
+
+    const connection = connections.find((entry: any) => entry.key === String(requested.key));
+    const hit = await runConnectorTool(base44, {
+      userId,
+      key: requested.key,
+      tool: requested.tool,
+      params: parseParams(requested.params_json),
+      access: connection?.access,
+      autoApprove: connection?.autoApprove,
+      connected: Boolean(connection?.connected),
+    });
+    calls.push({ ...hit, signature, reason: String(requested.reason || '').slice(0, 300) });
+  }
+
+  return { envelope: normalize(null, title), calls };
 }
 
 export function userEvent(content: string, attachments: any[] = []) {
@@ -143,6 +221,15 @@ export function outputEvents(out: any) {
   return events;
 }
 
+export function toolEvents(calls: any[] = []) {
+  const now = Date.now();
+  return calls.map((call) => ({
+    role: 'tool',
+    content: `${call.key}.${call.tool} → ${call.status}${call.reason ? ` (${call.reason})` : ''}: ${call.message}`.slice(0, 2000),
+    ts: now,
+  }));
+}
+
 export function errorEvent(message: string) {
   return { role: 'error', content: String(message || 'The run failed.').slice(0, 600), ts: Date.now() };
 }
@@ -170,23 +257,27 @@ export async function createNativeTask(base44: any, { userId, title, instruction
   });
 
   try {
+    const setup = await loadConnectorSetup(base44, userId);
     const context = joinContext(
       await projectBrief(base44, projectId),
-      joinContext(await loadStudioContext(base44, userId), await loadConnectorContext(base44, userId))
+      joinContext(await loadStudioContext(base44, userId), setup.context)
     );
-    const out = await runInstruction(base44, {
+    const run = await runInstruction(base44, {
       instruction,
       title,
       model: chosenModel,
       effort: chosenEffort,
       context,
+      userId,
+      connections: setup.connections,
       fileUrls: files.map((f: any) => f.url).filter(Boolean),
     });
+    const out = run.envelope;
     return await base44.asServiceRole.entities.StudioTask.update(record.id, {
       title: out.title || record.title,
       status: 'stopped',
       summary: out.summary,
-      events: [...record.events, ...outputEvents(out)],
+      events: [...record.events, ...toolEvents(run.calls), ...outputEvents(out)],
       deliverable: out.deliverable,
     });
   } catch (error: any) {
@@ -207,11 +298,12 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
   const withMessage = [...(task.events || []), userEvent(message, files)];
 
   try {
+    const setup = await loadConnectorSetup(base44, task.created_by_id);
     const context = joinContext(
       await projectBrief(base44, task.project_id),
-      joinContext(await loadStudioContext(base44, task.created_by_id), await loadConnectorContext(base44, task.created_by_id))
+      joinContext(await loadStudioContext(base44, task.created_by_id), setup.context)
     );
-    const out = await runInstruction(base44, {
+    const run = await runInstruction(base44, {
       instruction: message,
       title: task.title,
       history,
@@ -219,12 +311,15 @@ export async function followUpNativeTask(base44: any, { task, message, model, ef
       model: model || task.model,
       effort: effort || task.effort,
       context,
+      userId: task.created_by_id,
+      connections: setup.connections,
       fileUrls: [...files, ...projectFiles].map((f: any) => f.url).filter(Boolean).slice(0, 6),
     });
+    const out = run.envelope;
     return await base44.asServiceRole.entities.StudioTask.update(task.id, {
       status: 'stopped',
       summary: out.summary || task.summary,
-      events: [...withMessage, ...outputEvents(out)],
+      events: [...withMessage, ...toolEvents(run.calls), ...outputEvents(out)],
       deliverable: out.deliverable || task.deliverable,
     });
   } catch (error: any) {

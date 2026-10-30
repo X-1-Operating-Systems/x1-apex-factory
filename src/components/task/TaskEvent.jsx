@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { AlertCircle, FileDown, Wrench } from 'lucide-react';
+import { AlertCircle, FileDown, Plug, Wrench } from 'lucide-react';
 
 const clock = (ts) => {
   if (!ts) return '';
@@ -33,6 +33,20 @@ export default function TaskEvent({ event }) {
     return (
       <div className="flex items-start gap-2 pl-1 text-[11.5px] text-muted-foreground">
         <Wrench size={11} className="mt-0.5 shrink-0" />
+        <span className="min-w-0 break-words">{event.content}</span>
+      </div>
+    );
+  }
+
+  if (event.role === 'tool') {
+    const failed = /→ (error|gated)/.test(event.content || '');
+    return (
+      <div
+        className={`flex items-start gap-2 rounded-lg border p-2 text-[11.5px] ${
+          failed ? 'border-amber-500/30 bg-amber-500/5 text-amber-700' : 'border-border bg-secondary/60 text-foreground'
+        }`}
+      >
+        <Plug size={11} className="mt-0.5 shrink-0" />
         <span className="min-w-0 break-words">{event.content}</span>
       </div>
     );
