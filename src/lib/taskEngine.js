@@ -40,30 +40,54 @@ export async function createTask({ title, instruction, agent_id, model, effort, 
   return { ...res.data, engine };
 }
 
-export async function listTasks({ limit = 40 } = {}) {
-  const nativeRes = await base44.functions.invoke('nativeTask', { action: 'list', limit }).catch(() => null);
-  const native = (nativeRes?.data?.tasks || []).map((task) => ({ ...task, engine: 'native' }));
+/**
+ * One page of tasks across both engines.
+ * `cursors` null = first page; otherwise only the engines that still have a
+ * cursor are queried, so "load more" never refetches what is already on screen.
+ * Native tasks filter and page on the server; Manus exposes no filters, so its
+ * page is narrowed by the same status/query inside this call.
+ */
+export async function listTasks({ limit = 40, status = 'all', query = '', cursors = null } = {}) {
+  const search = String(query || '').trim();
+  const term = search.toLowerCase();
+  const wantNative = !cursors || Boolean(cursors.native);
+  const wantManus = cursors ? Boolean(cursors.manus) : await manusReady();
 
-  if (await manusReady()) {
-    const res = await base44.functions.invoke('manusAgent', { action: 'tasks', limit }).catch(() => null);
+  const tasks = [];
+  let nativeCursor = null;
+  let nativeHasMore = false;
+  let manusCursor = null;
+  let manusHasMore = false;
+
+  if (wantNative) {
+    const payload = { action: 'list', limit, status, query: search };
+    if (cursors?.native) payload.cursor = cursors.native;
+    const res = await base44.functions.invoke('nativeTask', payload).catch(() => null);
+    (res?.data?.tasks || []).forEach((task) => tasks.push({ ...task, engine: 'native' }));
+    nativeCursor = res?.data?.next_cursor || null;
+    nativeHasMore = Boolean(res?.data?.has_more);
+  }
+
+  if (wantManus) {
+    const res = await base44.functions
+      .invoke('manusAgent', { action: 'tasks', limit: 60, ...(cursors?.manus ? { cursor: cursors.manus } : {}) })
+      .catch(() => null);
     if (res) {
-      return {
-        tasks: [...native, ...(res.data.tasks || []).map((task) => ({ ...task, engine: 'manus' }))],
-        next_cursor: res.data.next_cursor || null,
-        has_more: Boolean(res.data.has_more),
-      };
+      (res.data.tasks || [])
+        .map((task) => ({ ...task, engine: 'manus' }))
+        .filter((task) => status === 'all' || task.status === status)
+        .filter((task) => !term || String(task.title || '').toLowerCase().includes(term))
+        .forEach((task) => tasks.push(task));
+      manusCursor = res.data.next_cursor || null;
+      manusHasMore = Boolean(res.data.has_more);
     }
   }
 
-  return { tasks: native, next_cursor: null, has_more: false };
-}
-
-export async function moreTasks(cursor) {
-  const res = await base44.functions.invoke('manusAgent', { action: 'tasks', limit: 40, cursor });
   return {
-    tasks: (res.data.tasks || []).map((task) => ({ ...task, engine: 'manus' })),
-    next_cursor: res.data.next_cursor || null,
-    has_more: Boolean(res.data.has_more),
+    tasks,
+    native_cursor: nativeCursor,
+    manus_cursor: manusCursor,
+    has_more: nativeHasMore || manusHasMore,
   };
 }
 

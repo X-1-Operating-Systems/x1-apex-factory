@@ -70,8 +70,30 @@ export default async function (req: Request): Promise<Response> {
 
     if (action === 'list') {
       const limit = Math.min(60, Math.max(1, Number(body?.limit) || 40));
-      const { items } = await base44.entities.StudioTask.filter({}, { sort: '-created_date', limit });
-      return Response.json({ tasks: items.map((task: any) => shape(task)), has_more: false, next_cursor: null });
+      const status = String(body?.status || 'all');
+      const term = String(body?.query || '').trim().slice(0, 120);
+
+      const where: any = {};
+      if (status && status !== 'all') where.status = status;
+      if (term) {
+        where.$or = [
+          { title: { $regex: term, $options: 'i' } },
+          { instruction: { $regex: term, $options: 'i' } },
+        ];
+      }
+
+      const page = await base44.entities.StudioTask.filter(where, {
+        sort: '-created_date',
+        limit,
+        ...(body?.cursor ? { cursor: body.cursor } : {}),
+      });
+
+      return Response.json({
+        tasks: page.items.map((task: any) => shape(task)),
+        has_more: Boolean(page.has_more),
+        next_cursor: page.next_cursor || null,
+        total: await base44.entities.StudioTask.count(where),
+      });
     }
 
     if (action === 'detail') {

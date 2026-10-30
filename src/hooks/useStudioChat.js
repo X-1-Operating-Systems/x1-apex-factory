@@ -33,6 +33,13 @@ export default function useStudioChat({ projectId = '', model = 'gpt_5_6_sol', e
     };
   }, [taskId, pulse]);
 
+  const reset = useCallback(() => {
+    setTaskId('');
+    setData(null);
+    setError('');
+    setBusy(false);
+  }, []);
+
   const send = useCallback(
     async (text, attachments = []) => {
       const instruction = String(text || '').trim();
@@ -70,5 +77,6 @@ export default function useStudioChat({ projectId = '', model = 'gpt_5_6_sol', e
     busy,
     error,
     send,
+    reset,
   };
 }

@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { ExternalLink, Loader2, Search, Square } from 'lucide-react';
 import StatusPill from '@/components/manus/StatusPill';
-import { listTasks, moreTasks, stopTask } from '@/lib/taskEngine';
+import { listTasks, stopTask } from '@/lib/taskEngine';
 
 const STATES = [
   ['all', 'All'],
@@ -20,46 +19,58 @@ function when(seconds) {
 
 export default function Library() {
   const [tasks, setTasks] = useState([]);
-  const [cursor, setCursor] = useState(null);
+  const [cursors, setCursors] = useState({ native: null, manus: null });
   const [hasMore, setHasMore] = useState(false);
   const [state, setState] = useState('all');
   const [query, setQuery] = useState('');
+  const [term, setTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [moreBusy, setMoreBusy] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const id = setTimeout(() => setTerm(query.trim()), 300);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
     let live = true;
-    const load = async () => {
-      try {
-        const res = await listTasks({ limit: 40 });
+    setLoading(true);
+    setError('');
+    listTasks({ status: state, query: term })
+      .then((res) => {
         if (!live) return;
         setTasks(res.tasks || []);
-        setCursor(res.next_cursor);
+        setCursors({ native: res.native_cursor, manus: res.manus_cursor });
         setHasMore(Boolean(res.has_more));
-      } catch (err) {
+      })
+      .catch((err) => {
         if (live) setError(err?.response?.data?.error || err.message);
-      } finally {
+      })
+      .finally(() => {
         if (live) setLoading(false);
-      }
-    };
-    load();
+      });
     return () => {
       live = false;
     };
-  }, []);
+  }, [state, term]);
 
   const loadMore = async () => {
-    if (!cursor || moreBusy) return;
+    if (!hasMore || moreBusy) return;
     setMoreBusy(true);
-    const res = await moreTasks(cursor);
-    setTasks((prev) => {
-      const seen = new Set(prev.map((t) => t.id));
-      return [...prev, ...(res.tasks || []).filter((t) => !seen.has(t.id))];
-    });
-    setCursor(res.next_cursor);
-    setHasMore(Boolean(res.has_more));
-    setMoreBusy(false);
+    try {
+      const res = await listTasks({ status: state, query: term, cursors });
+      setTasks((prev) => {
+        const seen = new Set(prev.map((t) => t.id));
+        return [...prev, ...(res.tasks || []).filter((t) => !seen.has(t.id))];
+      });
+      setCursors({ native: res.native_cursor, manus: res.manus_cursor });
+      setHasMore(Boolean(res.has_more));
+    } catch (err) {
+      setError(err?.response?.data?.error || err.message);
+    } finally {
+      setMoreBusy(false);
+    }
   };
 
   const stop = async (id) => {
@@ -67,15 +78,7 @@ export default function Library() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'stopped' } : t)));
   };
 
-  const visible = useMemo(
-    () =>
-      tasks.filter(
-        (t) =>
-          (state === 'all' || t.status === state) &&
-          (!query.trim() || t.title.toLowerCase().includes(query.trim().toLowerCase()))
-      ),
-    [tasks, state, query]
-  );
+  const filtered = state !== 'all' || Boolean(term);
 
   return (
     <div className="mx-auto w-full max-w-[1000px] px-5 py-8 lg:px-10 lg:py-10">
@@ -83,7 +86,7 @@ export default function Library() {
         <h1 className="text-[15px] font-medium">Tasks</h1>
         <p className="text-[11.5px] text-muted-foreground">
           {tasks.length}
-          {hasMore ? '+' : ''} tasks across both engines
+          {hasMore ? '+' : ''} {filtered ? 'matching tasks' : 'tasks across both engines'}
         </p>
       </div>
 
@@ -119,21 +122,23 @@ export default function Library() {
         </div>
       ) : error ? (
         <p className="mt-8 text-[12.5px] text-destructive">{error}</p>
-      ) : visible.length === 0 ? (
+      ) : tasks.length === 0 ? (
         <p className="mt-10 text-center text-[12.5px] text-muted-foreground">
-          No tasks here yet. Start one from New task and it lands in this library.
+          {filtered
+            ? 'Nothing matches those filters yet.'
+            : 'No tasks here yet. Start one from New task and it lands in this library.'}
         </p>
       ) : (
         <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-          {visible.map((task) => (
-            <div key={task.id} className="flex items-center gap-3 px-3.5 py-2.5">
+          {tasks.map((task) => (
+            <div key={`${task.engine}-${task.id}`} className="flex items-center gap-3 px-3.5 py-2.5">
               <Link to={`/task/${task.id}`} className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <p className="truncate text-[12.5px] font-medium">{task.title || 'Untitled task'}</p>
                   <StatusPill status={task.status} />
                 </div>
                 <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-                  {String(task.type || 'task').replace('_', ' ')} · {when(task.created_at)}
+                  {task.engine === 'manus' ? 'manus' : String(task.type || 'task').replace('_', ' ')} · {when(task.created_at)}
                 </p>
               </Link>
               {(task.status === 'running' || task.status === 'waiting') && (
