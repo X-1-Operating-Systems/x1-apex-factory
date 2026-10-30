@@ -262,3 +262,26 @@ Account hygiene: the four agents and the webhook on the Browserbase account were
 - Deploy `browser-host/` (Railway: root directory `browser-host`, `HOST_TOKEN`, volume at `/data`) and set `BROWSER_HOST_URL` + `BROWSER_HOST_TOKEN`. Until then the control plane states it is not connected instead of pretending.
 - That container is the only deployment surface: the app needs no vendor token, hosts nothing else, and no paid account is involved. Railway is one option among Docker host, Fly, Render or a plain VPS.
 - The dashboard security scan is an operator action.
+
+### Batch 22 — the owned host is live, and an agent really browses on it
+
+The container was deployed to Railway (`x1-browser-host` / `browser-host`, volume at `/data`, `HOST_TOKEN` set) and Supabase was provisioned as the host's ledger: tables `host_session`, `host_run`, `host_usage`, `host_audit` (all with RLS on) plus private buckets `host-screenshots` and `host-downloads`. Host URL `browser-host-production-8a40.up.railway.app`, deploy `SUCCESS`.
+
+Fixed while bringing it up: Railway's GraphQL query had an unbalanced brace so host resolution silently failed (the API key path now resolves the service and its public domain with no pasted URL); the config record's deploy list read a paged response as an array; the table counters could not see tables without an `id` column; and the agent loop wasted its first steps on a blank page — it now navigates to the URL named in the task before deciding anything.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-30..G-35 | closed | host resolved automatically from `RAILWAY_API_KEY`; `host.status` healthy; session `6488e9f0-c39b-4637-b2c6-1c9b42760a8a` created 201 with timeout, viewport and a signed frame URL, released 200 → COMPLETED with `ended_at`; `usage.get` counted browserSeconds 21 → 22 |
+| G-37 | closed | context `ee8217c3-1845-41f1-a6b0-b4af4138fcb7` created 201, `context_id` echoed on the session it was attached to, deleted 204 |
+| G-43 | closed | usage read from the host's own counters (browserSeconds, sessionsOpened, pageActions) and mirrored through `hostStore` |
+| G-45, G-46 | closed | agent run `5f671386-fb76-4677-b5f1-a6d91802a56c` on the owned host: task "open example.com and tell me the headline" → `goto https://example.com` → COMPLETED in 5s with the answer "Example Domain", steps and output persisted on the run record and mirrored to `host_run` |
+| G-53, G-54 | closed | `/admin` drives every one of those actions; the computer panel renders the signed frame from the owned host, not a vendor |
+| G-55 | closed | success path (agent run answered from the real page), context reuse (attach → echo → delete), usage recorded, session lifecycle released cleanly. Probe records deleted: 2 runs, 1 agent — 0 runs, 0 agents left; 1 session and 1 host-config kept as live state. Supabase ledger after cleanup: `host_session` 1, `host_run` 2, `host_usage` 1, `host_audit` 6 |
+| G-56 | partial | host token never reaches the client (frames carry a session-scoped HMAC signature), every action admin-gated, destructive actions need a confirm token, caps enforced by the host, ledger tables have RLS. Outstanding: dashboard security scan is an operator action |
+
+Known gap carried forward, stated rather than hidden: a session opened *inside* an agent run is mirrored to `host_run` but not yet to `host_session`, so the Supabase session ledger undercounts sessions the loop opens for itself. The app-side `BrowserSession` record is unaffected.
+
+## Blockers needing the operator (updated)
+
+- ~~Deploy `browser-host/`~~ — done. `BROWSER_HOST_URL` / `BROWSER_HOST_TOKEN` are no longer required: the host resolves from `RAILWAY_API_KEY` at runtime.
+- The dashboard security scan is an operator action.
