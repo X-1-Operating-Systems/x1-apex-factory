@@ -560,6 +560,14 @@ Built: `base44/functions/edenLive/entry.ts` with four actions on one room per op
 |---|---|---|
 | G-90 | closed | `keep` created room `56f81816…` (room `0433cf29…`, 60s, `renewals: 0`, credits 1110) · 31 seconds later the next `keep` **renewed**: room `dfba9898…` in a different LiveKit room (`ba2bb59d…`) with a new client token and `renewals: 1`, and the previous record came back `status: ended` with `ended_at` set — the rollover happens before the vendor's ceiling, so the chain never breaks · `stop` answered `stopped: 1` and closed the open room · all three probe records deleted (0 `LiveSession` rows left) · client tokens are stored but never rendered — the page reads them through the function · build green |
 
+### Batch 43 — the one thing that works today is one click away
+
+The wallet is at **$0.00** (re-read live, `GET /v3/users/me` 200 → `billing_type: wallet`, `remaining_balance: 0`), so a HeyGen render cannot be produced by any amount of code: `speech.create` and `videos.create` both refuse with `402 insufficient_credit`. What can run today is her live room, and it now says so from the page the operator lands on: Video studio, when the wallet is empty, links straight to `/live` — *"Renders wait on that wallet. Her live room does not — open Eden live and she is on screen in a few seconds, free."* Also fixed this batch: a room found already open by `state` is now held automatically, so arriving on the page (or reloading it) resumes the rollover instead of letting the 60-second session die.
+
+| id | state | verification (live) |
+|---|---|---|
+| G-91 | closed | wallet re-read at 0 → the link renders; the room was opened through `keep` (`3d89a463…`, expired 60s later as designed), re-read through `state` at **51s left** on the same session id — the exact payload the page mounts on — and the page now sets `keeping` from it, so the renewal loop starts on load. A fresh room (`3b116725…`) was opened immediately before handover so the first click finds her live. Build green |
+
 **Still blocked on funds:** her cloned voice and her own avatar are private HeyGen records; both reach LiveAvatar only after her image is uploaded and validated inside LiveAvatar, and rendering with that voice answers `402 insufficient_credit` until the wallet is funded (G-84, G-89). Until then the room runs LiveAvatar's preview avatar with her context and greeting, and the page says exactly that.
 
 ## Register state (through Batch 40)

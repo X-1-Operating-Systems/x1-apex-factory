@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Clapperboard } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -88,6 +89,16 @@ export default function VideoStudio() {
       <div className="mt-3">
         <BalanceCard account={account} loading={loading} />
       </div>
+
+      {account && !(Number(account?.wallet?.remaining_balance) > 0) && (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Renders wait on that wallet. Her live room does not —{' '}
+          <Link to="/live" className="underline underline-offset-2 transition-colors hover:text-foreground">
+            open Eden live
+          </Link>{' '}
+          and she is on screen in a few seconds, free.
+        </p>
+      )}
 
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
 

@@ -53,6 +53,8 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
       if (res.ok && res.session) {
         setSession(res.session);
         renewalsRef.current = (res.session.renewals || 0) + 1;
+        // A room already open is held by this page, so it keeps rolling over instead of dying in 60s.
+        setKeeping(true);
       }
       if (Number.isFinite(Number(res.credits))) setCredits(Number(res.credits));
     });
