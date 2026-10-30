@@ -1,5 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { manusCall, digestTask, normalizeEvents, buildContent, summarizeRun } from '../../shared/manus.ts';
+import {
+  manusCall,
+  resolveUserKey,
+  verifyKey,
+  keyHint,
+  digestTask,
+  normalizeEvents,
+  buildContent,
+  summarizeRun,
+} from '../../shared/manus.ts';
 
 const TASK_ID = /^[A-Za-z0-9_-]{4,80}$/;
 
@@ -31,6 +40,63 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || '');
 
+    if (action === 'account') {
+      const { source, hint, key } = await resolveUserKey(base44, user.id);
+      return Response.json({ source, hint, ready: Boolean(key) });
+    }
+
+    if (action === 'connectKey') {
+      const key = String(body?.key || '').trim();
+      if (key.length < 20 || key.length > 200) {
+        return Response.json({ error: 'That does not look like a Manus API key.' }, { status: 400 });
+      }
+      try {
+        await verifyKey(key);
+      } catch {
+        return Response.json({ error: 'Manus rejected that key. Copy it again from your Manus settings.' }, { status: 400 });
+      }
+
+      await base44.asServiceRole.entities.ManusAccount.deleteMany({ created_by_id: user.id });
+      await base44.asServiceRole.entities.ManusAccount.create({
+        created_by_id: user.id,
+        label: user.email || 'Manus key',
+        hint: keyHint(key),
+        api_key: key,
+        status: 'active',
+        connected_at: new Date().toISOString(),
+        last_checked_at: new Date().toISOString(),
+      });
+      return Response.json({ source: 'personal', hint: keyHint(key), ready: true });
+    }
+
+    if (action === 'removeKey') {
+      await base44.asServiceRole.entities.ManusAccount.deleteMany({ created_by_id: user.id });
+      const { source, ready } = await resolveUserKey(base44, user.id);
+      return Response.json({ source, ready });
+    }
+
+    if (action === 'testKey') {
+      const { key } = await resolveUserKey(base44, user.id);
+      if (!key) return Response.json({ error: 'No Manus key is connected.' }, { status: 400 });
+      try {
+        await verifyKey(key);
+      } catch (err: any) {
+        await base44.asServiceRole.entities.ManusAccount.updateMany(
+          { created_by_id: user.id },
+          { $set: { status: 'invalid', last_checked_at: new Date().toISOString() } }
+        );
+        return Response.json({ error: err?.message || 'That key did not authenticate.' }, { status: 400 });
+      }
+      await base44.asServiceRole.entities.ManusAccount.updateMany(
+        { created_by_id: user.id },
+        { $set: { status: 'active', last_checked_at: new Date().toISOString() } }
+      );
+      return Response.json({ ok: true });
+    }
+
+    const { key: userKey } = await resolveUserKey(base44, user.id);
+    const call = (path: string, options: any = {}) => manusCall(path, { ...options, apiKey: userKey || undefined });
+
     if (action === 'create') {
       const instruction = String(body?.instruction || '').trim();
       if (!instruction) return Response.json({ error: 'An instruction is required.' }, { status: 400 });
@@ -38,7 +104,7 @@ export default async function (req: Request): Promise<Response> {
 
       const title = String(body?.title || '').trim().slice(0, 120);
       const files = await signFiles(base44, body?.attachments);
-      const created = await manusCall('/v2/task.create', {
+      const created = await call('/v2/task.create', {
         method: 'POST',
         body: {
           message: { content: buildContent(instruction, files) },
@@ -59,7 +125,7 @@ export default async function (req: Request): Promise<Response> {
       const taskId = String(body?.task_id || '');
       if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
 
-      const listed = await manusCall('/v2/task.listMessages', {
+      const listed = await call('/v2/task.listMessages', {
         query: { task_id: taskId, order: 'desc', limit: 30, verbose: true },
       });
       return Response.json(digestTask(listed.messages || []));
@@ -69,7 +135,7 @@ export default async function (req: Request): Promise<Response> {
       const taskId = String(body?.task_id || '');
       if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
 
-      const listed = await manusCall('/v2/task.listMessages', {
+      const listed = await call('/v2/task.listMessages', {
         query: { task_id: taskId, order: 'desc', limit: 40, verbose: true, cursor: body?.cursor || undefined },
       });
       return Response.json({
@@ -120,7 +186,7 @@ export default async function (req: Request): Promise<Response> {
       const files = await signFiles(base44, body?.attachments);
       if (!message && !files.length) return Response.json({ error: 'A message is required.' }, { status: 400 });
 
-      await manusCall('/v2/task.sendMessage', {
+      await call('/v2/task.sendMessage', {
         method: 'POST',
         body: { task_id: taskId, message: { content: buildContent(message, files) } },
       });
@@ -129,7 +195,7 @@ export default async function (req: Request): Promise<Response> {
 
     if (action === 'tasks') {
       const limit = Math.min(100, Math.max(1, Number(body?.limit) || 40));
-      const listed = await manusCall('/v2/task.list', {
+      const listed = await call('/v2/task.list', {
         query: { limit, cursor: body?.cursor || undefined, order: 'desc' },
       });
       return Response.json({
@@ -147,7 +213,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'browsers') {
-      const listed = await manusCall('/v2/browser.onlineList');
+      const listed = await call('/v2/browser.onlineList');
       return Response.json({
         browsers: (listed.data || []).map((client: any) => ({
           id: client.client_id,
@@ -158,7 +224,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'agents') {
-      const listed = await manusCall('/v2/agent.list');
+      const listed = await call('/v2/agent.list');
       return Response.json({
         agents: (listed.data || []).map((agent: any) => ({
           id: agent.id,
@@ -172,7 +238,7 @@ export default async function (req: Request): Promise<Response> {
     if (action === 'stop') {
       const taskId = String(body?.task_id || '');
       if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
-      await manusCall('/v2/task.stop', { method: 'POST', body: { task_id: taskId } });
+      await call('/v2/task.stop', { method: 'POST', body: { task_id: taskId } });
       return Response.json({ ok: true });
     }
 
@@ -181,7 +247,7 @@ export default async function (req: Request): Promise<Response> {
       const allowed = ['all', 'website', 'mobile_app', 'game', 'documents', 'slides', 'spreadsheets', 'images', 'videos', 'audio', 'others'];
       if (!allowed.includes(type)) return Response.json({ error: 'Unknown artifact type.' }, { status: 400 });
 
-      const listed = await manusCall('/v2/artifact.list', {
+      const listed = await call('/v2/artifact.list', {
         query: { type, limit: Math.min(60, Math.max(1, Number(body?.limit) || 24)), cursor: body?.cursor || undefined },
       });
       return Response.json({
@@ -202,7 +268,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'connectors') {
-      const listed = await manusCall('/v2/connector.list');
+      const listed = await call('/v2/connector.list');
       return Response.json({
         connectors: (listed.data || []).map((connector: any) => ({
           id: connector.id,
@@ -220,7 +286,7 @@ export default async function (req: Request): Promise<Response> {
       if (!TASK_ID.test(taskId) && !TASK_ID.test(websiteId)) {
         return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
       }
-      const site = await manusCall('/v2/website.status', {
+      const site = await call('/v2/website.status', {
         query: { task_id: taskId || undefined, website_id: websiteId || undefined },
       });
       return Response.json({
@@ -242,7 +308,7 @@ export default async function (req: Request): Promise<Response> {
         return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
       }
 
-      const listed = await manusCall('/v2/website.listCheckpoints', {
+      const listed = await call('/v2/website.listCheckpoints', {
         query: taskId ? { task_id: taskId } : { website_id: websiteId },
       });
 
@@ -265,7 +331,7 @@ export default async function (req: Request): Promise<Response> {
       if (!TASK_ID.test(taskId) && !TASK_ID.test(websiteId)) {
         return Response.json({ error: 'A task_id or website_id is required.' }, { status: 400 });
       }
-      const published = await manusCall('/v2/website.publish', {
+      const published = await call('/v2/website.publish', {
         method: 'POST',
         body: {
           task_id: taskId || undefined,

@@ -2,10 +2,31 @@ import { secrets } from 'base44:runtime';
 
 const BASE = 'https://api.manus.ai';
 
+// Each operator's own key wins; the workspace key is the fallback.
+export async function resolveUserKey(base44: any, userId: string) {
+  const page = await base44.asServiceRole.entities.ManusAccount.filter(
+    { created_by_id: userId },
+    { sort: '-created_date', limit: 1 }
+  );
+  const row = page.items?.[0];
+  if (row?.api_key && row.status !== 'invalid') {
+    return { key: row.api_key, source: 'personal', hint: row.hint || '' };
+  }
+  const shared = secrets.get('MANUS_API_KEY');
+  return { key: shared || null, source: shared ? 'workspace' : 'none', hint: row?.hint || '' };
+}
+
+export const keyHint = (key: string) => `••••${String(key).slice(-4)}`;
+
+// Cheapest authenticated call Manus offers — proves a key before we store it.
+export async function verifyKey(key: string) {
+  await manusCall('/v2/task.list', { query: { limit: 1 }, apiKey: key });
+}
+
 export async function manusCall(path: string, options: any = {}) {
-  const { method = 'GET', query, body } = options;
-  const key = secrets.get('MANUS_API_KEY');
-  if (!key) throw Object.assign(new Error('MANUS_API_KEY is not configured.'), { status: 500 });
+  const { method = 'GET', query, body, apiKey } = options;
+  const key = apiKey || secrets.get('MANUS_API_KEY');
+  if (!key) throw Object.assign(new Error('Connect a Manus API key to start working.'), { status: 400 });
 
   const url = new URL(`${BASE}${path}`);
   Object.entries(query || {}).forEach(([k, v]) => {

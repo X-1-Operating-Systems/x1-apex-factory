@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Plus, Layers, Rocket, LogOut, Search, Library as LibraryIcon, Monitor, Bot, Globe, Plug, Repeat, FileStack } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -112,13 +112,18 @@ export default function AppShell() {
 
         <div className="shrink-0 border-t border-sidebar-border p-2.5">
           <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5">
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-[10.5px] font-medium text-foreground">
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-medium leading-tight">{user?.full_name || 'Studio operator'}</p>
-              <p className="truncate text-[10.5px] leading-tight text-muted-foreground">Studio plan</p>
-            </div>
+            <Link
+              to="/account"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-0.5 transition-colors hover:bg-sidebar-accent"
+            >
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-[10.5px] font-medium text-foreground">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-medium leading-tight">{user?.full_name || 'Studio operator'}</p>
+                <p className="truncate text-[10.5px] leading-tight text-muted-foreground">Account &amp; Manus key</p>
+              </div>
+            </Link>
             <button
               type="button"
               onClick={() => base44.auth.logout()}

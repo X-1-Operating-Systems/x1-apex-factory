@@ -1,0 +1,55 @@
+{
+  "name": "ManusAccount",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string"
+    },
+    "hint": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "invalid"
+      ],
+      "default": "active"
+    },
+    "api_key": {
+      "type": "string"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_checked_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "hint",
+    "api_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "sealed"
+      }
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "sealed"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "sealed"
+      }
+    }
+  }
+}

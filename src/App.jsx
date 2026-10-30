@@ -26,6 +26,7 @@ import Websites from '@/pages/Websites';
 import WebsiteDetail from '@/pages/WebsiteDetail';
 import Automations from '@/pages/Automations';
 import Plugins from '@/pages/Plugins';
+import Account from '@/pages/Account';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
           <Route path="/websites/:taskId" element={<WebsiteDetail />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/plugins" element={<Plugins />} />
+          <Route path="/account" element={<Account />} />
         </Route>
       </Route>
 
