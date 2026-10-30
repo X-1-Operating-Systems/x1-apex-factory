@@ -322,3 +322,13 @@ Continuing the same audit one layer deeper: the *result* side. Two actions answe
 | id | state | files changed | verification (live, this turn) |
 |---|---|---|---|
 | G-57 | closed | base44/functions/browserbase/entry.ts, src/components/admin/ResultCard.jsx, src/components/admin/TranscriptCard.jsx (new) | Run `94d82148-79b3-47af-965e-182f8ca822c7` on the owned host reached `COMPLETED`; the control plane's exact `runs.messages` call returned a real array of 3 steps (`task`, `goto`, `done`) with 2 framed steps, and `runs.files` answered `ok` with an array straight from the host instead of the old constant. `ResultCard` routes a transcript to its own card and payload actions to the raw payload view. Probe run and its ledger row deleted, its session released and removed: 0 runs left, 1 session left. Build green. |
+
+### Batch 26 — the running browser is visible at every width
+
+The audit moved to the layout, and found the control plane's defining surface missing on the viewport actually in use. The live browser panel was `hidden … xl:flex`, so below 1280px — the operator's 868px tablet view included — the page that exists to show a browser showed no browser at all. Every other control survived; the one thing the screen is for did not.
+
+Fixed by taking the panel out of the page into `ComputerPanel` (frame + caption, one implementation), rendered twice: the existing right-hand column on `xl` and up, and a compact stacked panel above the composer on everything narrower, so a session opened in the thread is watchable on a tablet or phone exactly as on a wide screen.
+
+| id | state | files changed | verification |
+|---|---|---|---|
+| G-58 | closed | src/pages/AdminControl.jsx, src/components/admin/ComputerPanel.jsx (new) | The panel renders at every width from one shared component, so the two placements cannot drift; the wide column keeps its 300px frame and the stacked one uses 200px so the composer stays in view. Build green. |

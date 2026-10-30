@@ -6,7 +6,7 @@ import useBrowserChat from '@/hooks/useBrowserChat';
 import ControlThread from '@/components/admin/ControlThread';
 import ControlComposer from '@/components/admin/ControlComposer';
 import GuardrailBar from '@/components/admin/GuardrailBar';
-import LiveFrame from '@/components/admin/LiveFrame';
+import ComputerPanel from '@/components/admin/ComputerPanel';
 import ProvisionRow from '@/components/admin/ProvisionRow';
 
 export default function AdminControl() {
@@ -75,6 +75,11 @@ export default function AdminControl() {
               onCancel={chat.cancel}
             />
           </div>
+          <div className="shrink-0 border-t border-border px-3 py-2 xl:hidden">
+            <div className="mx-auto max-w-[720px]">
+              <ComputerPanel sessionId={liveSession} heightClass="h-[200px]" />
+            </div>
+          </div>
           <div className="shrink-0 border-t border-border px-3 py-2.5 lg:px-6">
             {chat.error && <p className="mx-auto mb-1.5 max-w-[720px] text-[11px] text-destructive">{chat.error}</p>}
             <ControlComposer
@@ -86,13 +91,7 @@ export default function AdminControl() {
         </div>
 
         <aside className="hidden w-[360px] shrink-0 flex-col gap-2 border-l border-border p-3 xl:flex">
-          <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Computer</p>
-          <LiveFrame sessionId={liveSession} heightClass="h-[300px]" />
-          <p className="text-[10.5px] leading-relaxed text-muted-foreground">
-            {liveSession
-              ? 'This is the running browser. Every click a run makes happens here.'
-              : 'Open a session from the thread and its live browser appears here.'}
-          </p>
+          <ComputerPanel sessionId={liveSession} heightClass="h-[300px]" />
         </aside>
       </div>
     </div>
