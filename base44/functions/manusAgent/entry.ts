@@ -1,7 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { manusCall, digestTask, normalizeEvents } from '../../shared/manus.ts';
+import { manusCall, digestTask, normalizeEvents, buildContent } from '../../shared/manus.ts';
 
 const TASK_ID = /^[A-Za-z0-9_-]{4,80}$/;
+
+// Private app uploads become short-lived signed URLs Manus can fetch on the spot.
+async function signFiles(base44: any, list: any[]) {
+  const files: any[] = [];
+  for (const item of Array.isArray(list) ? list.slice(0, 5) : []) {
+    const fileUri = String(item?.file_uri || '');
+    if (!fileUri.startsWith('private/')) continue;
+    const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+      file_uri: fileUri,
+      expires_in: 1800,
+    });
+    files.push({
+      name: String(item?.name || 'file').slice(0, 120),
+      url: signed_url,
+      type: String(item?.mime_type || ''),
+    });
+  }
+  return files;
+}
 
 export default async function (req: Request): Promise<Response> {
   try {
@@ -18,10 +37,11 @@ export default async function (req: Request): Promise<Response> {
       if (instruction.length > 6000) return Response.json({ error: 'That brief is too long for Manus.' }, { status: 400 });
 
       const title = String(body?.title || '').trim().slice(0, 120);
+      const files = await signFiles(base44, body?.attachments);
       const created = await manusCall('/v2/task.create', {
         method: 'POST',
         body: {
-          message: { content: instruction },
+          message: { content: buildContent(instruction, files) },
           title: title || undefined,
           interactive_mode: true,
           hide_in_task_list: false,
@@ -94,12 +114,14 @@ export default async function (req: Request): Promise<Response> {
       const taskId = String(body?.task_id || '');
       const message = String(body?.message || '').trim();
       if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
-      if (!message) return Response.json({ error: 'A message is required.' }, { status: 400 });
       if (message.length > 4000) return Response.json({ error: 'That message is too long.' }, { status: 400 });
+
+      const files = await signFiles(base44, body?.attachments);
+      if (!message && !files.length) return Response.json({ error: 'A message is required.' }, { status: 400 });
 
       await manusCall('/v2/task.sendMessage', {
         method: 'POST',
-        body: { task_id: taskId, message: { content: message } },
+        body: { task_id: taskId, message: { content: buildContent(message, files) } },
       });
       return Response.json({ ok: true });
     }

@@ -91,8 +91,8 @@ export default function TaskDetail() {
     }
   };
 
-  const send = async (message) => {
-    await base44.functions.invoke('manusAgent', { action: 'send', task_id: id, message });
+  const send = async (message, attachments) => {
+    await base44.functions.invoke('manusAgent', { action: 'send', task_id: id, message, attachments });
     await load();
   };
 

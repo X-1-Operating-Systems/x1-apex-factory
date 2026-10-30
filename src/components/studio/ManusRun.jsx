@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ArrowUp, CheckCircle2, ExternalLink, Loader2, Sparkles, AlertCircle, Square } from 'lucide-react';
+import AttachmentPicker from '@/components/task/AttachmentPicker';
 
 function buildBrief(project, page, instruction) {
   const sections = (page?.blocks || [])
@@ -29,6 +30,7 @@ export default function ManusRun({ project, page }) {
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState('');
+  const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const timer = useRef(null);
 
@@ -58,9 +60,11 @@ export default function ManusRun({ project, page }) {
         action: 'create',
         instruction: buildBrief(project, page, text),
         title: `${project?.name || 'Build'} — ${text.slice(0, 60)}`,
+        attachments: files,
       });
       setRun(res.data);
       setInstruction('');
+      setFiles([]);
     } catch (err) {
       setError(err?.response?.data?.error || err.message);
     } finally {
@@ -106,6 +110,9 @@ export default function ManusRun({ project, page }) {
           >
             {busy ? <Loader2 size={13} className="animate-spin" /> : <ArrowUp size={13} strokeWidth={2.2} />}
           </button>
+        </div>
+        <div className="mt-1.5">
+          <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
         </div>
         {error && <p className="mt-1.5 text-[11.5px] text-destructive">{error}</p>}
       </div>

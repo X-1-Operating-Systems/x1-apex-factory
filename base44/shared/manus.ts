@@ -36,7 +36,43 @@ const asText = (value: any): string => {
 const asFiles = (list: any[]) =>
   (list || [])
     .filter((file) => file?.url)
-    .map((file) => ({ name: String(file.filename || 'Attachment').slice(0, 120), url: String(file.url) }));
+    .map((file) => ({
+      name: String(file.filename || 'Attachment').slice(0, 120),
+      url: String(file.url),
+      path: file.path ? String(file.path) : '',
+    }));
+
+// Manus returns execution-environment paths and non-HTTP links in message text.
+// Swap matched file paths for their download URL and drop unsupported protocols.
+export function resolveLinks(content: string, files: any[]) {
+  let text = String(content || '');
+
+  for (const file of files || []) {
+    if (!file.path) continue;
+    const encoded = encodeURI(file.path);
+    for (const needle of new Set([file.path, encoded])) {
+      text = text.split(`](${needle})`).join(`](${file.url})`);
+    }
+  }
+
+  return text.replace(/\[([^\]]*)\]\((?!https?:\/\/)([^)]*)\)/g, '$1');
+}
+
+export function buildContent(text: string, files: any[]) {
+  const usable = (files || []).slice(0, 5);
+  if (!usable.length) return text;
+  const parts: any[] = [];
+  if (text) parts.push({ type: 'text', text });
+  for (const file of usable) {
+    parts.push({
+      type: 'file',
+      file_url: file.url,
+      filename: file.name,
+      ...(file.type ? { mime_type: file.type } : {}),
+    });
+  }
+  return parts;
+}
 
 export function normalizeEvents(messages: any[]) {
   const ordered = [...(messages || [])].reverse();
@@ -58,7 +94,7 @@ export function normalizeEvents(messages: any[]) {
         return {
           ...base,
           role: 'assistant',
-          content: asText(message.content).slice(0, 6000),
+          content: resolveLinks(asText(message.content), asFiles(message.attachments)).slice(0, 6000),
           attachments: asFiles(message.attachments),
           options: (message.question_expectation?.options || []).slice(0, 6).map((o: any) => String(o).slice(0, 120)),
         };
