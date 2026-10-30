@@ -480,6 +480,33 @@ export const CONNECTOR_SPECS: Record<string, ConnectorSpec> = {
       },
     ],
   },
+  supabase: {
+    label: 'Supabase',
+    tools: [
+      {
+        id: 'list_projects',
+        label: 'List projects',
+        write: false,
+        params: [],
+        request: () => ({ url: 'https://api.supabase.com/v1/projects', method: 'GET' }),
+      },
+      {
+        id: 'query_readonly',
+        label: 'Run a read-only SQL query',
+        write: false,
+        params: [
+          { name: 'project_ref', note: 'the ref returned by list_projects', required: true },
+          { name: 'sql', note: 'one SELECT statement', required: true },
+        ],
+        request: (p) => ({
+          url: `https://api.supabase.com/v1/projects/${seg(p.project_ref)}/database/query/read-only`,
+          method: 'POST',
+          headers: json(null),
+          body: { query: String(p.sql || '').slice(0, 4000) },
+        }),
+      },
+    ],
+  },
 };
 
 export function toolsFor(key: string): Tool[] {
