@@ -86,19 +86,24 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ ok: false, error: `Unknown bridge action "${action}".` }, { status: 400 });
     }
 
-    if (!configured) {
+    // An admin signed in through the app is as trusted as the key — that is how an MCP client reaches
+    // this function. The key exists for machine callers that carry no user session at all.
+    const user = await base44.auth.me().catch((e: any) => (e?.status === 401 ? null : Promise.reject(e)));
+    const adminCaller = user?.role === 'admin';
+
+    if (!configured && !adminCaller) {
       return Response.json(
         { ok: false, error: `The bridge is not armed: ${BRIDGE_SECRET} is not set in this app's Secrets.` },
         { status: 503 },
       );
     }
 
-    const supplied = readKey(req, body);
-    if (!supplied) {
+    const supplied = adminCaller ? '' : readKey(req, body);
+    if (!adminCaller && !supplied) {
       return Response.json({ ok: false, error: 'Missing the bridge key.' }, { status: 401 });
     }
 
-    if (!(await keyMatches(configured, supplied))) {
+    if (!adminCaller && !(await keyMatches(configured, supplied))) {
       await record(base44, {
         action,
         direction: 'in',

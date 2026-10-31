@@ -168,6 +168,133 @@
           "destructive_hint": false,
           "idempotent_hint": false
         }
+      },
+      {
+        "name": "railway_stack",
+        "title": "Railway stack",
+        "description": "The Railway side of this project: the owned browser container, its latest deployment, its health and its ledger tables. action=status reads the deployment and host health, action=railway.up redeploys the container from its latest commit (blocks about 45 seconds), action=supabase.migrate creates or repairs the ledger tables, action=verify.all opens a real browser on the container and proves the loop end to end.",
+        "handler": "hostProvision",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "status",
+                "railway.up",
+                "supabase.migrate",
+                "verify.all"
+              ],
+              "description": "status is a read and safe to call any time. railway.up redeploys and blocks. verify.all opens and releases one real browser session."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
+      },
+      {
+        "name": "browser_host",
+        "title": "Owned browser on Railway",
+        "description": "Drive the browser this project owns and runs on Railway: open a session, act in the page (goto, click, fill, extract text, screenshot), read the live view, run agents and read their runs, and read host usage. Use action=host.status for the host's real counters, action=registry.list for every action, then any action with params.",
+        "handler": "browserbase",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "registry.list, host.status, usage.get, sessions.create, sessions.list, sessions.get, sessions.act, sessions.debug, sessions.logs, sessions.downloads, sessions.release, contexts.create, contexts.get, contexts.delete, projects.get, projects.update, agents.list, agents.create, agents.get, agents.update, agents.delete, runs.create, runs.list, runs.get, runs.stop, runs.resume, runs.messages, runs.files."
+            },
+            "params": {
+              "type": "object",
+              "description": "The action's own inputs: session_id, run_id, agent_id, context_id, task, limit, status, timeout_seconds, keep_alive, allowed_domains, page_action and that action's inputs (url, selector, text, value, key, delta, ms)."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
+      },
+      {
+        "name": "x1_os_bridge",
+        "title": "X1 Operating System bridge",
+        "description": "The contract the X1 Operating System uses to reach this factory, and the same surface a connected client can use. action=status returns live counts for tasks, projects, templates, open findings and the latest benchmark; task.list, task.get and task.create read and start studio runs; finding.list returns open guardian findings.",
+        "handler": "x1Bridge",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "ping",
+                "status",
+                "task.list",
+                "task.get",
+                "task.create",
+                "finding.list"
+              ],
+              "description": "ping is a health check. status is the live counts. task.create starts a real run."
+            },
+            "limit": {
+              "type": "number",
+              "description": "task.list and finding.list: how many to return, 1 to 20."
+            },
+            "status": {
+              "type": "string",
+              "description": "task.list only: filter by task status, e.g. running, stopped, error."
+            },
+            "id": {
+              "type": "string",
+              "description": "task.get only: the task id."
+            },
+            "instruction": {
+              "type": "string",
+              "description": "task.create only: the brief, 1 to 6000 characters."
+            },
+            "title": {
+              "type": "string",
+              "description": "task.create only: a short title."
+            },
+            "model": {
+              "type": "string",
+              "description": "task.create only: optional model id."
+            },
+            "effort": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "deep"
+              ],
+              "description": "task.create only: how hard the run should think."
+            },
+            "project_id": {
+              "type": "string",
+              "description": "task.create only: optional project to build inside."
+            },
+            "owner_id": {
+              "type": "string",
+              "description": "task.create only: who the run belongs to. Omit to use the workspace admin."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
       }
     ]
   }
