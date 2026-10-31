@@ -1,33 +1,89 @@
 import { secrets } from "base44:runtime";
+import { railwayGraphQL } from "./browserHost.ts";
 
 /**
- * Client for the app's OWN voice host (see /voice-host). It speaks with Piper and stores clone
- * reference audio on its own volume. No vendor is called and no reference audio leaves the container.
+ * Client for the app's OWN voice host (see /voice-host, published at github.com/x1-operator/voice-host).
+ * It speaks with Piper and stores clone reference audio on its own volume. No vendor is called and no
+ * reference audio leaves the container.
  *
- * It resolves only from its own two secrets: nothing here guesses a Railway service id.
+ * Resolution order matches the browser host: explicit secrets first (operator override), then the
+ * Railway service itself, so the app arms itself once that service has a build.
  */
 const TIMEOUT_MS = 30000;
 
+export const RAILWAY = {
+  projectId: "71393748-6467-45a9-a42d-3f7d457ec687",
+  environmentId: "0e252a15-65fa-42d2-aaa9-dc376686e1ba",
+  serviceId: "1249e2f9-fb94-47c1-8f5f-11dbf9f8dc73",
+  serviceName: "voice-host",
+  domain: "voice-host-production-7726.up.railway.app",
+  repo: "x1-operator/voice-host",
+};
+
 export const NOT_CONNECTED =
-  "The voice host is not reachable yet. Deploy the container in voice-host/ (Railway root directory voice-host, volume at /data) and set VOICE_HOST_URL and VOICE_HOST_TOKEN.";
+  "The voice host container has no build yet. Its Railway service (voice-host) needs the repo x1-operator/voice-host linked as its source, through the Railway GitHub app.";
+
+const CACHE_MS = 5 * 60 * 1000;
+const resolved = { url: null, token: null, at: 0, source: null };
+
+function fromSecrets() {
+  const url = secrets.get("VOICE_HOST_URL");
+  const token = secrets.get("VOICE_HOST_TOKEN");
+  if (url && token) return { url: String(url).replace(/\/+$/, ""), token: String(token), source: "secret" };
+  return null;
+}
+
+async function fromRailway() {
+  const result = await railwayGraphQL(
+    `query($p:String!,$e:String!,$s:String!){
+      variables(projectId:$p, environmentId:$e, serviceId:$s)
+      project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } }
+    }`,
+    { p: RAILWAY.projectId, e: RAILWAY.environmentId, s: RAILWAY.serviceId },
+  );
+  if (!result.ok) return null;
+  const vars = result.data?.variables || {};
+  const domains = (result.data?.project?.services?.edges || [])
+    .filter((edge) => edge.node.id === RAILWAY.serviceId)
+    .flatMap((edge) => (edge.node.serviceInstances?.edges || []).flatMap((i) => i.node?.domains?.serviceDomains || []));
+  const token = vars.HOST_TOKEN;
+  const domain = domains[0]?.domain;
+  if (!token || !domain) return null;
+  return { url: `https://${domain}`, token: String(token), source: "railway" };
+}
+
+/** Warm the connection once per function invocation. */
+export async function ensureVoice(force = false) {
+  if (!force && resolved.url && Date.now() - resolved.at < CACHE_MS) return resolved;
+  let found = fromSecrets();
+  if (!found) found = await fromRailway().catch(() => null);
+  resolved.url = found ? found.url : null;
+  resolved.token = found ? found.token : null;
+  resolved.source = found ? found.source : null;
+  resolved.at = Date.now();
+  return resolved;
+}
 
 function baseUrl() {
-  const url = secrets.get("VOICE_HOST_URL");
-  if (!url) throw new Error(NOT_CONNECTED);
-  return String(url).replace(/\/+$/, "");
+  if (!resolved.url) throw new Error(NOT_CONNECTED);
+  return resolved.url;
 }
 
 function token() {
-  const value = secrets.get("VOICE_HOST_TOKEN");
-  if (!value) throw new Error(NOT_CONNECTED);
-  return String(value);
+  if (!resolved.token) throw new Error(NOT_CONNECTED);
+  return resolved.token;
 }
 
 export function voiceConfigured() {
-  return Boolean(secrets.get("VOICE_HOST_URL") && secrets.get("VOICE_HOST_TOKEN"));
+  return Boolean(resolved.url && resolved.token);
+}
+
+export function voiceUrl() {
+  return resolved.url;
 }
 
 export async function voiceJson(path, init = {}) {
+  await ensureVoice();
   const headers = { Authorization: `Bearer ${token()}`, ...(init.headers || {}) };
   const response = await fetch(`${baseUrl()}${path}`, {
     ...init,

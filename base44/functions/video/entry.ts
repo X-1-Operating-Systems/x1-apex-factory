@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { secrets } from 'base44:runtime';
 import { callHeyGen, heygenRegistry } from '../../shared/heygen.ts';
 import { callLiveAvatar, liveAvatarRegistry } from '../../shared/liveavatar.ts';
-import { voiceConfigured, voiceJson, speak, uploadClone, NOT_CONNECTED } from '../../shared/voiceHost.ts';
+import { ensureVoice, voiceJson, speak, uploadClone, NOT_CONNECTED } from '../../shared/voiceHost.ts';
 
 // The owned speech container. Same dispatcher as the vendors so one call path serves the page.
 const VOICE_ACTIONS = [
@@ -48,7 +48,8 @@ export default async function (req) {
     // The owned speech container is served here too, before any vendor registry lookup.
     if (provider === 'voice') {
       if (action === 'registry.list') return Response.json({ ok: true, provider, data: VOICE_ACTIONS });
-      if (!voiceConfigured()) {
+      const host = await ensureVoice(true);
+      if (!host.url || !host.token) {
         return Response.json({ ok: false, provider, action, error: NOT_CONNECTED }, { status: 400 });
       }
       if (action === 'status') return Response.json({ ok: true, provider, action, data: await voiceJson('/health') });
