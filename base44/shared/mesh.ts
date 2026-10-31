@@ -130,8 +130,48 @@ async function bridgeNode(id, label, baseUrl, key, needs) {
         detail: `Heartbeat accepted — worker ${body?.worker_id || 'registered'}, ${body?.queued ?? 0} queued`,
       });
     }
-    // Reachable but no bridge contract at this address: say so instead of calling it down.
-    const health = await hit(`${baseUrl.replace(/\/$/, '')}/healthz`);
+    // Reachable but no bridge contract at this address. OpenClaw serves the Control UI on every
+    // path, so the usable surface is its OpenAI-compatible gateway: that is where a prompt is
+    // actually handed to this OS, so that is what gets probed.
+    const root = baseUrl.replace(/\/$/, '');
+    const models = await hit(`${root}/v1/models`);
+    let model = '';
+    try {
+      model = JSON.parse(models.text)?.data?.[0]?.id || '';
+    } catch {
+      model = '';
+    }
+    if (models.ok && model) {
+      const chat = await hit(
+        `${root}/v1/chat/completions`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Reply with the single word: ready' }],
+            max_tokens: 8,
+          }),
+        },
+        25000,
+      );
+      const gap = chat.text.match(/No API key found for provider \\?"?([a-z0-9_-]+)/i)?.[1] || '';
+      return row(id, label, 'os', {
+        inbound: true,
+        outbound: true,
+        ok: chat.ok,
+        status: chat.ok ? chat.status : models.status,
+        ms: models.ms + chat.ms,
+        detail: chat.ok
+          ? `Gateway transport is live as ${model} — a prompt dispatched here was answered`
+          : `Transport is live (${model} is listed on /v1/models) but the gateway's agent cannot answer: ${
+              gap ? `no ${gap} provider key is configured on it` : chat.text.slice(0, 160)
+            }`,
+        needs: chat.ok ? '' : 'A model provider key on the OpenClaw gateway',
+      });
+    }
+
+    const health = await hit(`${root}/healthz`);
     if (health.ok) {
       return row(id, label, 'os', {
         outbound: true,

@@ -243,9 +243,10 @@
                 "task.create",
                 "finding.list",
                 "os.status",
-                "os.call"
+                "os.call",
+                "os.chat"
               ],
-              "description": "ping is a health check. status is the live counts. task.create starts a real run. os.status calls the X1 Operating System's own bridge and returns its answer, os.call sends it a named os_action — that is the outbound direction."
+              "description": "ping is a health check. status is the live counts. task.create starts a real run. os.status calls the X1 Operating System's own bridge and returns its answer, os.call sends it a named os_action — that is the outbound direction. os.chat hands a prompt to an Operating System's OpenAI-compatible gateway and returns what it answered."
             },
             "limit": {
               "type": "number",

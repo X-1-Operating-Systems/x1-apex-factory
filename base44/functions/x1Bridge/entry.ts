@@ -6,6 +6,7 @@ import {
   KEYED_ACTIONS,
   OS_URL_SECRET,
   callOs,
+  chatOs,
   keyedAction,
   keyMatches,
   readKey,
@@ -14,7 +15,7 @@ import {
 // Two kinds of caller meet here. The app's own console asks for `state` and `verify` as a signed-in
 // admin. Everything else is the X1 Operating System calling in from outside with the shared bridge
 // key, so those calls carry no user session and are authorised by the key alone.
-const ADMIN_ACTIONS = ['state', 'verify', 'os.status', 'os.call'];
+const ADMIN_ACTIONS = ['state', 'verify', 'os.status', 'os.call', 'os.chat'];
 // The Operating System answers its own contract (heartbeat / claim / complete); this app's keyed
 // actions stay allowed so either side can be asked the same question.
 const OUTBOUND_ACTIONS = ['ping', 'heartbeat', 'claim', 'complete', ...Object.keys(KEYED_ACTIONS)];
@@ -94,6 +95,33 @@ export default async function (req: Request): Promise<Response> {
         });
         return Response.json(
           { ok: answer.ok, armed: true, url: answer.url, status: answer.status, action: target, answer: answer.body },
+          { status: answer.ok ? 200 : 502 },
+        );
+      }
+
+      // The OpenClaw gateway answers an OpenAI-compatible endpoint — that is how a prompt actually
+      // reaches that Operating System, whose Control UI serves its HTML shell on every other path.
+      if (action === 'os.chat') {
+        const which = String(body?.target || 'local').trim() === 'remote' ? 'remote' : 'local';
+        const targetUrl = (secrets.get(which === 'remote' ? OS_URL_SECRET : 'OS_LOCAL_BASE_URL') || '').trim();
+        if (!targetUrl) return Response.json({ ok: false, error: `The ${which} OS has no address set.` });
+        const message = String(body?.message || '').trim();
+        if (!message) return Response.json({ ok: false, error: 'A message is required.' }, { status: 400 });
+        if (message.length > 6000) {
+          return Response.json({ ok: false, error: 'That message is longer than 6000 characters.' }, { status: 400 });
+        }
+        const answer = await chatOs(targetUrl, message, body?.model);
+        await record(base44, {
+          action: `os.chat.${which}`,
+          direction: 'out',
+          ok: answer.ok,
+          status: answer.status,
+          ms: 0,
+          detail: answer.url,
+          at: new Date().toISOString(),
+        });
+        return Response.json(
+          { ok: answer.ok, target: which, url: answer.url, status: answer.status, answer: answer.body },
           { status: answer.ok ? 200 : 502 },
         );
       }

@@ -21,6 +21,37 @@ export async function callOs(baseUrl: string, key: string, action: string, paylo
   return { ok: res.ok, status: res.status, url, body };
 }
 
+// OpenClaw answers an OpenAI-compatible gateway on the same host it serves its console from. That,
+// not /functions/x1Bridge, is where a prompt is actually handed to that OS.
+export const OS_CHAT_PATH = '/v1/chat/completions';
+
+export async function chatOs(baseUrl: string, message: string, model?: string) {
+  const root = baseUrl.replace(/\/$/, '');
+  let chosen = String(model || '').trim();
+  if (!chosen) {
+    const listed = await fetch(`${root}/v1/models`, { signal: AbortSignal.timeout(10000) });
+    const body = await listed.json().catch(() => null);
+    chosen = body?.data?.[0]?.id || '';
+  }
+  if (!chosen) return { ok: false, status: 0, url: `${root}${OS_CHAT_PATH}`, body: { error: 'That OS lists no model on /v1/models.' } };
+  const url = `${root}${OS_CHAT_PATH}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: chosen, messages: [{ role: 'user', content: message }], max_tokens: 1200 }),
+    signal: AbortSignal.timeout(60000),
+  });
+  const body = await res.json().catch(() => null);
+  return {
+    ok: res.ok,
+    status: res.status,
+    url,
+    body: res.ok
+      ? { model: chosen, text: body?.choices?.[0]?.message?.content || '', raw_usage: body?.usage || null }
+      : body || { error: `The gateway answered ${res.status}.` },
+  };
+}
+
 export const KEYED_ACTIONS = {
   ping: 'Health check: the factory answers with its identity and the server time.',
   status: 'Live counts: tasks, running tasks, projects, templates, open findings, latest benchmark.',
