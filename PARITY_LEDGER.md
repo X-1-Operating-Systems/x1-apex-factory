@@ -589,6 +589,39 @@ Still true and worth stating: the vendor is now the only ceiling left. HeyGen re
 LiveAvatar's own 60s sandbox / 20-minute live session caps, and the host machine's CPU are limits no
 code in this app can remove.
 
+### Batch 45 — an outside AI client can drive this app (G-99, G-100)
+
+The operator reported two separate blockers and they were separated on purpose, because only one of
+them was code. `X-Frame-Options: DENY` on the published app comes from the platform's Browser
+security setting (Settings -> Browser security -> iFrame embedding), so it is an operator action; and
+even with frames allowed, ChatGPT does not render a third-party page inside a conversation, so
+framing was never the integration. The integration is the app's own MCP server: an AI client reads
+the live records and calls the app's actions as the signed-in operator.
+
+Built: `base44/mcp/config.json` with `auth: "oauth"` (the operator's choice, and the only mode that
+permits actions — Public is read-only by construction) and three custom tools beside the automatic
+entity surface: `invoke_eden_room` -> `edenLive` (state / keep / start / stop, so a client can open
+her room, renew it before the vendor ceiling, or end it), `invoke_guardian_run` -> `guardian`
+(state / verify / audit / heal / evolve / resolve), and `invoke_studio_task` -> `nativeTask`
+(create / list / detail / send / stop / artifacts). Every input schema was written from the function
+body itself, so the parameters named are the ones each handler actually reads. `/oauth/consent` is now
+routed in the app router outside `ProtectedRoute` (the page handles the signed-out case and preserves
+`ctx`); the login, register and reset pages already honour `returnTo` through `safeReturnTo`, so the
+grant round trip needs no edit.
+
+One deliberate narrowing: `LiveSession` is exposed read-only. A client deleting a live session record
+would orphan a vendor session that is still running and billing with no id left to stop it, so read
+stays and create/update/delete are off.
+
+| id | state | verification |
+|---|---|---|
+| G-99 | closed (needs publish) | the config parses and the tool set is built from the real handlers; the published surface activates on the next publish, and the MCP page shows the exact `/api/mcp` endpoint to paste into the client. Build green |
+| G-100 | **operator action** | frame embedding: Dashboard -> Settings -> Browser security -> iFrame embedding -> Any website, or Only websites you choose plus the allowed host. Named only from the dashboard map, not asserted as changed |
+
+Caveat recorded so it is not re-litigated: an MCP connection gives a client the app's **data and
+actions**, not a voice pipeline. No external assistant can swap its own speech for Eden's private
+voice; her live room stays the surface where she speaks.
+
 ## Register state (through Batch 40)
 
 | id | sev | state |

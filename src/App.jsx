@@ -48,6 +48,7 @@ import VideoStudio from '@/pages/VideoStudio';
 import LiveAvatar from '@/pages/LiveAvatar';
 import Autopilot from '@/pages/Autopilot';
 import Guardian from '@/pages/Guardian';
+import OAuthConsent from '@/pages/OAuthConsent';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -82,6 +83,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/share/:token" element={<SharedView />} />
       <Route path="/handoff/:token" element={<SharedView />} />
+      <Route path="/oauth/consent" element={<OAuthConsent />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppShell />}>

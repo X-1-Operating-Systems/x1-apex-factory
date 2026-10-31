@@ -1,0 +1,174 @@
+{
+  "auth": "oauth",
+  "tools": {
+    "entity_overrides": {
+      "LiveSession": {
+        "operations": [
+          "read"
+        ]
+      }
+    },
+    "functions": [
+      {
+        "name": "eden_room",
+        "title": "Eden live room",
+        "description": "Read and drive Eden's one persistent live avatar room: her current session, seconds left, credits, and the join room. Use action=state to see what is open, action=keep to open her room or renew it before the vendor ceiling closes it (call this every time she needs to stay live), action=stop to end every open room.",
+        "handler": "edenLive",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "state",
+                "keep",
+                "start",
+                "stop"
+              ],
+              "description": "state = the room that is actually open plus credits. keep = create a room when none is open, otherwise return the live one and roll it over just before it expires. start = always open a new session. stop = end every open room."
+            },
+            "sandbox": {
+              "type": "boolean",
+              "description": "Free 60-second sandbox session. Defaults to false, which is live and bills per minute."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
+      },
+      {
+        "name": "guardian_run",
+        "title": "Guardian trust pass",
+        "description": "The app's own verification and self-healing engine. action=state returns the trust score, every probe result, open findings and queued briefs. action=verify makes a real call per installed capability. action=audit inspects the records. action=heal runs one named repair. action=evolve turns open findings into build briefs. action=resolve closes a finding.",
+        "handler": "guardian",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "state",
+                "verify",
+                "audit",
+                "heal",
+                "evolve",
+                "resolve"
+              ],
+              "description": "state is a pure read and costs nothing. verify calls live providers and takes a few seconds."
+            },
+            "repair": {
+              "type": "string",
+              "description": "heal only. Pass exactly one of: loop.unstick, sessions.reap, shares.revoke, lives.close."
+            },
+            "finding_id": {
+              "type": "string",
+              "description": "resolve only: the GuardianFinding id to close."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "resolved",
+                "acknowledged",
+                "open"
+              ],
+              "description": "resolve only. Defaults to resolved."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
+      },
+      {
+        "name": "studio_task",
+        "title": "Studio task",
+        "description": "Run work in the app's own studio engine and read it back. action=create starts a real run and returns its task_id, action=detail returns the task with its activity, action=send adds a follow-up, action=stop halts it, action=list searches tasks, action=artifacts lists what it produced.",
+        "handler": "nativeTask",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "create",
+                "list",
+                "detail",
+                "send",
+                "stop",
+                "artifacts"
+              ],
+              "description": "create starts a run; detail, send, stop and artifacts all need task_id."
+            },
+            "instruction": {
+              "type": "string",
+              "description": "create only: the brief, 1 to 6000 characters."
+            },
+            "title": {
+              "type": "string",
+              "description": "create only: a short title, up to 120 characters."
+            },
+            "task_id": {
+              "type": "string",
+              "description": "detail, send, stop and artifacts: the task to act on."
+            },
+            "message": {
+              "type": "string",
+              "description": "send only: the follow-up message, up to 4000 characters."
+            },
+            "project_id": {
+              "type": "string",
+              "description": "create only: optional project to build inside."
+            },
+            "agent_id": {
+              "type": "string",
+              "description": "create only: optional StudioAgent id to run as."
+            },
+            "model": {
+              "type": "string",
+              "description": "create and send: optional model id."
+            },
+            "effort": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "deep"
+              ],
+              "description": "create and send: how hard the run should think."
+            },
+            "query": {
+              "type": "string",
+              "description": "list only: case-insensitive match on title and instruction."
+            },
+            "status": {
+              "type": "string",
+              "description": "list only: running, waiting, stopped or error."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "list only: the cursor from a previous page."
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "annotations": {
+          "read_only_hint": false,
+          "destructive_hint": false,
+          "idempotent_hint": false
+        }
+      }
+    ]
+  }
+}
