@@ -3,8 +3,13 @@ import { createTask, sendToTask, taskDetail } from '@/lib/taskEngine';
 
 const ACTIVE = ['running', 'waiting'];
 
-export default function useStudioChat({ projectId = '', model = 'gpt_5_6_sol', effort = 'standard' } = {}) {
-  const [taskId, setTaskId] = useState('');
+export default function useStudioChat({
+  projectId = '',
+  model = 'gpt_5_6_sol',
+  effort = 'standard',
+  taskId: initialTaskId = '',
+} = {}) {
+  const [taskId, setTaskId] = useState(initialTaskId || '');
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');

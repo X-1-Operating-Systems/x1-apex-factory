@@ -727,4 +727,26 @@ in LiveAvatar's own console. Nothing in this app can install it, and no line of 
 
 | id | state | files changed | verification |
 |---|---|---|---|
+### Batch 49 — the chat page is a conversation, not a form (G-107)
+
+The operator's standing complaint: the entry page still looked and behaved like a form. It did — a
+headline, a textarea and a send button that navigated away, so the conversation existed only on a
+second screen.
+
+`/new` is now one Manus-shaped chat surface:
+
+- **Empty state** — "Hello, {first name}" / "What can I do for you?", the composer in the middle, three
+  suggestion pills that send immediately, and "Pick up where you left off" below.
+- **In a conversation** — a sticky title bar with the task's status and a link to the full task, a step
+  feed (user text as a right-aligned bubble with its attachments, agent steps as muted dotted rows,
+  agent prose as plain document text, a pulsing "Working…" while the run is live), and the composer
+  docked at the bottom for follow-ups on the same task.
+- **Operationally** — the first message creates the run, later messages are follow-ups through the same
+  engine (`useStudioChat`), the URL becomes `/new?task=<id>` so a reload lands back in the run, and
+  "New conversation" (or the sidebar's New task) starts clean without deleting the task.
+
+| id | state | files changed | verification |
+|---|---|---|---|
+| G-107 | closed | src/pages/NewTask.jsx, src/components/chat/ChatThread.jsx (new), src/components/chat/ChatComposer.jsx (new), src/hooks/useStudioChat.js | one engine behind the page: `useStudioChat` now accepts an initial `taskId`, so `?task=` hydrates the same thread it created; chips and composer both call the same `send`, and every follow-up lands in the same task. Build green |
+
 | G-106 | closed | src/components/live/PersistentRoom.jsx | the open room now carries the fallback the operator asked for: *"If the view stays blank or the microphone doesn't work, open Eden Live in a separate tab."* — a real link to `/live` with `target="_blank"`, so a browser that blocks the embedded player or the mic is one click from a working window. Build green |
