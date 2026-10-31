@@ -81,19 +81,49 @@ export default async function (req) {
       const record = job.data?.job || null;
       // A finished render is copied into the app's own storage: the host forgets its jobs on
       // restart, and her video must outlive the container.
-      let videoUrl = RENDER_FILES.get(jobId)?.url || null;
-      let fileUri = RENDER_FILES.get(jobId)?.uri || null;
+      const known = RENDER_FILES.get(jobId);
+      let videoUrl = known && Date.now() - known.at < 45 * 60 * 1000 ? known.url : null;
+      let fileUri = known?.uri || null;
       let persistError = null;
+      if (record && record.status === 'done' && !videoUrl && fileUri) {
+        // still in app storage, only the link aged out
+        const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: fileUri, expires_in: 3600 });
+        videoUrl = signed.signed_url;
+        RENDER_FILES.set(jobId, { url: videoUrl, uri: fileUri, at: Date.now() });
+      }
       if (record && record.status === 'done' && !videoUrl) {
-        const file = await avatarBytes(`/renders/${encodeURIComponent(jobId)}.mp4`);
+        // The host is the authority on where it keeps a finished render, so its own path is tried
+        // first, then the shapes this app has used.
+        const paths = [
+          record.video_url,
+          `/renders/${encodeURIComponent(jobId)}.mp4`,
+          `/renders/${encodeURIComponent(jobId)}/file`,
+          `/renders/${encodeURIComponent(jobId)}/video`,
+          `/video/${encodeURIComponent(jobId)}.mp4`,
+          `/renders/${encodeURIComponent(jobId)}/download`,
+          `/download/${encodeURIComponent(jobId)}.mp4`,
+        ].filter(Boolean);
+        const probe = [];
+        let file = { ok: false, error: 'no path' };
+        for (const path of paths) {
+          const attempt = await avatarBytes(path);
+          const head = attempt.ok ? String.fromCharCode(...attempt.bytes.slice(4, 8)) : null;
+          probe.push({ path, status: attempt.status || 200, type: attempt.type, bytes: attempt.bytes?.byteLength || 0, mp4: head === 'ftyp' });
+          // Only real MP4 bytes count — the host answers a job lookup with JSON, and that must
+          // never be stored as if it were her video.
+          if (attempt.ok && head === 'ftyp') {
+            file = attempt;
+            break;
+          }
+        }
         if (!file.ok) {
-          persistError = `The host did not return the video (${file.error})`;
+          persistError = `The host did not return the video. ${JSON.stringify(probe).slice(0, 700)}`;
         } else {
           const uploaded = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
             file: new File([file.bytes], `eden-${jobId}.mp4`, { type: 'video/mp4' }),
           });
           fileUri = uploaded.file_uri;
-          const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: fileUri, expires_in: 86400 });
+          const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: fileUri, expires_in: 3600 });
           videoUrl = signed.signed_url;
           RENDER_FILES.set(jobId, { url: videoUrl, uri: fileUri, at: Date.now() });
         }
