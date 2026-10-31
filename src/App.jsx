@@ -46,6 +46,7 @@ import SettingsData from '@/pages/settings/SettingsData';
 import AdminControl from '@/pages/AdminControl';
 import VideoStudio from '@/pages/VideoStudio';
 import LiveAvatar from '@/pages/LiveAvatar';
+import VoiceStudio from '@/pages/VoiceStudio';
 import Autopilot from '@/pages/Autopilot';
 import Guardian from '@/pages/Guardian';
 import Truth from '@/pages/Truth';
@@ -101,6 +102,7 @@ const AuthenticatedApp = () => {
           <Route path="/mesh" element={<Mesh />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
+          <Route path="/voice" element={<VoiceStudio />} />
           <Route path="/studio/:id" element={<Studio />} />
           <Route path="/new" element={<NewTask />} />
           <Route path="/task/:id" element={<TaskDetail />} />

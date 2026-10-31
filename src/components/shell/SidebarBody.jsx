@@ -26,6 +26,7 @@ import {
   Scale,
   Cable,
   Network,
+  Mic,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -78,6 +79,7 @@ const NAV_SECTIONS = [
   {
     label: 'Media',
     items: [
+      { to: '/voice', label: 'Voice studio', icon: Mic },
       { to: '/video', label: 'Video studio', icon: Clapperboard },
       { to: '/live', label: 'Live avatar', icon: Radio },
     ],
