@@ -863,3 +863,23 @@ image changed, so the rebuild reused every layer.
 | G-117 | closed | avatar-host/server.py | a render started through the app's own function (`avatar` action `render`) reached `done`, was copied into app storage, and the URL it returned answered **200, `video/mp4`, 501 118 bytes, `ftyp` at offset 4** — real MP4 bytes over a signed app-storage link, not the host's token-gated path |
 | G-118 | closed | avatar-host/Dockerfile | deployment of `c4768263` → **SUCCESS** (the previous two failed at parse time); container came back healthy with her artwork and all three engine checkpoints present on the `/data` volume |
 | G-119 | closed | src/components/live/OwnedAvatarStudio.jsx | the player is followed by **Download the clip** on the same working URL, so the file can leave the browser; build green |
+
+### Batch 53 — Autonomous Code Factory (preview branch; release NOT approved)
+
+**Mission:** X1-AUTONOMOUS-CODE-FACTORY-20261030. **Branch:** `x1-autonomous-code-factory-20261030` (Base44 branch id `6ae5487759e1efaa63152675`).
+
+**Scope implemented in isolated branch:**
+- `base44/entities/CodeJob.jsonc`: private per-user proposal/receipt ledger, NOT an alternate X1 queue or lease authority.
+- `base44/functions/codeFactory/entry.ts`: admin-only mission creation; GitHub OAuth source read pinned to exact branch commit; one explicitly triggered bounded Base44 model call; 1–3 files, max 16 KB each source read, source/path/secret guard; full patch proposal; explicit click before GitHub branch/file changes and DRAFT PR; CI check runs; Guardian remains NOT_RUN until independently validated.
+- `src/pages/CodeFactory.jsx` and `src/App.jsx` + `src/components/shell/SidebarBody.jsx`: code-factory UI and navigation.
+- `base44/functions/autopilot/entry.ts`: existing Autopilot Clock re-used for cost-free pending-PR CI polling. No new scheduler. This change is NOT active on production until separate approval/merge.
+- `tests/codeFactory.test.cjs`: four simulated integration tests for admin/repo/path denial, zero-charge create, explicit stage + draft PR + CI gating, and model-free automatic tick.
+- Five unrelated, unused imports removed to make branch lint pass; no behavior changes intended.
+- Three StudioAgent records created in app: X1 Code Architect, X1 Code Builder, X1 Code Guardian. These are configured assistants, not proof of a live code-execution worker.
+
+**Observed QA:** `node --test tests/codeFactory.test.cjs` PASS 4/4 (mock GitHub/Base44, not live). `npm run build` PASS. `npm run lint` PASS. `npm run typecheck` FAIL with 407 repository-wide diagnostics (no new CodeFactory.jsx diagnostics observed). Direct single-function TypeScript check reports unsupported Base44 `npm:@base44/sdk@0.8.54` type resolution. Independent Guardian exact-branch QA NOT_RUN. No model API or GitHub write was invoked for a live job.
+
+**Open release gates:** Branch preview authenticated UI smoke; runtime function schema/branch deployment behavior; real GitHub connector consent and read; isolated synthetic draft PR and CI, if expressly approved; separate independent Guardian receipt; existing site Autopilot auto-approval safety review; repository typecheck baseline; protected merge/deploy approval. Local JARVIS hardware hold remains ACTIVE. Never claim full autonomous end-to-end or production installation from this preview.
+
+**Safety/rollback:** Base44 pre-change checkpoint `6ae548f5c55daa678b816f03`; revert preview branch to this point if needed. No protected branch merges, production DB changes, secrets, billing, domains, live avatars, local Docker/restarts or paid model generation.
+
