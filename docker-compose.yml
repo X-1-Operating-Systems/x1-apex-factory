@@ -85,9 +85,45 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  voice-host:
+    # The owned speech service: preset TTS plus the clone registry. See voice-host/README.md.
+    build: ./voice-host
+    container_name: x1-voice-host
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      HOST_TOKEN: ${VOICE_HOST_TOKEN:?set VOICE_HOST_TOKEN in .env}
+      PORT: 8080
+      DATA_DIR: /data
+      MAX_CHARS: ${VOICE_MAX_CHARS:-20000}
+      MAX_SECONDS: ${VOICE_MAX_SECONDS:-600}
+    volumes:
+      - voice-data:/data
+    cpus: "2.0"
+    mem_limit: 4g
+    memswap_limit: 4g
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $HOST_TOKEN\" http://127.0.0.1:8080/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   avatar-data:
   browser-data:
+  voice-data:
 
 networks:
   default:

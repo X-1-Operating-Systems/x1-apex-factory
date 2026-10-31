@@ -10,6 +10,8 @@ const SECRETS = [
   'RAILWAY_API_KEY',
   'BROWSER_HOST_URL',
   'BROWSER_HOST_TOKEN',
+  'VOICE_HOST_URL',
+  'VOICE_HOST_TOKEN',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_KEY',
   'SUPABASE_ACCESS_TOKEN',
@@ -31,6 +33,8 @@ export default async function (req) {
       liveavatar: secrets_state.LIVEAVATAR_API_KEY,
       host:
         (secrets_state.BROWSER_HOST_URL && secrets_state.BROWSER_HOST_TOKEN) || secrets_state.RAILWAY_API_KEY,
+      voice:
+        (secrets_state.VOICE_HOST_URL && secrets_state.VOICE_HOST_TOKEN) || secrets_state.RAILWAY_API_KEY,
       ledger: secrets_state.SUPABASE_URL && secrets_state.SUPABASE_SERVICE_KEY,
       vercel: secrets_state.VERCEL_API_KEY,
       manus: secrets_state.MANUS_API_KEY,
@@ -64,6 +68,13 @@ export default async function (req) {
           stops: 'Resolving the owned container if BROWSER_HOST_URL and BROWSER_HOST_TOKEN are not set.',
           keeps: 'Tasks, projects, releases and the media surfaces are unaffected.',
           ready: ready.host,
+        },
+        {
+          key: 'RAILWAY_API_KEY',
+          surface: 'Voice host (clone)',
+          stops: 'The self-hosted speech service cannot be resolved, so voice cloning and our own TTS stop.',
+          keeps: 'Every screen works; voice falls back to the vendor while its key is present.',
+          ready: ready.voice,
         },
         {
           key: 'VERCEL_API_KEY',

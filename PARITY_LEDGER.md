@@ -879,3 +879,52 @@ within the hour · `EvolveQueue` links each finished brief to the coding run it 
 |---|---|---|---|
 | G-120 | closed | base44/functions/guardian/entry.ts, base44/entities/EnhancementJob.jsonc, base44/workflows/Guardian Clock.jsonc, src/components/guardian/EvolveQueue.jsx | `guardian verify` → **17/17 probes passed** (run `r-2026-10-31T01:49:25`). A probe brief was queued and `guardian work` returned `started: [{task_id: 6ae54973913c527c2340dd99, status: stopped}]`; the job read back `plan_ready` with that `task_id`, the task read back engine `native` with 6 events. Probe job and task deleted (0 left). Workflow parses, cron `0 * * * *`, last step `code_briefs`. Build green |
 | — | confirmed, not rebuilt | — | the other two systems were already installed and proven: **QA** — `qaAudit` + the release gate, stored `QaRun`s at 84/`review` and 100/`pass`; **validator** — the 17-probe benchmark with signed runs and `BenchmarkCheckpoint`s; `Autopilot Clock` firing every five minutes (10 recent runs, last job `done`) |
+
+### Batch 55 — HeyGen and LiveAvatar discovered, cloned where cloneable, and put on a register
+
+Run under three rules the operator set: read-only vendor calls (no spend, no signup, no console action);
+no capability called done without a re-runnable proof; no parity percentage anywhere.
+
+**Phase 1 — discovery, both vendors, live.** HeyGen v3 (the v1/v2 surface sunsets today, so only v3
+counts): `GET /v3/users/me`, `/v3/avatars`, `/v3/voices`, `/v3/videos`, `POST /v3/videos` (union of
+`avatar` / `image` / `cinematic_avatar` / `studio`), `POST /v3/avatars` (footage, photo, prompt),
+`POST /v3/avatars/looks`, `/v3/avatars/{id}/consent`, `POST /v3/voices` (clone + design),
+`/v3/video-agents`, `/v3/models/videos`, `/v3/models/images`, `/v3/videos/translate`, `/v3/lipsync`,
+`/v3/videos/{id}/scenes`. LiveAvatar: `POST /v1/sessions/token` (short-lived Bearer for start/stop),
+`/v1/sessions/start|stop|transcript`, `/v1/contexts`, `/v1/avatars`, `/v1/credits`, `POST /v2/embeddings`,
+plus FULL (ASR + LLM + TTS + WebRTC managed, 2 credits/min) and LITE (avatar only, 1 credit/min).
+Readings this turn: HeyGen 20 avatar groups, 20 voices, 10 videos, **wallet usd 0**; LiveAvatar
+**1104 credits**, 1 context, **0 owned avatars**.
+
+**Phase 2/3 — the clone.** `avatar-host` (already live on Railway) covers the video half: Piper speech +
+Wav2Lip against her own still. The voice half was missing, so `voice-host/` is new: FastAPI on the same
+contract as avatar-host (`HOST_TOKEN`, `/data` volume, `/health` first), with `/voices`, `/clone`
+(reference WAV stored privately per voice id), `/speak` (Piper presets; XTTS-v2 when its weights are on
+the volume), `/renders`, and the `.wav` route registered **before** the id route because a path parameter
+matches dots — the exact defect avatar-host shipped once. The base image is TTS-only; the ~2.5 GB clone
+engine is a separate `requirements-clone.txt` layer behind `--build-arg WITH_CLONE=true`, and without it
+`/speak` on a clone answers `409` with the reason instead of a broken file. `docker-compose.yml` gained
+the service (8083, 2 vCPU / 4 GB, healthcheck, rotated logs, `voice-data` volume).
+
+**Phase 4 — installed into the app.** `shared/mediaRegister.ts` (25 rows, five verdicts, evidence per
+row) · `functions/mediaParity` (admin-gated; returns register + clone map + not-cloneable + seven live
+read-only probes + the owned host's health) · `/parity` page with verdict counts, per-vendor sections,
+the clone map with its ceiling per capability, and the not-cloneable list · sidebar "Parity register"
+under Control · `keyStatus` gained a `voice` surface and the two override secrets, so removing
+`RAILWAY_API_KEY` turns that card into an instruction instead of a failure.
+
+**Phase 5 — proof.** `mediaParity` returned **200 in 613 ms with 7/7 probes green and 0 failures**:
+HeyGen `wallet usd 0` · 20 avatars · 20 voices · 10 videos; LiveAvatar 1104 credits · 1 context ·
+0 avatars; owned container `healthy (railway)`. Register counts: **2 cloned, 3 wired, 13 vendor,
+7 not cloneable**. Build green.
+
+A defect this batch found in its own code and fixed: the owned-host row read `avatarConfigured()`
+**before** resolution, and that function only turns true after the address is resolved — so it reported
+"RAILWAY_API_KEY is not set" while the container was healthy. It now resolves first, then reads
+`/health`, and the row is green.
+
+| id | state | files changed | verdict / evidence |
+|---|---|---|---|
+| G-121 | closed | base44/shared/mediaRegister.ts (new), base44/functions/mediaParity/entry.ts (new), src/pages/Parity.jsx (new), src/components/parity/VerdictPill.jsx (new), src/components/parity/RegisterRow.jsx (new), src/App.jsx, src/components/shell/SidebarBody.jsx | register reads live; 7/7 probes green, 0 failures; owned host healthy; build green |
+| G-122 | built, **not deployed** | voice-host/server.py, voice-host/Dockerfile, voice-host/requirements.txt, voice-host/requirements-clone.txt, voice-host/README.md (all new), docker-compose.yml | code complete on avatar-host's contract; the voice rows stay **wired, unproven** until the service exists — no container was deployed this turn |
+| G-123 | open — operator | — | deploy `voice-host` (Railway, root dir `voice-host`, `HOST_TOKEN`, volume `/data`); her identity inside LiveAvatar (their console is the only place it can be installed; the account holds 0 owned avatars); the HeyGen wallet at $0.00, which is why renders and her cloned voice answer 402 |

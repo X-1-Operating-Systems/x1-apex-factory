@@ -49,6 +49,7 @@ import LiveAvatar from '@/pages/LiveAvatar';
 import Autopilot from '@/pages/Autopilot';
 import Guardian from '@/pages/Guardian';
 import Truth from '@/pages/Truth';
+import Parity from '@/pages/Parity';
 import OAuthConsent from '@/pages/OAuthConsent';
 // Add page imports here
 
@@ -93,6 +94,7 @@ const AuthenticatedApp = () => {
           <Route path="/autopilot" element={<Autopilot />} />
           <Route path="/guardian" element={<Guardian />} />
           <Route path="/truth" element={<Truth />} />
+          <Route path="/parity" element={<Parity />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
           <Route path="/studio/:id" element={<Studio />} />
