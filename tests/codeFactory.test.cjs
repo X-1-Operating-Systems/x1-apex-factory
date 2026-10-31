@@ -6,9 +6,9 @@ const ts = require('typescript');
 const src = fs.readFileSync('base44/functions/codeFactory/entry.ts', 'utf8');
 const js = ts.transpileModule(src, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const owner = 'user-1', repo = 'Strategic-Minds-AI/x1-infinity-agent-runtime', baseSha = 'a'.repeat(40), fileSha = 'b'.repeat(40), headSha = 'c'.repeat(40);
-let store, calls, modelCalls, sdk, context, handler;
+let store, calls, modelCalls, sdk, context, handler, schemaAvailable;
 function reset(){
- store=new Map();calls=[];modelCalls=0;
+ store=new Map();calls=[];modelCalls=0;schemaAvailable=true;
  sdk={
    auth:{me:async()=>({id:owner,role:'admin'})},
    asServiceRole:{
@@ -17,7 +17,7 @@ function reset(){
       async create(v){const id='aaaaaaaaaaaa00000000000'+(store.size+1);const job={...v,id,created_by_id:owner};store.set(id,job);return {...job};},
       async get(id){return store.get(id)||null;},
       async update(id,patch){const obj={...store.get(id),...patch};store.set(id,obj);return {...obj};},
-      async filter(query){return {items:[...store.values()].filter(item=>Object.entries(query).every(([k,v])=>item[k]===v))};}
+      async filter(query){if(!schemaAvailable)throw Error("CodeJob entity schema not found");return {items:[...store.values()].filter(item=>Object.entries(query).every(([k,v])=>item[k]===v))};}
     }},
     integrations:{Core:{InvokeLLM:async()=>{modelCalls++;return {
       summary:'Fix a bounded retry defect',risks:['Check concurrency'],test_commands:['npm test'],
@@ -88,6 +88,23 @@ test('exact X1 APEX repository is allowed for read-only probe but sibling reposi
  const lowercase=await action({action:'probe',repo:'x-1-operating-systems/x1-apex-factory',base_ref:'main'});
  assert.equal(lowercase.body.ok,false);
  assert.equal(calls.length,2,'rejected repository names must fail before GitHub I/O');
+});
+test('unregistered branch ledger fails closed while preserving credit-free read-only GitHub probe',async()=>{
+ reset();schemaAvailable=false;
+ const listing=await action({action:'list'});
+ assert.equal(listing.status,200);
+ assert.equal(listing.body.schema_ready,false);
+ assert.equal(listing.body.jobs.length,0);
+ assert.match(listing.body.warning,/not registered/i);
+ const noWrite=await action({action:'create',repo,title:'Disabled',goal:'Prevent missing schema writes',paths:['src/worker.ts']});
+ assert.equal(noWrite.status,503);
+ assert.equal(noWrite.body.ok,false);
+ assert.equal(store.size,0);
+ const probe=await action({action:'probe',repo:'X-1-Operating-Systems/x1-apex-factory'});
+ assert.equal(probe.status,200);
+ assert.equal(probe.body.read_only,true);
+ assert.equal(modelCalls,0);
+ assert.equal(calls.filter(x=>x.method!=='GET').length,0);
 });
 test('creates a job without spending credits or altering GitHub',async()=>{
  reset();
