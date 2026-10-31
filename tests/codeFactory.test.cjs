@@ -31,7 +31,7 @@ function reset(){
    fetch:async(u,init={})=>{
     const url=new URL(u);const p=url.pathname;const method=init.method||'GET';calls.push({path:p,method});
     let data={};
-    if(p=== '/repos/'+repo) data={archived:false,disabled:false};
+    if(p=== '/repos/'+repo || p==='/repos/X-1-Operating-Systems/x1-apex-factory') data={archived:false,disabled:false};
     else if(p.endsWith('/git/ref/heads/main'))data={object:{sha:baseSha}};
     else if(p.includes('/contents/src/worker.ts') && method==='GET')data={type:'file',size:28,encoding:'base64',content:btoa('export const safe = false;\n'),sha:fileSha};
     else if(p.endsWith('/git/refs')&&method==='POST')data={ref:'refs/heads/x1/autocode-test'};
@@ -72,6 +72,22 @@ test('read-only GitHub canary pins the existing branch without model use or writ
  assert.equal(store.size,0);
  assert.equal(calls.length,2);
  assert.equal(calls.filter(c=>c.method!=='GET').length,0);
+});
+test('exact X1 APEX repository is allowed for read-only probe but sibling repositories are refused',async()=>{
+ reset();
+ const actual='X-1-Operating-Systems/x1-apex-factory';
+ const accepted=await action({action:'probe',repo:actual,base_ref:'main'});
+ assert.equal(accepted.status,200,JSON.stringify(accepted.body));
+ assert.equal(accepted.body.repo,actual);
+ assert.equal(accepted.body.sha,baseSha);
+ assert.equal(accepted.body.read_only,true);
+ assert.equal(modelCalls,0);
+ assert.equal(calls.filter(c=>c.method!=='GET').length,0);
+ const sibling=await action({action:'probe',repo:'X-1-Operating-Systems/other-repo',base_ref:'main'});
+ assert.equal(sibling.body.ok,false);
+ const lowercase=await action({action:'probe',repo:'x-1-operating-systems/x1-apex-factory',base_ref:'main'});
+ assert.equal(lowercase.body.ok,false);
+ assert.equal(calls.length,2,'rejected repository names must fail before GitHub I/O');
 });
 test('creates a job without spending credits or altering GitHub',async()=>{
  reset();
