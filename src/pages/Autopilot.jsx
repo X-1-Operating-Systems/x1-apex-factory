@@ -75,7 +75,7 @@ export default function Autopilot() {
       <header className="flex flex-wrap items-center gap-2">
         <Rocket size={15} className="text-muted-foreground" />
         <h1 className="font-heading text-[17px] tracking-tight">Autopilot</h1>
-        <span className="text-[11px] text-muted-foreground">plan · build · ceiling · ship · verify</span>
+        <span className="text-[11px] text-muted-foreground">plan · build · ceiling · release approval</span>
         <Link
           to="/guardian"
           className="ml-auto text-[11px] text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
@@ -84,8 +84,7 @@ export default function Autopilot() {
         </Link>
       </header>
       <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-        Every job runs to the end on its own: the ceiling gate sends a page back to be rebuilt when it fails,
-        an approved release deploys, and a real browser opens the live site to check it.
+        Plans and builds run automatically. A passing quality check holds the site for separate owner and Guardian release approval; this page never publishes it.
       </p>
 
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
@@ -98,7 +97,7 @@ export default function Autopilot() {
         {loading && <p className="text-[11px] text-muted-foreground">Loading jobs…</p>}
         {!loading && jobs.length === 0 && (
           <p className="rounded-lg border border-dashed border-border px-3.5 py-6 text-center text-[11.5px] text-muted-foreground">
-            No jobs yet. A command above becomes a planned site, shipped and checked without another click.
+            No jobs yet. Submit a build command; production release remains owner-approved.
           </p>
         )}
         {jobs.map((job) => (
