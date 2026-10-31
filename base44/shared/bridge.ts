@@ -10,7 +10,7 @@ export const BRIDGE_HEADER = 'x-x1-bridge-key';
 export const OS_URL_SECRET = 'X1_OS_BASE_URL';
 
 export async function callOs(baseUrl: string, key: string, action: string, payload: any) {
-  const url = `${baseUrl.replace(/\/$/, '')}/functions/x1Bridge`;
+  const url = `${baseUrl.replace(/\/$/, '')}/functions/x1ApexBridge`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', [BRIDGE_HEADER]: key },
