@@ -1,11 +1,18 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUp, Layers, Loader2, Rocket } from 'lucide-react';
 import AttachmentPicker from '@/components/task/AttachmentPicker';
 
-export default function Composer({ onSubmit, onPickTemplate, attachments = [], onAttachmentsChange, busy }) {
+export default function Composer({ onSubmit, onPickTemplate, attachments = [], onAttachmentsChange, busy, seed }) {
   const [draft, setDraft] = useState('');
   const areaRef = useRef(null);
+
+  // A card click drops its starting brief into the box, focused, ready to send.
+  useEffect(() => {
+    if (!seed?.n) return;
+    setDraft(seed.text);
+    areaRef.current?.focus();
+  }, [seed?.n]);
 
   const submit = () => {
     if (!draft.trim() || busy) return;
@@ -27,7 +34,7 @@ export default function Composer({ onSubmit, onPickTemplate, attachments = [], o
             }
           }}
           rows={2}
-          placeholder="Assign a task, attach a file, or pick a template"
+          placeholder="Assign a task or type / for more"
           className="w-full resize-none bg-transparent px-1 py-1 text-[13.5px] leading-relaxed outline-none placeholder:text-muted-foreground"
         />
 
