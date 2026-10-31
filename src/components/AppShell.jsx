@@ -137,7 +137,7 @@ export default function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+      <aside className="hidden w-[232px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex xl:w-[264px]">
         <div className="flex h-[54px] shrink-0 items-center justify-between px-4">
           <Wordmark />
           <ThemeToggle compact />
@@ -174,7 +174,7 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-3 lg:hidden">
+        <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-3 md:hidden">
           <div className="flex items-center gap-1.5">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
