@@ -9,6 +9,7 @@ const STATUS = {
   done: 'Done',
   failed: 'Stopped',
   stopped: 'Stopped',
+  awaiting_approval: 'Release approval required',
 };
 
 export default function JobCard({ job, onStop }) {
