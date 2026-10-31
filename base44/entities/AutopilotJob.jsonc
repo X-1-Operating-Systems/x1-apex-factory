@@ -12,7 +12,8 @@
         "running",
         "done",
         "failed",
-        "stopped"
+        "stopped",
+        "awaiting_approval"
       ],
       "default": "queued"
     },
