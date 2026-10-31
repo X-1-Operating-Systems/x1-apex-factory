@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, Gauge, Moon, Sun } from 'lucide-react';
+import { LogOut, Settings, User, Gauge } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import {
   DropdownMenu,
@@ -11,17 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const STORAGE_KEY = 'x1-studio-theme';
-
 export default function AccountMenu({ user, initials }) {
   const navigate = useNavigate();
-  const dark = document.documentElement.classList.contains('dark');
-
-  const toggleTheme = () => {
-    const next = dark ? 'light' : 'dark';
-    localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
   return (
     <DropdownMenu>
@@ -48,10 +39,6 @@ export default function AccountMenu({ user, initials }) {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 text-[12px]">
           <Settings size={13} /> Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={toggleTheme} className="gap-2 text-[12px]">
-          {dark ? <Sun size={13} /> : <Moon size={13} />}
-          {dark ? 'Light mode' : 'Dark mode'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => base44.auth.logout()} className="gap-2 text-[12px]">

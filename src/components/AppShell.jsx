@@ -3,7 +3,6 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import ThemeToggle from '@/components/ThemeToggle';
 import SidebarBody from '@/components/shell/SidebarBody';
 import AccountMenu from '@/components/shell/AccountMenu';
 import NotificationBell from '@/components/shell/NotificationBell';
@@ -140,7 +139,6 @@ export default function AppShell() {
       <aside className="hidden w-[232px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex xl:w-[264px]">
         <div className="flex h-[54px] shrink-0 items-center justify-between px-4">
           <Wordmark />
-          <ThemeToggle compact />
         </div>
 
         <SidebarBody
@@ -190,7 +188,6 @@ export default function AppShell() {
                 <SheetTitle className="sr-only">Studio navigation</SheetTitle>
                 <div className="flex h-[54px] shrink-0 items-center justify-between px-4">
                   <Wordmark />
-                  <ThemeToggle compact />
                 </div>
                 <SidebarBody
                   tasks={tasks}
