@@ -186,15 +186,8 @@ def list_renders(authorization: Optional[str] = Header(None)):
     return {"ok": True, "count": len(items), "items": items[:50], "usage": USAGE}
 
 
-@app.get("/renders/{job_id}")
-def get_render(job_id: str, authorization: Optional[str] = Header(None)):
-    auth(authorization)
-    job = JOBS.get(job_id)
-    if not job:
-        raise HTTPException(404, "No such render")
-    return {"ok": True, "job": job}
-
-
+# Registered before the plain job route: "/renders/<id>" also matches "/renders/<id>.mp4",
+# so the video route has to win the match or every download 404s as an unknown job.
 @app.get("/renders/{job_id}.mp4")
 def get_video(job_id: str, authorization: Optional[str] = Header(None)):
     auth(authorization)
@@ -202,6 +195,15 @@ def get_video(job_id: str, authorization: Optional[str] = Header(None)):
     if not path.exists():
         raise HTTPException(404, "That render has no video yet")
     return FileResponse(path, media_type="video/mp4")
+
+
+@app.get("/renders/{job_id}")
+def get_render(job_id: str, authorization: Optional[str] = Header(None)):
+    auth(authorization)
+    job = JOBS.get(job_id)
+    if not job:
+        raise HTTPException(404, "No such render")
+    return {"ok": True, "job": job}
 
 
 if __name__ == "__main__":

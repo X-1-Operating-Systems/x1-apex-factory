@@ -838,3 +838,28 @@ counts `tasks 3, automations 0, open findings 0`. Build green.
 |---|---|---|
 | G-115 | closed | verdicts are computed from live values, never typed; a source that fails reads "unreadable" rather than defaulting to a kind number |
 | G-116 | recorded, not fixed | the five claims stand at: Manus **partial** (their API has no delete/search/webhooks), Browserbase **not installed** (replaced by the owned host on purpose), HeyGen **blocked at wallet $0**, LiveAvatar **partial** (no owned avatar in their console), autonomy **partial** (engine built, 0 automations scheduled) |
+
+### Batch 53 — a finished render is downloadable, and the build file can build (G-117, G-118)
+
+Two defects behind "the link doesn't work", both structural rather than cosmetic.
+
+1. **A `.mp4` request was answered as a job lookup.** In `avatar-host/server.py` the route
+   `/renders/{job_id}` was registered before `/renders/{job_id}.mp4`, and a path parameter matches
+   dots, so every download resolved to the JSON handler with `job_id = "<id>.mp4"`, missed the
+   in-memory job map, and answered FastAPI's `{"detail": "No such render"}` — the exact body the
+   operator saw. The video route is now registered first, with a comment saying why.
+2. **The container could not build at all.** A line continuation had been lost between the voice-model
+   download and the `sed` patch of `wav2lip/audio.py`, so Docker refused the file
+   (`dockerfile parse error on line 30: unknown instruction: &&`). Repaired in the repo, and the
+   boot-time start command that used to rewrite `server.py` on every start was cleared — it existed
+   only to work around a defect that is now fixed in the source.
+
+Also: Railway was deploying a **stale commit** (it ignored the pushed fix and rebuilt `11dcfd7b`
+twice), so the deploy was pinned with `serviceInstanceDeploy(latestCommit: true)`. Nothing about the
+image changed, so the rebuild reused every layer.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-117 | closed | avatar-host/server.py | a render started through the app's own function (`avatar` action `render`) reached `done`, was copied into app storage, and the URL it returned answered **200, `video/mp4`, 501 118 bytes, `ftyp` at offset 4** — real MP4 bytes over a signed app-storage link, not the host's token-gated path |
+| G-118 | closed | avatar-host/Dockerfile | deployment of `c4768263` → **SUCCESS** (the previous two failed at parse time); container came back healthy with her artwork and all three engine checkpoints present on the `/data` volume |
+| G-119 | closed | src/components/live/OwnedAvatarStudio.jsx | the player is followed by **Download the clip** on the same working URL, so the file can leave the browser; build green |

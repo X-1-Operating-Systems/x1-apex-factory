@@ -160,7 +160,19 @@ export default function OwnedAvatarStudio() {
       </div>
 
       {videoUrl && (
-        <video src={videoUrl} controls playsInline className="mt-3 w-full rounded-lg border border-border" />
+        <div className="mt-3">
+          <video src={videoUrl} controls playsInline className="w-full rounded-lg border border-border" />
+          <div className="mt-1.5 flex items-center gap-3">
+            <a
+              href={videoUrl}
+              download={`eden-${job?.id || 'clip'}.mp4`}
+              className="text-[10.5px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              Download the clip
+            </a>
+            <span className="text-[10.5px] text-muted-foreground">stored in this app, so the link keeps working</span>
+          </div>
+        </div>
       )}
     </section>
   );
