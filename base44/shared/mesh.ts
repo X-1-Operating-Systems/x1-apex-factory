@@ -112,10 +112,10 @@ async function bridgeNode(id, label, baseUrl, key, needs) {
   if (!baseUrl) return row(id, label, 'os', { needs });
   const started = Date.now();
   try {
-    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/functions/x1Bridge`, {
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/functions/x1ApexBridge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-x1-bridge-key': key || '' },
-      body: JSON.stringify({ action: 'heartbeat', worker: { name: 'x1-apex-factory', kind: 'factory' } }),
+      body: JSON.stringify({ action: 'ping' }),
       signal: AbortSignal.timeout(TIMEBOX),
     });
     const body = await res.json().catch(() => null);
@@ -127,7 +127,7 @@ async function bridgeNode(id, label, baseUrl, key, needs) {
       status: res.status,
       ms,
       detail: res.ok
-        ? `Heartbeat accepted — worker ${body?.worker_id || 'registered'}, ${body?.queued ?? 0} queued`
+        ? `Factory bridge authenticated — ${body?.door || 'online'}`
         : `${body?.error || `answered ${res.status}`}`,
       needs: res.ok ? '' : needs,
     });
