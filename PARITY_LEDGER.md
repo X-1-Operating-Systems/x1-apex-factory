@@ -622,6 +622,29 @@ Caveat recorded so it is not re-litigated: an MCP connection gives a client the 
 actions**, not a voice pipeline. No external assistant can swap its own speech for Eden's private
 voice; her live room stays the surface where she speaks.
 
+### Batch 46 — the 88% dip, diagnosed and re-proven (no code change)
+
+Two runs were reported 27 seconds apart: `r-2026-10-31T00:22:30` at **88% / 16 probes / 2 failing**,
+then `r-2026-10-31T00:22:57` at **100% / 16**, then `r-2026-10-31T00:24:29` at **100% / 17**. Both
+failures were read out of the stored run rather than guessed:
+
+- `connector.github` — `HTTP 403`. The probe already sends a User-Agent (Batch 18's fix), so this is
+  GitHub's own rate-limit / secondary-limit refusal, not a broken token.
+- `browser.host` — `Unknown browser host action: host.status`. `hostRequest()` resolves only against
+  `HOST_ACTIONS` (the network registry), while `host.status` lives in `LOCAL_ACTIONS` and is answered
+  inside the function itself, so a call routed through `hostRequest` can never find it. No line of
+  current code asks for it that way — the deployed copy at 00:22:30 was stale.
+
+Re-proven live instead of asserted: `guardian verify` → run `r-2026-10-31T00:34:16`, with
+`connector.github` **passed** ("authenticated as x1-operator") and `browser.host` **passed**; and
+`browserbase {action: "host.status"}` answered **200 in 319 ms** with the host's real counters
+(0 running, cap 50). The dip did not survive the next run, and nothing in current source can produce
+either detail.
+
+| id | state | verification |
+|---|---|---|
+| G-101 | closed — transient | a fresh verify passes both previously failing probes; the later stored runs are 100% at 16 and 17 probes |
+
 ## Register state (through Batch 40)
 
 | id | sev | state |
