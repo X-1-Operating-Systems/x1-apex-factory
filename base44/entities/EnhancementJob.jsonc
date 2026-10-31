@@ -35,6 +35,9 @@
       "type": "string",
       "maxLength": 16000
     },
+    "task_id": {
+      "type": "string"
+    },
     "error": {
       "type": "string",
       "maxLength": 400

@@ -863,3 +863,19 @@ image changed, so the rebuild reused every layer.
 | G-117 | closed | avatar-host/server.py | a render started through the app's own function (`avatar` action `render`) reached `done`, was copied into app storage, and the URL it returned answered **200, `video/mp4`, 501 118 bytes, `ftyp` at offset 4** — real MP4 bytes over a signed app-storage link, not the host's token-gated path |
 | G-118 | closed | avatar-host/Dockerfile | deployment of `c4768263` → **SUCCESS** (the previous two failed at parse time); container came back healthy with her artwork and all three engine checkpoints present on the `/data` volume |
 | G-119 | closed | src/components/live/OwnedAvatarStudio.jsx | the player is followed by **Download the clip** on the same working URL, so the file can leave the browser; build green |
+### Batch 54 — the loop closes: a brief now becomes code (G-120)
+
+The audit question was whether the autonomous loop actually ends in work. It did not: `guardian`
+`evolve` wrote `EnhancementJob` briefs with status `brief_ready`, and **nothing consumed them** — the
+queue was where gaps went to be forgotten. Separately, `Guardian Clock` was active with **zero runs**.
+
+Built: `guardian` action `work` claims one `brief_ready` job (`planning`), runs the real coding engine
+(`createNativeTask` from `shared/native.ts`, deep effort), then writes `plan_ready` + `task_id`, or
+`plan_failed` + `error`; `EnhancementJob.task_id` declared · `Guardian Clock` gained a `code_briefs`
+step after `queue_fixes` and moved from every six hours to **hourly**, so a verified gap is coded
+within the hour · `EvolveQueue` links each finished brief to the coding run it produced.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-120 | closed | base44/functions/guardian/entry.ts, base44/entities/EnhancementJob.jsonc, base44/workflows/Guardian Clock.jsonc, src/components/guardian/EvolveQueue.jsx | `guardian verify` → **17/17 probes passed** (run `r-2026-10-31T01:49:25`). A probe brief was queued and `guardian work` returned `started: [{task_id: 6ae54973913c527c2340dd99, status: stopped}]`; the job read back `plan_ready` with that `task_id`, the task read back engine `native` with 6 events. Probe job and task deleted (0 left). Workflow parses, cron `0 * * * *`, last step `code_briefs`. Build green |
+| — | confirmed, not rebuilt | — | the other two systems were already installed and proven: **QA** — `qaAudit` + the release gate, stored `QaRun`s at 84/`review` and 100/`pass`; **validator** — the 17-probe benchmark with signed runs and `BenchmarkCheckpoint`s; `Autopilot Clock` firing every five minutes (10 recent runs, last job `done`) |

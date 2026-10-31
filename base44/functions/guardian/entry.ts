@@ -11,6 +11,7 @@ import {
   signRun,
   verdictFor,
 } from '../../shared/guardian.ts';
+import { createNativeTask } from '../../shared/native.ts';
 
 const OPEN_JOB_STATUSES = ['brief_ready', 'planning', 'plan_ready', 'plan_failed'];
 
@@ -249,6 +250,50 @@ export default async function (req: Request): Promise<Response> {
       }
 
       return Response.json({ ok: true, created, skipped: findings.length - created.length });
+    }
+
+    // The last stage of the loop: a queued brief is not a fix until code was written for it.
+    // One brief per call keeps the run inside the function's own time budget.
+    if (action === 'work') {
+      const limit = Math.min(Math.max(Number(body?.limit) || 1, 1), 2);
+      const page = await store.EnhancementJob.filter({ status: 'brief_ready' }, { sort: 'created_date', limit });
+      const briefs = page.items || [];
+      const started: any[] = [];
+
+      for (const job of briefs) {
+        const brief = String(job.plan || '').trim();
+        if (!brief) continue;
+        // Claimed before coding so two clock fires can never do the same job twice.
+        await store.EnhancementJob.update(job.id, { status: 'planning', plan_started_at: new Date().toISOString() });
+        try {
+          const task = await createNativeTask(base44, {
+            userId: job.owner_id || user.id,
+            title: `Guardian fix — ${job.criterion_id}`,
+            instruction: [
+              'You are the studio\'s own engineering loop. The guardian verified a gap in this app; close it.',
+              '',
+              brief,
+              '',
+              'Do the work now and report exactly what you changed. Do not describe a plan you did not carry out.',
+            ].join('\n'),
+            effort: 'deep',
+          });
+          const failed = task?.status === 'error';
+          await store.EnhancementJob.update(job.id, {
+            status: failed ? 'plan_failed' : 'plan_ready',
+            task_id: task?.id || '',
+            error: failed ? String(task?.summary || 'The coding run failed.').slice(0, 400) : '',
+          });
+          started.push({ job: job.id, criterion: job.criterion_id, task_id: task?.id || '', status: task?.status || 'unknown' });
+        } catch (error: any) {
+          await store.EnhancementJob.update(job.id, {
+            status: 'plan_failed',
+            error: String(error?.message || 'The coding run failed.').slice(0, 400),
+          });
+        }
+      }
+
+      return Response.json({ ok: true, started, remaining: Math.max(briefs.length - started.length, 0) });
     }
 
     if (action === 'resolve') {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 
 const STATE_TONE = {
@@ -40,6 +41,14 @@ export default function EvolveQueue({ jobs }) {
               <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
                 <ArrowUpRight size={9} /> revision {job.revision}
               </p>
+              {job.task_id && (
+                <Link
+                  to={`/task/${job.task_id}`}
+                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-foreground underline underline-offset-2 hover:no-underline"
+                >
+                  <ArrowUpRight size={9} /> the coding run
+                </Link>
+              )}
             </li>
           ))}
         </ul>

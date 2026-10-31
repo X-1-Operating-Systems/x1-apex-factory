@@ -7,7 +7,7 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 */6 * * *",
+      "cron_expression": "0 * * * *",
       "one_time_date": null,
       "timezone": "America/New_York",
       "interval_value": null,
@@ -135,10 +135,27 @@
               "action": "evolve"
             }
           },
-          "then": "end",
+          "then": "code_briefs",
           "x-base44": {
             "title": "Queue remaining gaps",
             "description": "Findings become briefs"
+          }
+        }
+      },
+      {
+        "code_briefs": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "work",
+              "limit": 1
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Write the fix",
+            "description": "One queued brief becomes a real coding run"
           }
         }
       }
