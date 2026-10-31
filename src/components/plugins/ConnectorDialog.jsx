@@ -2,7 +2,6 @@ import React from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { ACCESS_LEVELS } from '@/lib/connectorCatalog';
 
 export default function ConnectorDialog({ connector, record, open, onOpenChange, onConnect, onDisconnect, onUpdate, busy }) {
