@@ -6,6 +6,7 @@ import { callVideo, payloadOf } from '@/lib/videoApi';
 import PersistentRoom from '@/components/live/PersistentRoom';
 import OwnedAvatarStudio from '@/components/live/OwnedAvatarStudio';
 import SessionHistory from '@/components/live/SessionHistory';
+import EmotionPanel from '@/components/live/EmotionPanel';
 import CapabilityTable from '@/components/video/CapabilityTable';
 import AdminGate from '@/components/video/AdminGate';
 import KeyNotice from '@/components/system/KeyNotice';
@@ -77,6 +78,10 @@ export default function LiveAvatar() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
         <PersistentRoom hasOwnAvatar={avatars.length > 0} onChanged={loadSessions} />
         <SessionHistory sessions={sessions} />
+      </div>
+
+      <div className="mt-3">
+        <EmotionPanel />
       </div>
 
       <CapabilityTable entries={capabilities} />

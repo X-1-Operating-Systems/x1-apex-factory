@@ -750,3 +750,47 @@ second screen.
 | G-107 | closed | src/pages/NewTask.jsx, src/components/chat/ChatThread.jsx (new), src/components/chat/ChatComposer.jsx (new), src/hooks/useStudioChat.js | one engine behind the page: `useStudioChat` now accepts an initial `taskId`, so `?task=` hydrates the same thread it created; chips and composer both call the same `send`, and every follow-up lands in the same task. Build green |
 
 | G-106 | closed | src/components/live/PersistentRoom.jsx | the open room now carries the fallback the operator asked for: *"If the view stays blank or the microphone doesn't work, open Eden Live in a separate tab."* — a real link to `/live` with `target="_blank"`, so a browser that blocks the embedded player or the mic is one click from a working window. Build green |
+
+### Batch 50 — the mark alone, and Eden's mind is a real simulation (G-108, G-109)
+
+Two asks in one pass: the wordmark loses its text and becomes a drawn monogram, and Eden gains an
+emotional core with the full settings surface behind it.
+
+**The mark.** `Wordmark` was a rounded tile with the letters "X1" plus the words "apex factory". It is
+now the monogram alone — an X and a 1 cut as one SVG, a hairline inner ring for definition, inheriting
+`bg-foreground`/`text-background` so it inverts in dark mode, with a small rotate on hover. No text
+remains; the link keeps an `aria-label` so the name is still announced.
+
+**Her mind.** `EmotionProfile` holds one record per operator: the settings, the live state vector, turn
+count and the turns she remembers. Twelve emotions (valence, arousal, dominance, trust, warmth,
+curiosity, tension, energy, focus, intimacy, playfulness, patience) with real arithmetic — an appraisal
+moves them scaled by expressiveness × sensitivity × (1 − inertia), negative movement is damped by
+recovery and sharpened by rumination, every value drifts back toward baseline by `decay`, and `contagion`
+costs her energy and patience when tension sits above baseline. Traits *are* the set points: baseline
+warmth, curiosity, playfulness, patience and energy derive from the manner dials. The mood name is
+derived from the vector in three vocabularies (plain / expressive / poetic), with `tension > 0.72` and
+`trust < 0.22` overriding the band.
+
+`edenMind` (admin-gated) serves `state`, `save`, `reset`, `stimulus` and `respond`. `respond` builds one
+prompt from the whole surface — persona or full system-prompt override, 15 manner dials, boundaries,
+delivery, structure, temperature and variety directives, the state vector and the last `memory_turns`
+exchanges — asks the model for `{deltas, mood, inner, reply}` under a JSON schema, then applies the deltas
+in code, trims the reply to `reply_tokens × verbosity` at a sentence boundary, appends the turn to
+history, and returns state, mood, her own word for it, the inner line, the reply, the appraisal deltas
+and the delivery profile.
+
+The menu is one dialog, 53 controls across Generation / Identity / Voice & manner / Emotional dynamics /
+Memory / Delivery / Session, drawn from a control description (`src/lib/emotionSchema.js`) rather than
+hand-written markup, so every value the engine reads has a row. The backend clamps on save, so an
+out-of-range or unknown value is corrected rather than stored.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-108 | closed | src/components/AppShell.jsx | the mark is the monogram only, both header placements share it, build green |
+| G-109 | closed | base44/entities/EmotionProfile.jsonc (new), base44/shared/emotion.ts (new), base44/functions/edenMind/entry.ts (new), src/lib/emotionSchema.js (new), src/components/live/EmotionControl.jsx (new), src/components/live/EmotionSettingsDialog.jsx (new), src/components/live/EmotionPanel.jsx (new), src/pages/LiveAvatar.jsx | `state` created her profile and returned all 53 settings. `respond` with "I just closed the biggest client of the year" moved valence 0.25 → 0.408, arousal 0.4 → 0.531, tension 0.12 → 0.097, warmth → 0.805, mood "easy", and the stored reply answered in character with the win acknowledged — the appraisal is doing the work, not the copy. `save` with temperature 9, verbosity −3, model "nope", reply_tokens 99999 clamped to 2 / 0 / automatic / 4096 and stored her boundaries text (a first pass returned the *old* settings after a successful write — fixed so the response reflects the clamp). `stimulus criticism 0.9` dropped valence to 0.182, raised tension to 0.292 and cost energy and patience. `save {} + reset_state` restored defaults, turns 0, history 0, state at baseline. Build green. |
+
+**Note on the sampling dials.** `InvokeLLM` exposes one model per call, so `model` and `web_context` are
+forwarded for real (a web turn switches to the web-capable model; an unreachable explicit model falls
+back to automatic and retries once), `reply_tokens` is a hard trim, and temperature / variety / structure
+express themselves as explicit directives in her prompt. Voice and delivery values persist and travel
+back with every reply as a delivery profile rather than being claimed as applied audio.

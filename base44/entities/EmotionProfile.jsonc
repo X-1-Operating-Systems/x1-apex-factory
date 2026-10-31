@@ -1,0 +1,107 @@
+{
+  "name": "EmotionProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "default": "Eden Skye"
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "turns": {
+      "type": "number",
+      "default": 0
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "eden"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "mood": {
+            "type": "string"
+          },
+          "valence": {
+            "type": "number"
+          },
+          "arousal": {
+            "type": "number"
+          },
+          "dominance": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "at",
+          "role",
+          "text"
+        ]
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "settings"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

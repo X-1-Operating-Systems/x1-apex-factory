@@ -13,13 +13,33 @@ import AIPanel from '@/components/ai/AIPanel';
 import useStudioChat from '@/hooks/useStudioChat';
 import { loadTaskOptions, saveTaskOptions } from '@/lib/taskOptions';
 
+// The mark alone: an X and a 1 cut into one monogram, drawn rather than typed, so it holds its
+// shape at every size and inverts cleanly in dark mode.
 function Wordmark() {
   return (
-    <Link to="/" className="flex items-center gap-2">
-      <div className="grid h-[26px] w-[26px] place-items-center rounded-[7px] bg-foreground text-[10.5px] font-semibold tracking-tight text-background">
-        X1
-      </div>
-      <span className="text-[13.5px] font-medium tracking-tight">apex factory</span>
+    <Link to="/" aria-label="X1 Apex Factory" className="group inline-flex">
+      <span className="relative grid h-8 w-8 place-items-center rounded-[10px] bg-foreground text-background shadow-[0_1px_2px_hsl(0_0%_0%/0.22)] transition-transform duration-300 ease-out group-hover:-rotate-6">
+        <svg viewBox="0 0 28 28" className="h-[22px] w-[22px]" fill="none" aria-hidden="true">
+          <rect
+            x="0.75"
+            y="0.75"
+            width="26.5"
+            height="26.5"
+            rx="9"
+            stroke="currentColor"
+            strokeOpacity="0.18"
+            strokeWidth="1"
+          />
+          <path d="M7.6 8.8 14 19.4M14 8.8 7.6 19.4" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+          <path
+            d="M18.4 11.4 20.9 9.8V19.5"
+            stroke="currentColor"
+            strokeWidth="2.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
     </Link>
   );
 }
