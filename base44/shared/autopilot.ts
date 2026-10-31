@@ -274,34 +274,19 @@ async function ceilingStage(base44: any, job: any) {
   return { stage: 'ship', ceiling: worst };
 }
 
-async function shipStage(base44: any, job: any) {
-  const run = await base44.asServiceRole.functions.invoke('deployRelease', {
-    action: 'run',
-    project_id: job.project_id,
-    target: 'vercel',
-  });
-  const deployment = run?.data?.deployment;
-  if (!deployment?.id) {
-    const message = run?.data?.error || 'The release pipeline did not prepare a manifest.';
-    step(job, 'ship', 'Release blocked', 'failed', message);
-    return { status: 'failed', stage: 'done', error: message };
-  }
-
-  const approved = await base44.asServiceRole.functions.invoke('deployRelease', {
-    action: 'approve',
-    deployment_id: deployment.id,
-  });
-  const final = approved?.data?.deployment || deployment;
-  const url = final.url || '';
-
-  if (!url) {
-    const detail = final.notes || 'The release was approved but no deployment URL came back.';
-    step(job, 'ship', 'Release approved, no live URL', 'skipped', detail);
-    return { stage: 'done', status: 'done', deployment_id: deployment.id, browser_note: detail };
-  }
-
-  step(job, 'ship', 'Shipped live', 'done', url);
-  return { stage: 'verify', live_url: url, deployment_id: deployment.id };
+async function shipStage(_base44: any, job: any) {
+  // Safety gate: an automated ceiling score NEVER approves production publication.
+  // Do not even call deployRelease(action: 'run') here: its provider behavior may
+  // create a deployment. The owner must separately authorize the exact target,
+  // source revision, costs, and independent Guardian receipt in a release workflow.
+  const note = 'Awaiting explicit owner authorization and independent Guardian release receipt. No deployment was initiated.';
+  step(job, 'ship', 'Release requires owner approval', 'skipped', note);
+  return {
+    stage: 'done',
+    status: 'awaiting_approval',
+    browser_note: note,
+    error: '',
+  };
 }
 
 async function verifyStage(base44: any, job: any) {
