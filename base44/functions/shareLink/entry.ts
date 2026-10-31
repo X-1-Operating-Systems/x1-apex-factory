@@ -58,6 +58,11 @@ export default async function (req: Request): Promise<Response> {
 
     const user = await base44.auth.me().catch((e) => (e.status === 401 ? null : Promise.reject(e)));
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // Resolving an issued link stays public. Minting links or uploading release
+    // HTML is a privileged publication action; list/revoke keep their owner RLS.
+    if (user.role !== 'admin' && action !== 'list' && action !== 'revoke') {
+      return Response.json({ error: 'Publishing share links requires an admin.' }, { status: 403 });
+    }
 
     if (action === 'list') {
       const taskId = String(body?.task_id || '');
