@@ -9,7 +9,6 @@ const STATUS = {
   done: 'Done',
   failed: 'Stopped',
   stopped: 'Stopped',
-  awaiting_approval: 'Release approval required',
 };
 
 export default function JobCard({ job, onStop }) {
@@ -21,7 +20,7 @@ export default function JobCard({ job, onStop }) {
       <header className="flex flex-wrap items-center gap-2">
         <h3 className="font-heading text-[13px] tracking-tight">{job.project_name || 'Planning'}</h3>
         <span className="rounded-full border border-border px-1.5 py-0.5 text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground">
-          {STATUS[job.status] || job.status}
+          {job.status === 'stopped' && job.browser_note?.startsWith('Awaiting explicit owner authorization') ? 'Release held for approval' : (STATUS[job.status] || job.status)}
         </span>
         <span className="text-[10px] text-muted-foreground">{job.stage}</span>
         {active && (
