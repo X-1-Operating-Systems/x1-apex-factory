@@ -705,3 +705,26 @@ keeper removes the *code* ceiling; the wallet is the ceiling that remains.
 - The dashboard security scan.
 - A custom domain, if wanted, is attached from the dashboard.
 - Deploys to Railway, Docker and GitHub Pages remain manual by design: the packaged files are delivered on every release, and the stage says so.
+
+### Batch 48 — HeyGen checked: she is complete there, and nowhere in LiveAvatar yet
+
+The screen's own report was verified against both vendors rather than trusted.
+
+| what | live answer | verdict |
+|---|---|---|
+| HeyGen avatar group | `avatars.get 401be319df204d89a8b68c4608bd6245` → **200**, name "Eden Skye", **63 looks**, `default_voice_id` = her clone | installed and complete in HeyGen |
+| HeyGen voice clone | `voices.get e1e3b90a…` → **200**, "Eden Skye - Original 81s Voice Clone 20261030", English, female, `status: complete` | complete |
+| HeyGen catalogue | `avatars.list` returns 40 groups, **none named Eden** — her group is private and resolves by id only | expected, not a gap |
+| LiveAvatar avatars | `avatars.list` → `count: 0` | **no owned avatar**, so the room can only run the sandbox preview avatar |
+| LiveAvatar context | 1 context, "Eden Skye", with no `avatar_id` attached | context exists, face does not |
+| LiveAvatar credits | `credits.get` → 1110 | room can run |
+| LiveAvatar sandbox avatar | `avatars.get dd73ea75…` → **200**, name "Wayne" | the generic preview the screen names |
+
+So the limitation is real and vendor-side: LiveAvatar is a separate product from HeyGen, her
+identity has never been created inside it, and the client in `base44/shared/liveavatar.ts` has no
+avatar-creation route because LiveAvatar exposes none — her still has to be uploaded and validated
+in LiveAvatar's own console. Nothing in this app can install it, and no line of code pretends to.
+
+| id | state | files changed | verification |
+|---|---|---|---|
+| G-106 | closed | src/components/live/PersistentRoom.jsx | the open room now carries the fallback the operator asked for: *"If the view stays blank or the microphone doesn't work, open Eden Live in a separate tab."* — a real link to `/live` with `target="_blank"`, so a browser that blocks the embedded player or the mic is one click from a working window. Build green |

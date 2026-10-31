@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Copy, Loader2, Phone, Play, Square } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Phone, Play, Square } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -173,6 +173,18 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
             poster={EDEN_SKYE_PORTRAIT}
             onLeave={() => onChanged?.()}
           />
+          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+            If the view stays blank or the microphone doesn&apos;t work,{' '}
+            <a
+              href={joinLink}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 transition-colors hover:text-foreground"
+            >
+              open Eden Live in a separate tab
+            </a>
+            .
+          </p>
           <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
             Joining from a second device takes the room over — her token carries one viewer, so the
             first device drops out rather than both hearing her at once.
