@@ -1,0 +1,157 @@
+{
+  "name": "CodeJob",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "repo": {
+      "type": "string",
+      "maxLength": 180
+    },
+    "base_ref": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "goal": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "planning",
+        "planned",
+        "staging",
+        "awaiting_ci",
+        "ready_for_guardian",
+        "blocked",
+        "failed"
+      ],
+      "default": "draft"
+    },
+    "plan_json": {
+      "type": "string",
+      "maxLength": 180000
+    },
+    "branch": {
+      "type": "string"
+    },
+    "base_sha": {
+      "type": "string"
+    },
+    "head_sha": {
+      "type": "string"
+    },
+    "pull_request_url": {
+      "type": "string"
+    },
+    "pull_request_number": {
+      "type": "number"
+    },
+    "ci_status": {
+      "type": "string"
+    },
+    "ci_evidence": {
+      "type": "string",
+      "maxLength": 6000
+    },
+    "guardian_verdict": {
+      "type": "string",
+      "default": "NOT_RUN"
+    },
+    "blocked_reason": {
+      "type": "string",
+      "maxLength": 1600
+    },
+    "approved_at": {
+      "type": "string"
+    },
+    "model_calls": {
+      "type": "number",
+      "default": 0
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "stage",
+          "state"
+        ]
+      }
+    }
+  },
+  "required": [
+    "title",
+    "repo",
+    "goal",
+    "paths",
+    "state"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
