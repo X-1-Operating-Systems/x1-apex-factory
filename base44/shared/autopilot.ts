@@ -283,7 +283,7 @@ async function shipStage(_base44: any, job: any) {
   step(job, 'ship', 'Release requires owner approval', 'skipped', note);
   return {
     stage: 'done',
-    status: 'awaiting_approval',
+    status: 'stopped', // existing registered enum; holding without a production deploy
     browser_note: note,
     error: '',
   };
@@ -348,7 +348,7 @@ async function verifyStage(base44: any, job: any) {
 /** Advance one job by exactly one stage. Called by the clock workflow and by the page poll. */
 export async function advanceJob(base44: any, record: any) {
   const job = { ...record };
-  if (['done', 'failed', 'stopped', 'awaiting_approval'].includes(job.status)) return job;
+  if (['done', 'failed', 'stopped'].includes(job.status)) return job;
 
   let patch: any = { status: 'running' };
   try {
