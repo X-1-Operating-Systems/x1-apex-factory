@@ -16,6 +16,7 @@ export default function CodeFactory() {
  const [selected,setSelected]=useState(null);
  const [busy,setBusy]=useState('');
  const [error,setError]=useState('');
+ const [connection,setConnection]=useState(null);
  const [draft,setDraft]=useState({
   title:'',repo:'Strategic-Minds-AI/x1-infinity-agent-runtime',base_ref:'main',
   paths:'',goal:''
@@ -31,6 +32,12 @@ export default function CodeFactory() {
   setSelected(old=>old ? (result.jobs || []).find(j=>j.id===old.id) || old : null);
  },[]);
  useEffect(()=>{ refresh().catch(e=>setError(e.message)); },[refresh]);
+ const probe=async()=>{
+  setBusy('probe');setError('');
+  try {setConnection(await invoke('probe',{repo:draft.repo,base_ref:draft.base_ref}));}
+  catch(e){setConnection(null);setError(e?.response?.data?.error || e.message);}
+  finally{setBusy('');}
+ };
  const create=async(e)=>{
   e.preventDefault();setError('');setBusy('create');
   try {
@@ -74,8 +81,10 @@ export default function CodeFactory() {
       <form onSubmit={create} className="space-y-3 rounded-xl border border-border bg-card p-5">
        <h2 className="text-sm font-semibold">New coding mission</h2>
        <label className="block text-xs text-muted-foreground">Mission name<input required maxLength={120} value={draft.title} onChange={e=>setDraft(v=>({...v,title:e.target.value}))} placeholder="Fix task queue claim race" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
-       <label className="block text-xs text-muted-foreground">GitHub repository<input required value={draft.repo} onChange={e=>setDraft(v=>({...v,repo:e.target.value}))} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
-       <label className="block text-xs text-muted-foreground">Existing base branch<input required value={draft.base_ref} onChange={e=>setDraft(v=>({...v,base_ref:e.target.value}))} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
+       <label className="block text-xs text-muted-foreground">GitHub repository<input required value={draft.repo} onChange={e=>{setConnection(null);setDraft(v=>({...v,repo:e.target.value}));}} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
+       <label className="block text-xs text-muted-foreground">Existing base branch<input required value={draft.base_ref} onChange={e=>{setConnection(null);setDraft(v=>({...v,base_ref:e.target.value}));}} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
+       <button type="button" disabled={!!busy} onClick={probe} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:bg-secondary disabled:opacity-50">{busy==='probe'?'Checking…':'Verify GitHub source — read only / no model credits'}</button>
+       {connection && <p role="status" className="break-all text-xs text-muted-foreground">Connected: {connection.repo} · {connection.base_ref} @ {connection.sha.slice(0,12)} · {connection.can_push ? 'branch write permitted' : 'read access only'}. No credits or writes used.</p>}
        <label className="block text-xs text-muted-foreground">Exact existing file paths (1–3, one per line)<textarea required rows={3} value={draft.paths} onChange={e=>setDraft(v=>({...v,paths:e.target.value}))} placeholder="src/worker.ts" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
        <label className="block text-xs text-muted-foreground">Requirements and acceptance criteria<textarea required rows={5} value={draft.goal} onChange={e=>setDraft(v=>({...v,goal:e.target.value}))} placeholder="Make the existing worker claim one job atomically. Include tests for expired lease and duplicate execution." className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
        <button disabled={!!busy} className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50" type="submit">{busy==='create'?'Creating…':'Create mission — no model charge'}</button>
