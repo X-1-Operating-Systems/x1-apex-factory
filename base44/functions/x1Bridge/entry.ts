@@ -15,9 +15,9 @@ import {
 // admin. Everything else is the X1 Operating System calling in from outside with the shared bridge
 // key, so those calls carry no user session and are authorised by the key alone.
 const ADMIN_ACTIONS = ['state', 'verify', 'os.status', 'os.call'];
-// The Operating System answers its own contract (heartbeat / claim / complete); this app's keyed
-// actions stay allowed so either side can be asked the same question.
-const OUTBOUND_ACTIONS = ['ping', 'heartbeat', 'claim', 'complete', ...Object.keys(KEYED_ACTIONS)];
+// Factory-to-OS calls use the dedicated x1ApexBridge API; machine-worker heartbeat,
+// claim and complete belong exclusively to X1's separate x1Bridge endpoint.
+const OUTBOUND_ACTIONS = ['ping', 'report'];
 const PUBLIC_HOST = 'https://x1-apex-factory.base44.app';
 
 async function record(base44: any, event: any) {
@@ -65,23 +65,15 @@ export default async function (req: Request): Promise<Response> {
             error: `${OS_URL_SECRET} is not set, so the outbound direction has nowhere to go.`,
           });
         }
-        const target = action === 'os.call' ? String(body?.os_action || 'heartbeat').trim() : 'heartbeat';
+        const target = action === 'os.call' ? String(body?.os_action || 'ping').trim() : 'ping';
         if (!OUTBOUND_ACTIONS.includes(target)) {
           return Response.json({ ok: false, error: `"${target}" is not an outbound bridge action.` }, { status: 400 });
         }
         if (!configured) {
           return Response.json({ ok: false, armed: true, error: `${BRIDGE_SECRET} is not set, so the call cannot be signed.` });
         }
-        // The OS asks every caller to identify itself, and it reads the name from a worker object.
-        const given = body?.payload && typeof body.payload === 'object' ? body.payload : {};
-        const payload = {
-          ...given,
-          worker: {
-            name: 'x1-apex-factory',
-            kind: 'factory',
-            ...(given.worker && typeof given.worker === 'object' ? given.worker : {}),
-          },
-        };
+        // A factory handshake must never register itself as a machine worker.
+        const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
         const answer = await callOs(osUrl, configured, target, payload);
         await record(base44, {
           action: `os.${target}`,
