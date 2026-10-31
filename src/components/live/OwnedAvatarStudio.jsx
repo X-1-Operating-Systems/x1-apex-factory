@@ -3,6 +3,7 @@ import { Loader2, Play, RefreshCw, Sparkles, Upload } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 // Her own artwork, byte for byte. The host stores it untouched and never asks a vendor's permission.
 const HER_ARTWORK =
@@ -22,16 +23,15 @@ export default function OwnedAvatarStudio() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const [brief, setBrief] = useState('');
+  const [drafting, setDrafting] = useState(false);
   const timer = useRef(null);
 
   const loadStatus = async () => {
     setLoading(true);
     const res = await call('status');
     setStatus(res);
-    if (res.ok && res.host?.avatar) {
-      const shot = await call('image.preview');
-      setPreview(shot.ok ? shot.url : null);
-    }
+    if (res.ok && res.host?.avatar) setPreview(HER_ARTWORK);
     setLoading(false);
   };
 
@@ -61,6 +61,16 @@ export default function OwnedAvatarStudio() {
     if (!res.ok) setError(res.error);
     await loadStatus();
     setBusy(null);
+  };
+
+  // GPT writes what she says; the speaking and the mouth are still her own container's work.
+  const writeWithGpt = async () => {
+    setDrafting(true);
+    setError(null);
+    const res = await call('script', { intent: brief });
+    if (res.ok && res.text) setText(res.text);
+    else setError(res.error || 'GPT returned nothing to say.');
+    setDrafting(false);
   };
 
   const renderHer = async () => {
@@ -113,6 +123,18 @@ export default function OwnedAvatarStudio() {
         </div>
 
         <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Input
+              value={brief}
+              onChange={(event) => setBrief(event.target.value.slice(0, 400))}
+              placeholder="Brief for GPT — what she should get across"
+              className="h-8 min-w-[170px] flex-1 text-[11.5px]"
+            />
+            <Button size="sm" variant="ghost" onClick={writeWithGpt} disabled={drafting || !brief.trim()}>
+              {drafting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              Write with GPT
+            </Button>
+          </div>
           <Textarea
             value={text}
             onChange={(event) => setText(event.target.value.slice(0, 20000))}

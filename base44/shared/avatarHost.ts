@@ -110,6 +110,20 @@ export async function avatarJson(path, init = {}) {
   };
 }
 
+/** Her bytes, pulled with the host token so nothing depends on a URL the host hands out. */
+export async function avatarBytes(path) {
+  const response = await fetch(`${baseUrl()}${path}`, {
+    headers: { Authorization: `Bearer ${token()}` },
+    signal: AbortSignal.timeout(120000),
+  });
+  if (!response.ok) return { ok: false, status: response.status, error: `HTTP ${response.status}` };
+  return {
+    ok: true,
+    bytes: new Uint8Array(await response.arrayBuffer()),
+    type: response.headers.get("content-type") || "application/octet-stream",
+  };
+}
+
 /** Send her still to the host exactly as it arrived — no re-encode on the way in. */
 export async function uploadAvatar(bytes, contentType) {
   const form = new FormData();

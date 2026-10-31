@@ -3,6 +3,7 @@ import {
   AVATAR_RAILWAY,
   ensureAvatarHost,
   avatarConfigured,
+  avatarBytes,
   avatarJson,
   avatarSource,
   signedAvatarUrl,
@@ -10,6 +11,8 @@ import {
 } from '../../shared/avatarHost.ts';
 
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+// Renders already copied into app storage, so polling a finished job never uploads it twice.
+const RENDER_FILES = new Map();
 
 export default async function (req) {
   try {
@@ -76,8 +79,41 @@ export default async function (req) {
       if (!jobId) return Response.json({ ok: false, error: 'job_id is required' }, { status: 400 });
       const job = await avatarJson(`/renders/${encodeURIComponent(jobId)}`);
       const record = job.data?.job || null;
-      const videoUrl = record && record.status === 'done' ? await signedAvatarUrl(`/renders/${encodeURIComponent(jobId)}.mp4`) : null;
-      return Response.json({ ok: job.ok, action, job: record, video_url: videoUrl, error: job.error });
+      // A finished render is copied into the app's own storage: the host forgets its jobs on
+      // restart, and her video must outlive the container.
+      let videoUrl = RENDER_FILES.get(jobId)?.url || null;
+      let fileUri = RENDER_FILES.get(jobId)?.uri || null;
+      let persistError = null;
+      if (record && record.status === 'done' && !videoUrl) {
+        const file = await avatarBytes(`/renders/${encodeURIComponent(jobId)}.mp4`);
+        if (!file.ok) {
+          persistError = `The host did not return the video (${file.error})`;
+        } else {
+          const uploaded = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
+            file: new File([file.bytes], `eden-${jobId}.mp4`, { type: 'video/mp4' }),
+          });
+          fileUri = uploaded.file_uri;
+          const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: fileUri, expires_in: 86400 });
+          videoUrl = signed.signed_url;
+          RENDER_FILES.set(jobId, { url: videoUrl, uri: fileUri, at: Date.now() });
+        }
+      }
+      return Response.json({ ok: job.ok, action, job: record, video_url: videoUrl, file_uri: fileUri, error: job.error || persistError });
+    }
+
+    if (action === 'script') {
+      const intent = String(payload.intent || '').trim();
+      if (!intent) return Response.json({ ok: false, error: 'intent is required' }, { status: 400 });
+      const seconds = Math.min(Math.max(Number(payload.seconds) || 12, 4), 120);
+      const words = Math.max(12, Math.round(seconds * 2.3));
+      const answer = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `You are Eden Skye, the voice of X1 Apex Factory. Write exactly what she says out loud, first person, as one short spoken passage of no more than ${words} words. Plain speakable sentences only: no stage directions, no quotation marks, no headings, no emoji, no markdown. Intent: ${intent}`,
+      });
+      const text = String(answer || '')
+        .trim()
+        .replace(/^["'“”]+|["'“”]+$/g, '')
+        .slice(0, 20000);
+      return Response.json({ ok: Boolean(text), action, text, words: text.split(/\s+/).filter(Boolean).length });
     }
 
     return Response.json({ ok: false, error: 'Unknown action', service: AVATAR_RAILWAY.serviceName }, { status: 400 });

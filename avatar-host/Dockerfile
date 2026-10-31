@@ -15,6 +15,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # The engine: Wav2Lip (MIT) — mouth re-sync from an audio track, onto any face.
+# Wav2Lip calls librosa.filters.mel with positional arguments, which librosa 0.10+ refuses
+# ("mel() takes 0 positional arguments but 2 were given"). The call is patched below so a render
+# works on whichever librosa the image resolves.
 RUN git clone --depth 1 https://github.com/Rudrabha/Wav2Lip /opt/wav2lip \
     && mkdir -p /opt/wav2lip/checkpoints /opt/wav2lip/face_detection/detection/sfd /opt/voices \
     && curl -fsSL -o /opt/wav2lip/checkpoints/wav2lip_gan.pth \
@@ -24,7 +27,10 @@ RUN git clone --depth 1 https://github.com/Rudrabha/Wav2Lip /opt/wav2lip \
     && curl -fsSL -o /opt/voices/voice.onnx \
          https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx \
     && curl -fsSL -o /opt/voices/voice.onnx.json \
-         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
+        https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json \
+    && sed -i 's/librosa\.filters\.mel(hp\.sample_rate, hp\.n_fft/librosa.filters.mel(sr=hp.sample_rate, n_fft=hp.n_fft/' \
+        /opt/wav2lip/audio.py \
+    && grep -n "librosa.filters.mel" /opt/wav2lip/audio.py
 
 COPY server.py ./
 
