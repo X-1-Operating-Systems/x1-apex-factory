@@ -120,16 +120,33 @@ async function bridgeNode(id, label, baseUrl, key, needs) {
     });
     const body = await res.json().catch(() => null);
     const ms = Date.now() - started;
+    if (res.ok) {
+      return row(id, label, 'os', {
+        inbound: true,
+        outbound: true,
+        ok: true,
+        status: res.status,
+        ms,
+        detail: `Heartbeat accepted — worker ${body?.worker_id || 'registered'}, ${body?.queued ?? 0} queued`,
+      });
+    }
+    // Reachable but no bridge contract at this address: say so instead of calling it down.
+    const health = await hit(`${baseUrl.replace(/\/$/, '')}/healthz`);
+    if (health.ok) {
+      return row(id, label, 'os', {
+        outbound: true,
+        ok: true,
+        status: health.status,
+        ms: health.ms,
+        detail: `Reachable, but this address has no x1Bridge contract (${res.status} on POST) — it answers ${health.text.slice(0, 60)} on /healthz. Work cannot be dispatched here until the bridge is installed.`,
+      });
+    }
     return row(id, label, 'os', {
       inbound: true,
-      outbound: res.ok,
-      ok: res.ok,
       status: res.status,
       ms,
-      detail: res.ok
-        ? `Heartbeat accepted — worker ${body?.worker_id || 'registered'}, ${body?.queued ?? 0} queued`
-        : `${body?.error || `answered ${res.status}`}`,
-      needs: res.ok ? '' : needs,
+      detail: `${body?.error || `answered ${res.status}`} — and /healthz is unreachable`,
+      needs,
     });
   } catch (err) {
     return row(id, label, 'os', {
