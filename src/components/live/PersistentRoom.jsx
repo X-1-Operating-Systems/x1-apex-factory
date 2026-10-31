@@ -12,6 +12,7 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
   const [session, setSession] = useState(null);
   const [credits, setCredits] = useState(null);
   const [sandbox, setSandbox] = useState(false);
+  const [keeper, setKeeper] = useState({ enabled: false, sandbox: false });
   const [keeping, setKeeping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +44,7 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
       setSession(null);
     }
     if (Number.isFinite(Number(res.credits))) setCredits(Number(res.credits));
+    if (res.keeper) setKeeper(res.keeper);
   };
 
   // Pick up a room that is already open (started here or on another device).
@@ -55,6 +57,7 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
         setKeeping(false);
       }
       if (Number.isFinite(Number(res.credits))) setCredits(Number(res.credits));
+      if (res.keeper) setKeeper(res.keeper);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -105,6 +108,17 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
     onChanged?.();
   };
 
+  // The keeper runs on the server, so she stays live with this tab closed.
+  const toggleKeeper = async (next) => {
+    setBusy(true);
+    setError(null);
+    const res = await call('auto', { enabled: next, sandbox });
+    apply(res);
+    if (!res.ok) setError(res.error || 'The keeper did not answer.');
+    if (!next) setKeeping(false);
+    setBusy(false);
+  };
+
   const joinLink = typeof window !== 'undefined' ? `${window.location.origin}/live` : '';
 
   return (
@@ -115,6 +129,20 @@ export default function PersistentRoom({ hasOwnAvatar, onChanged }) {
           <Switch checked={sandbox} onCheckedChange={setSandbox} />
           Sandbox (free, 60s cycles)
         </label>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-border px-2.5 py-1.5">
+        <label className="flex items-center gap-1.5 text-[10.5px] font-medium">
+          <Switch checked={keeper.enabled} disabled={busy} onCheckedChange={toggleKeeper} />
+          Hold her live 24/7
+        </label>
+        <span className="text-[10px] leading-relaxed text-muted-foreground">
+          {keeper.enabled
+            ? keeper.sandbox
+              ? 'Server holds her every 5 minutes, free sandbox cycles'
+              : 'Server holds her every 5 minutes, billing 2 credits/minute day and night'
+            : 'Off — she only stays live while this tab is open'}
+        </span>
       </div>
 
       <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">

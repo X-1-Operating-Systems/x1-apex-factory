@@ -12,6 +12,12 @@ const LIVE_CAP_SECONDS = 1200;
 const SANDBOX_CAP_SECONDS = 60;
 const RENEW_BELOW_SECONDS = 45;
 
+const keeperView = (record) => ({
+  enabled: record?.enabled === true,
+  sandbox: record?.sandbox === true,
+  last_run_at: record?.last_run_at || null,
+});
+
 const secondsLeft = (record) => {
   if (!record?.expires_at) return 0;
   const left = (Date.parse(record.expires_at) - Date.now()) / 1000;
@@ -81,12 +87,24 @@ export default async function (req) {
       return Number.isFinite(Number(left)) ? Number(left) : null;
     };
 
+    // The keeper is what makes her live with no browser tab open: the "Eden 24/7" workflow calls
+    // `auto` on a five-minute clock, and the room rolls over whether or not anyone is watching.
+    const keeperPage = await base44.entities.LiveKeeper.list({ sort: '-created_date', limit: 1 }).catch(() => ({ items: [] }));
+    let keeper = (keeperPage.items || [])[0] || null;
+    const stampKeeper = async (sessionId) => {
+      if (action !== 'auto' || !keeper) return;
+      keeper =
+        (await base44.entities.LiveKeeper
+          .update(keeper.id, { last_run_at: new Date().toISOString(), last_session_id: sessionId })
+          .catch(() => keeper)) || keeper;
+    };
+
     if (action === 'state') {
       const sessions = await open();
       const current = sessions.find((record) => secondsLeft(record) > 0) || null;
       const stale = sessions.filter((record) => record.id !== current?.id);
       for (const record of stale) await base44.entities.LiveSession.update(record.id, { status: 'ended', ended_at: new Date().toISOString() }).catch(() => null);
-      return Response.json({ ok: true, ...view(current, await readCredits()) });
+      return Response.json({ ok: true, keeper: keeperView(keeper), ...view(current, await readCredits()) });
     }
 
     if (action === 'stop') {
@@ -95,12 +113,32 @@ export default async function (req) {
       return Response.json({ ok: true, stopped: sessions.length, ...view(null, await readCredits()) });
     }
 
-    if (action !== 'keep') {
+    // auto with `enabled` is the operator throwing the switch; every other auto call is the clock.
+    if (action === 'auto' && body.enabled !== undefined) {
+      const enabled = body.enabled === true;
+      const nextSandbox = body.sandbox === undefined ? keeper?.sandbox === true : body.sandbox === true;
+      const patch = { enabled, sandbox: nextSandbox, note: enabled ? 'Held live by the keeper' : 'Keeper off' };
+      keeper = keeper
+        ? await base44.entities.LiveKeeper.update(keeper.id, patch)
+        : await base44.entities.LiveKeeper.create(patch);
+      if (!enabled) {
+        for (const record of await open()) await endSession(record);
+        return Response.json({ ok: true, keeper: keeperView(keeper), ...view(null, await readCredits()) });
+      }
+    }
+
+    if (action !== 'keep' && action !== 'auto') {
       return Response.json({ ok: false, error: `Unknown action "${action}".` }, { status: 400 });
     }
 
+    // auto: nothing to do while the keeper is switched off.
+    if (action === 'auto' && !keeper?.enabled) {
+      // Nothing to do and nothing to spend: no credit read on a five-minute tick.
+      return Response.json({ ok: true, skipped: true, keeper: keeperView(keeper), session: null });
+    }
+
     // keep: roll the room over before it lapses, so she is continuously there.
-    const sandbox = body.sandbox === true;
+    const sandbox = action === 'auto' ? keeper?.sandbox === true : body.sandbox === true;
     const sessions = await open();
     const usable = [];
     for (const record of sessions) {
@@ -109,7 +147,10 @@ export default async function (req) {
     }
 
     const current = usable[0];
-    if (current) return Response.json({ ok: true, kept: true, ...view(current, await readCredits()) });
+    if (current) {
+      await stampKeeper(current.id);
+      return Response.json({ ok: true, kept: true, keeper: keeperView(keeper), ...view(current, await readCredits()) });
+    }
 
     const cap = sandbox ? SANDBOX_CAP_SECONDS : LIVE_CAP_SECONDS;
     const tokenRes = await callLiveAvatar(
@@ -157,7 +198,8 @@ export default async function (req) {
       note: sandbox ? 'Persistent room (sandbox, free)' : 'Persistent room, billing per minute',
     });
 
-    return Response.json({ ok: true, started: true, ...view(record, await readCredits()) });
+    await stampKeeper(record.id);
+    return Response.json({ ok: true, started: true, keeper: keeperView(keeper), ...view(record, await readCredits()) });
   } catch (error) {
     return Response.json({ ok: false, error: error?.message || 'The live room failed.' }, { status: 500 });
   }

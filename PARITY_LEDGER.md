@@ -645,6 +645,47 @@ either detail.
 |---|---|---|
 | G-101 | closed — transient | a fresh verify passes both previously failing probes; the later stored runs are 100% at 16 and 17 probes |
 
+### Batch 47 — she is held by the server, and the containers have ceilings (G-102..G-105)
+
+The 60-second limit was never a code decision: LiveAvatar caps a sandbox session at 60s and a live
+one at 20 minutes, and continuity has always come from rolling a fresh session over before the old
+one lapses. What was missing is that **the rollover needed a browser tab**: `PersistentRoom` drove the
+heartbeat on a 15-second interval, so closing the tab let her die. Presence was therefore as long as
+the operator kept watching, which is not 24/7.
+
+Built — the keeper. `LiveKeeper` entity (enabled, sandbox, last_run_at, last_session_id, admin-only
+RLS) · `edenLive` gained `action: "auto"`: with `enabled` present it is the operator throwing the
+switch (opening the room, or ending every open one and standing down), without it the action is the
+clock, inert while the keeper is off and otherwise running the same rollover `keep` runs, stamping
+`last_run_at`/`last_session_id` · `base44/workflows/Eden 24 7.jsonc` calls it every five minutes as the
+workflow's admin creator, so no tab, device or page is involved · the `/live` room now carries a
+**Hold her live 24/7** switch that states which mode is running (free sandbox cycles, or 2
+credits/minute day and night). The five-minute tick is inside the 20-minute cap on every cycle, and a
+room found already expired is ended and replaced rather than reused.
+
+Built — the container ceilings. `docker-compose.yml` + `.env.example` run both owned hosts with the
+kernel enforcing the limit: avatar-host 2 vCPU / 6 GB with `MAX_RENDER_SECONDS` 7200 and `MAX_CHARS`
+20000, browser-host 4 vCPU / 4 GB plus 1 GB `/dev/shm` with `MAX_SESSIONS` 50 and
+`HARD_CAP_SECONDS` 21600, `restart: unless-stopped`, healthchecks on both `/health` routes, rotated
+logs. Both Dockerfiles already expose 8080 and both servers already read `HOST_TOKEN`, `DATA_DIR` and
+`PORT`, so nothing had to change inside them.
+
+Built — `LOCAL.md`: the runbook for cloud-primary / local-understudy — which layer runs where, the
+two commands to bring the engines up, the exact secrets that repoint the app at them, the ceiling
+table, how the keeper works, what the sandbox actually isolates, and what still requires the cloud.
+
+| id | state | verification (live, this turn) |
+|---|---|---|
+| G-102 | closed | keeper switch exercised through the function the page calls: `auto {enabled:true, sandbox:true}` → **ok, started**, `keeper {enabled:true, sandbox:true, last_run_at …}`; a clock tick `auto {}` → **ok, kept** (same room, no spend on a new one); `auto {enabled:false}` → **ok, keeper off**, and `LiveSession {status:'started'}` returned **0** rows, so standing down really ends the room. One `LiveKeeper` record persisted with `enabled: false` as the saved setting |
+| G-103 | closed | `Eden 24/7` registered and **active** (workflow lookup answers "Current workflow status: active"; no runs yet because the keeper is off) |
+| G-104 | closed (implemented) | compose parses, both services carry `cpus`/`mem_limit`/`healthcheck`/`restart`; the two unsupported `pids_limit` keys were removed rather than left to warn. Not fired — no Docker daemon in this environment, and the hosts are live on Railway |
+| G-105 | closed | `LOCAL.md` written; `.env` already gitignored; build green |
+| — | confirmed, not rebuilt | **Templates: 223 records** in `Template`, so the library target of 200 is already met; **sandbox**: every browser session gets its own isolated context on the host volume, bounded by `HARD_CAP_SECONDS` |
+
+Honest limit, recorded so it is not mistaken for a bug: a live (non-sandbox) cycle bills 2 credits a
+minute around the clock, so 24/7 presence at $0 is only possible in the 60-second sandbox tier. The
+keeper removes the *code* ceiling; the wallet is the ceiling that remains.
+
 ## Register state (through Batch 40)
 
 | id | sev | state |

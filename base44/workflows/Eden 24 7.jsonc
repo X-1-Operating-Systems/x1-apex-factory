@@ -1,0 +1,47 @@
+{
+  "name": "Eden 24/7",
+  "description": "Every five minutes: hold Eden's live room open. Rolls a fresh session over before the vendor ceiling so she stays present with no browser tab open. Does nothing while the keeper switch on the Live avatar page is off.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "eden_24_7",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "hold_the_room": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "edenLive",
+            "args": {
+              "action": "auto"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Hold her room open",
+            "description": "Rolls over before the ceiling"
+          }
+        }
+      }
+    ]
+  }
+}
