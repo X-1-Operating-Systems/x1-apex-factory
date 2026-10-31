@@ -142,8 +142,17 @@ export default async function (req: Request) {
     const jobs = base44.asServiceRole.entities.CodeJob;
 
     if (action === 'list') {
-      const page = await jobs.filter({created_by_id:user.id}, {sort:'-created_date',limit:30});
-      return Response.json({ok:true,jobs:page.items || []});
+      try {
+        const page = await jobs.filter({created_by_id:user.id}, {sort:'-created_date',limit:30});
+        return Response.json({ok:true,jobs:page.items || [],schema_ready:true});
+      } catch (e) {
+        // Branch source files may exist before their backend entity is registered.
+        // Distinguish an unavailable ledger from a healthy empty ledger.
+        const message = textError(e);
+        if (!/CodeJob|entity.*not found|schema.*not found/i.test(message)) throw e;
+        return Response.json({ok:true,jobs:[],schema_ready:false,
+          warning:'CodeJob is not registered in this environment. Only read-only GitHub verification is available.'});
+      }
     }
     if (action === 'probe') {
       // No model usage and no GitHub write methods. Safe connectivity canary.
@@ -157,6 +166,16 @@ export default async function (req: Request) {
       return Response.json({ok:true,read_only:true,repo,base_ref,sha,can_push:metadata.permissions?.push === true,model_calls:0});
     }
     if (action === 'create') {
+      // Fail closed before writes if the preview entity does not exist.
+      try {
+        await jobs.filter({created_by_id:user.id}, {limit:1});
+      } catch (e) {
+        const message=textError(e);
+        if (/CodeJob|entity.*not found|schema.*not found/i.test(message)) {
+          return Response.json({ok:false,error:'CodeJob is not registered. Mission writes remain disabled until an authorized release.'}, {status:503});
+        }
+        throw e;
+      }
       const repo = safeRepo(body.repo);
       const base_ref = safeRef(body.base_ref || 'main');
       const title = String(body.title || 'Code mission').trim().slice(0,120);
