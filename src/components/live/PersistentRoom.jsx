@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Copy, ExternalLink, Loader2, Phone, Play, Square } from 'lucide-react';
+import { Copy, Loader2, Phone, Play, Square } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
