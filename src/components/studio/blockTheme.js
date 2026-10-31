@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const FONTS = {
   serif: 'Georgia, "Fraunces", "Times New Roman", serif',
   display: '"Fraunces", Georgia, serif',
