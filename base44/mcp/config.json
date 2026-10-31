@@ -289,11 +289,11 @@
             },
             "os_action": {
               "type": "string",
-              "description": "os.call only: the action to send the X1 Operating System — ping, status, task.list, task.get, task.create or finding.list."
+              "description": "os.call only: the action to send the X1 Operating System — heartbeat (health and queued work), claim (take a queued job), complete (report one back), or ping / status / task.list / task.get / task.create / finding.list on this side. The worker object is filled in for you."
             },
             "payload": {
               "type": "object",
-              "description": "os.call only: that action's own inputs, passed through to the OS."
+              "description": "os.call only: that action's own inputs, passed through to the OS (for complete, the job id and its result)."
             }
           },
           "required": [
