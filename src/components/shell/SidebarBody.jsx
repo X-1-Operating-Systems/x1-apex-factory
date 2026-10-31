@@ -93,7 +93,7 @@ export default function SidebarBody({ tasks, projects, onNavigate, hasMore, onLo
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="px-2.5">
+      <div className="min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-2">
         <button
           type="button"
           onClick={() => {
@@ -145,46 +145,44 @@ export default function SidebarBody({ tasks, projects, onNavigate, hasMore, onLo
             </div>
           ))}
         </nav>
-      </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto scroll-thin px-2.5 pb-3">
-        <ProjectList projects={projects} tasks={tasks} onNavigate={onNavigate} />
         <div className="mt-4">
-          <SessionList tasks={tasks} projects={projects} onNavigate={onNavigate} />
+          <ProjectList projects={projects} tasks={tasks} onNavigate={onNavigate} />
+          <div className="mt-4">
+            <SessionList tasks={tasks} projects={projects} onNavigate={onNavigate} />
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground disabled:opacity-50"
+            >
+              {loadingMore ? <Loader2 size={11} className="animate-spin" /> : <ChevronDown size={11} />} Show more
+            </button>
+          )}
+          <UsageMeter />
         </div>
-        {hasMore && (
-          <button
-            type="button"
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground disabled:opacity-50"
+      </div>
+
+      <div className="shrink-0 border-t border-sidebar-border px-2.5 py-1.5">
+        <div className="flex items-center gap-1">
+          <NavLink
+            to="/settings"
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `nav-row flex flex-1 items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
+                isActive
+                  ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
+              }`
+            }
           >
-            {loadingMore ? <Loader2 size={11} className="animate-spin" /> : <ChevronDown size={11} />} Show more
-          </button>
-        )}
-      </div>
-
-      <div className="shrink-0 px-2.5 pb-1">
-        <NavLink
-          to="/settings"
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `nav-row flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${
-              isActive
-                ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/70'
-            }`
-          }
-        >
-          <Settings size={15} strokeWidth={1.7} className="text-muted-foreground" />
-          Settings
-        </NavLink>
-        <UsageMeter />
-      </div>
-
-      <div className="flex items-center justify-between border-t border-sidebar-border px-4 py-1.5">
-        <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Inbox</span>
-        <NotificationBell />
+            <Settings size={15} strokeWidth={1.7} className="text-muted-foreground" />
+            Settings
+          </NavLink>
+          <NotificationBell />
+        </div>
       </div>
     </div>
   );
