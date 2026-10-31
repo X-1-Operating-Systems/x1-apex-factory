@@ -182,7 +182,8 @@ export default async function (req: Request) {
 
     if (action === 'stage') {
       if (job.state !== 'planned' || !job.plan_json || !job.base_sha) throw new Error('Only a completed, reviewed plan can stage a draft PR.');
-      const plan = validatePlan(JSON.parse(job.plan_json),job.paths.map(safePath));
+      const proposal = JSON.parse(job.plan_json);
+      const plan = validatePlan(proposal,job.paths.map(safePath));
       await jobs.update(job.id,{state:'staging',approved_at:new Date().toISOString(),steps:stamp(job,'stage','staging','User explicitly approved isolated branch writes. Production merge remains prohibited.')});
       try {
         const api = await github(base44);
@@ -194,7 +195,7 @@ export default async function (req: Request) {
         await api(`/repos/${repo}/git/refs`,{method:'POST',body:JSON.stringify({ref:`refs/heads/${branch}`,sha:job.base_sha})});
         let head = job.base_sha;
         for (const file of plan.files) {
-          const origin = plan.original_shas?.[file.path];
+          const origin = proposal.original_shas?.[file.path];
           if (!origin) throw new Error('Missing original file SHA for ' + file.path);
           const result = await api(`/repos/${repo}/contents/${file.path.split('/').map(encodeURIComponent).join('/')}`, {
             method:'PUT',body:JSON.stringify({message:`X1 autonomous coding: ${job.title}`,content:encode(file.content),branch,sha:origin})
