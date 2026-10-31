@@ -67,3 +67,9 @@ test('repeated ticks cannot convert awaiting approval into completed', async () 
   assert.equal(result.stage, 'done');
   assert.equal(x.calls.length, 0);
 });
+test('the branch schema accepts awaiting_approval and UI describes the hold', () => {
+  const schema = JSON.parse(fs.readFileSync('base44/entities/AutopilotJob.jsonc', 'utf8'));
+  assert.ok(schema.properties.status.enum.includes('awaiting_approval'));
+  const card = fs.readFileSync('src/components/autopilot/JobCard.jsx', 'utf8');
+  assert.match(card, /awaiting_approval: 'Release approval required'/);
+});
