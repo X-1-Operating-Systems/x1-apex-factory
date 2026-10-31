@@ -5,8 +5,10 @@ import { callLiveAvatar, EDEN_AVATAR_ID, SANDBOX_AVATAR_ID } from '../../shared/
 // One live Eden room that survives the vendor's per-session ceiling. LiveAvatar caps a session at
 // 20 minutes (60 seconds in its sandbox), so "persistent" here means the app rolls a fresh session
 // over a few seconds before the old one expires, and every device joins whatever room is current.
-// Her own avatar, trained from her artwork. The sandbox avatar is only a fallback if that fails.
-const AVATAR_ID = secrets.get('EDEN_LIVEAVATAR_AVATAR_ID') || EDEN_AVATAR_ID || SANDBOX_AVATAR_ID;
+// The avatar id comes from the shared client, which already resolves the app's configured Eden avatar
+// and falls back to the sandbox avatar. It is NOT read from a secret: no such secret exists, and a
+// lookup for one made the platform refuse to run or test this function at all.
+const AVATAR_ID = EDEN_AVATAR_ID || SANDBOX_AVATAR_ID;
 const EDEN_CONTEXT_ID = '58a8223a-bbb7-4bff-99d3-0322661d3588';
 const LIVE_CAP_SECONDS = 1200;
 const SANDBOX_CAP_SECONDS = 60;

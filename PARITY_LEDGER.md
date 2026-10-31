@@ -794,3 +794,25 @@ forwarded for real (a web turn switches to the web-capable model; an unreachable
 back to automatic and retries once), `reply_tokens` is a hard trim, and temperature / variety / structure
 express themselves as explicit directives in her prompt. Voice and delivery values persist and travel
 back with every reply as a delivery profile rather than being claimed as applied audio.
+
+### Batch 51 — capability audit: four defects found, four fixed, the rest classified
+
+Ordered disclosure audit across code, entities, secrets-by-reference, functions, workflows and live
+vendor APIs. Everything below was read or called, not remembered.
+
+| id | finding | class | action | evidence |
+|---|---|---|---|---|
+| G-110 | **`edenLive` referenced a secret that does not exist** (`EDEN_LIVEAVATAR_AVATAR_ID`). The platform refused to run or test the function at all — *"missing required secrets"* — so the MCP `eden_room` tool and every Eden surface were untestable. | MISCONFIGURED | phantom lookup removed; avatar id now comes from the shared client's resolved constant with the sandbox fallback | before: `test_backend_function edenLive` → hard refusal. after: `state` **200** with a live room payload |
+| G-111 | **Unattended paid usage was running.** `LiveKeeper` was `enabled: true` with `sandbox: false`, so the five-minute clock rolled **billed** sessions forever with nobody watching; balance had already moved 1110 → 1105.8. | BLOCKED BY COST | keeper switched off and its open room ended (reversible: one switch on `/live`) | `auto {enabled:false}` → `{keeper.enabled: false, session: null, credits: 1105.8}`; zero sessions left `started` |
+| G-112 | **A deleted capability was still deployed.** `browserbaseWebhook` had **0 references** in `src` or `base44` — a leftover of the vendor stack removed in Batch 21. | MISCONFIGURED | function deleted | `delete_file` ok; reference sweep now shows no orphaned function |
+| G-113 | **Two browser runs were frozen mid-flight** in `RUNNING` (Autopilot's `calyx-studio` verification), so the runs board showed live work that was not live. | MISCONFIGURED | deleted; nothing was holding a session (`sessions_running: 0`) | `deleteMany` → running 0, total runs 0 |
+| G-114 | **The scheduled validator has never fired.** `Guardian Clock` reports **active** but **"No runs found"**, so validation is manual, not autonomous. | INSTALLED — NOT TESTED | disclosed, not faked; `guardian verify` still runs on demand | workflow status read + run list read |
+
+Clean results, also on the record: **0** `TODO`/`FIXME` in `src`+`base44`; **0** `process.env` reads in the
+client bundle; **33** entity schemas; **20** backend functions, every one reachable or documented as
+seeded-on-purpose (`seedTemplates`); **223** templates; **0** open `GuardianFinding` rows; every entity
+carries owner-or-admin RLS.
+
+Workbook: `CAPABILITIES.md` now carries the full classification of every system (VW / INT / PART / DIS /
+PLAN / NV), the live evidence for each, and rehydration instructions, because the old table listed only
+the build surfaces and omitted media, browser, guardian and Eden entirely.
