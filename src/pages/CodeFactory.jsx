@@ -17,8 +17,10 @@ export default function CodeFactory() {
  const [busy,setBusy]=useState('');
  const [error,setError]=useState('');
  const [connection,setConnection]=useState(null);
+ const [schemaReady,setSchemaReady]=useState(null);
+ const [schemaWarning,setSchemaWarning]=useState('');
  const [draft,setDraft]=useState({
-  title:'',repo:'Strategic-Minds-AI/x1-infinity-agent-runtime',base_ref:'main',
+  title:'',repo:'X-1-Operating-Systems/x1-apex-factory',base_ref:'main',
   paths:'',goal:''
  });
  const invoke=async(action,values={})=>{
@@ -29,6 +31,8 @@ export default function CodeFactory() {
  const refresh=useCallback(async()=>{
   const result=await invoke('list');
   setJobs(result.jobs || []);
+  setSchemaReady(result.schema_ready === true);
+  setSchemaWarning(result.warning || '');
   setSelected(old=>old ? (result.jobs || []).find(j=>j.id===old.id) || old : null);
  },[]);
  useEffect(()=>{ refresh().catch(e=>setError(e.message)); },[refresh]);
@@ -76,6 +80,7 @@ export default function CodeFactory() {
     ].map(([label,value])=><div key={label} className="rounded-xl border border-border bg-card p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-lg font-semibold">{value}</div></div>)}
   </div>
   {error && <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/40 px-3 py-3 text-sm text-destructive"><AlertTriangle size={16}/>{error}</div>}
+  {schemaReady !== true && <div role="status" className="rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted-foreground">{schemaWarning || 'Preview mission ledger is not verified. GitHub read-only verification is available; mission writes stay disabled.'}</div>}
   <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
     <section className="space-y-4">
       <form onSubmit={create} className="space-y-3 rounded-xl border border-border bg-card p-5">
@@ -87,11 +92,11 @@ export default function CodeFactory() {
        {connection && <p role="status" className="break-all text-xs text-muted-foreground">Connected: {connection.repo} · {connection.base_ref} @ {connection.sha.slice(0,12)} · {connection.can_push ? 'branch write permitted' : 'read access only'}. No credits or writes used.</p>}
        <label className="block text-xs text-muted-foreground">Exact existing file paths (1–3, one per line)<textarea required rows={3} value={draft.paths} onChange={e=>setDraft(v=>({...v,paths:e.target.value}))} placeholder="src/worker.ts" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
        <label className="block text-xs text-muted-foreground">Requirements and acceptance criteria<textarea required rows={5} value={draft.goal} onChange={e=>setDraft(v=>({...v,goal:e.target.value}))} placeholder="Make the existing worker claim one job atomically. Include tests for expired lease and duplicate execution." className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"/></label>
-       <button disabled={!!busy} className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50" type="submit">{busy==='create'?'Creating…':'Create mission — no model charge'}</button>
+       <button disabled={!!busy || schemaReady !== true} className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50" type="submit">{busy==='create'?'Creating…':'Create mission — no model charge'}</button>
       </form>
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">Coding mission ledger</h2>
-        {jobs.length===0?<p className="text-xs text-muted-foreground">No coding missions yet. This uses existing X1 scheduling; it does not start another queue.</p>:
+        {jobs.length===0?<p className="text-xs text-muted-foreground">{schemaReady === true ? 'No coding missions yet. Existing X1 scheduling remains authoritative.' : 'Mission ledger unavailable in this preview. No writes or paid planning will be initiated.'}</p>:
         <div className="space-y-2">{jobs.map(job=><button key={job.id} type="button" onClick={()=>setSelected(job)} className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${selected?.id===job.id?'border-primary bg-primary/5':'border-border hover:bg-secondary/50'}`}>
           <div className="font-medium">{job.title}</div><div className="mt-1 text-[11px] text-muted-foreground">{job.repo} · {statusLabel[job.state] || job.state}</div>
         </button>)}</div>}
