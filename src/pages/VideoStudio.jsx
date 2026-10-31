@@ -7,6 +7,7 @@ import { callVideo, listOf, payloadOf } from '@/lib/videoApi';
 import { EDEN_PERSONA } from '@/lib/edenPersona';
 import { EDEN_SKYE_PORTRAIT } from '@/components/live/AvatarPortrait';
 import BalanceCard from '@/components/video/BalanceCard';
+import OwnedAvatarStudio from '@/components/live/OwnedAvatarStudio';
 import RenderForm from '@/components/video/RenderForm';
 import JobRow from '@/components/video/JobRow';
 import CapabilityTable from '@/components/video/CapabilityTable';
@@ -77,28 +78,35 @@ export default function VideoStudio() {
       <header className="flex items-center gap-2">
         <Clapperboard size={15} className="text-muted-foreground" />
         <h1 className="font-heading text-[17px] tracking-tight">Video studio</h1>
-        <span className="text-[11px] text-muted-foreground">HeyGen v3</span>
+        <span className="text-[11px] text-muted-foreground">our own renderer</span>
       </header>
       <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-        Avatar renders from a script, with the account&apos;s own avatars and voices. Every render is
-        stored here with its status and result.
+        Her video is produced on our own container: local voice model, Wav2Lip, her image untouched.
+        No vendor, no wallet. HeyGen sits below as an optional rented path.
       </p>
+
+      <div className="mt-3">
+        <OwnedAvatarStudio />
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-baseline gap-2 border-t border-border pt-4">
+        <h2 className="font-heading text-[13.5px] tracking-tight">Rented path — HeyGen</h2>
+        <span className="text-[10.5px] text-muted-foreground">
+          optional, spends wallet credit · nothing above depends on it
+        </span>
+        <Link
+          to="/live"
+          className="ml-auto text-[10.5px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          her live room
+        </Link>
+      </div>
 
       <KeyNotice surfaceKey="Video studio" />
 
       <div className="mt-3">
         <BalanceCard account={account} loading={loading} />
       </div>
-
-      {account && !(Number(account?.wallet?.remaining_balance) > 0) && (
-        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          Renders wait on that wallet. Her live room does not —{' '}
-          <Link to="/live" className="underline underline-offset-2 transition-colors hover:text-foreground">
-            open Eden live
-          </Link>{' '}
-          and she is on screen in a few seconds, free.
-        </p>
-      )}
 
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
 
