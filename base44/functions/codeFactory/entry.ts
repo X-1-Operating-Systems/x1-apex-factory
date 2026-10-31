@@ -3,6 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 // X1 Code Factory: an approval-gated GitHub branch/PR executor.
 // CodeJob is a per-app audit ledger; the existing X1 queue remains the cross-system authority.
 const ORGS = new Set(['Strategic-Minds-AI', 'XTREME-SYSTEMS']);
+// Permit only this verified X1 app repository, never the entire third organization.
+const EXACT_REPOS = new Set(['X-1-Operating-Systems/x1-apex-factory']);
 const PATH_EXT = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|jsonc|md|py|css|scss|html|yaml|yml|sql|sh)$/i;
 const SENSITIVE = /(^|\/)(?:\.github|\.git|node_modules|vendor|secrets?|credentials?|keys?|tokens?|certs?)(?:\/|$)|(?:^|\/)(?:\.env[^/]*|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i;
 const MAX_FILE_CHARS = 24000;
@@ -37,7 +39,7 @@ function safePath(value: unknown): string {
 function safeRepo(value: unknown): string {
   const repo = String(value || '').trim();
   const match = repo.match(/^([A-Za-z0-9-]+)\/([A-Za-z0-9_.-]+)$/);
-  if (!match || !ORGS.has(match[1]) || match[2].endsWith('.git')) throw new Error('Repository must be an authorized X1 organization/repository.');
+  if (!match || (!ORGS.has(match[1]) && !EXACT_REPOS.has(repo)) || match[2].endsWith('.git')) throw new Error('Repository must be an authorized X1 organization/repository.');
   return repo;
 }
 function safeRef(value: unknown): string {
