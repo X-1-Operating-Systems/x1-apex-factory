@@ -1,0 +1,147 @@
+{
+  "name": "Guardian Clock",
+  "description": "Every six hours: verify every installed capability with a real call, audit the records, run the safe repairs, and queue any remaining gap as a brief.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 */6 * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "guardian_clock",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "verify_capabilities": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "verify"
+            }
+          },
+          "then": "audit_records",
+          "x-base44": {
+            "title": "Verify every capability",
+            "description": "Real call per probe"
+          }
+        }
+      },
+      {
+        "audit_records": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "audit"
+            }
+          },
+          "then": "unstick_jobs",
+          "x-base44": {
+            "title": "Audit the records",
+            "description": "Open findings per record"
+          }
+        }
+      },
+      {
+        "unstick_jobs": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "heal",
+              "repair": "loop.unstick"
+            }
+          },
+          "then": "reap_sessions",
+          "x-base44": {
+            "title": "Restart stalled jobs",
+            "description": "Autopilot back on the clock"
+          }
+        }
+      },
+      {
+        "reap_sessions": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "heal",
+              "repair": "sessions.reap"
+            }
+          },
+          "then": "close_links",
+          "x-base44": {
+            "title": "Release dead sessions",
+            "description": "Past their own expiry only"
+          }
+        }
+      },
+      {
+        "close_links": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "heal",
+              "repair": "shares.revoke"
+            }
+          },
+          "then": "close_rooms",
+          "x-base44": {
+            "title": "Close expired links",
+            "description": "Client handoffs past expiry"
+          }
+        }
+      },
+      {
+        "close_rooms": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "heal",
+              "repair": "lives.close"
+            }
+          },
+          "then": "queue_fixes",
+          "x-base44": {
+            "title": "Close dead rooms",
+            "description": "Avatar rooms past expiry"
+          }
+        }
+      },
+      {
+        "queue_fixes": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "guardian",
+            "args": {
+              "action": "evolve"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Queue remaining gaps",
+            "description": "Findings become briefs"
+          }
+        }
+      }
+    ]
+  }
+}

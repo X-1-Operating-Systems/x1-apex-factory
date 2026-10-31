@@ -1,0 +1,96 @@
+{
+  "name": "EnhancementJob",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string"
+    },
+    "criterion_id": {
+      "type": "string"
+    },
+    "route": {
+      "type": "string",
+      "enum": [
+        "builder",
+        "admin",
+        "worker"
+      ]
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "brief_ready",
+        "planning",
+        "plan_ready",
+        "plan_failed"
+      ]
+    },
+    "plan": {
+      "type": "string",
+      "maxLength": 16000
+    },
+    "error": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "plan_started_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "owner_id",
+    "criterion_id",
+    "route",
+    "request_id",
+    "revision",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

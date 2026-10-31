@@ -19,6 +19,7 @@ import {
   Plug,
   Settings,
   ShieldCheck,
+  ShieldHalf,
   Clapperboard,
   Radio,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const NAV_SECTIONS = [
   {
     label: 'Control',
     items: [
+      { to: '/guardian', label: 'Guardian', icon: ShieldHalf },
       { to: '/admin', label: 'Control plane', icon: ShieldCheck },
       { to: '/autopilot', label: 'Autopilot', icon: Rocket },
     ],

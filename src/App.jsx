@@ -47,6 +47,7 @@ import AdminControl from '@/pages/AdminControl';
 import VideoStudio from '@/pages/VideoStudio';
 import LiveAvatar from '@/pages/LiveAvatar';
 import Autopilot from '@/pages/Autopilot';
+import Guardian from '@/pages/Guardian';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin" element={<AdminControl />} />
           <Route path="/autopilot" element={<Autopilot />} />
+          <Route path="/guardian" element={<Guardian />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
           <Route path="/studio/:id" element={<Studio />} />

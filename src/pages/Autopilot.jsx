@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Rocket } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -75,6 +76,12 @@ export default function Autopilot() {
         <Rocket size={15} className="text-muted-foreground" />
         <h1 className="font-heading text-[17px] tracking-tight">Autopilot</h1>
         <span className="text-[11px] text-muted-foreground">plan · build · ceiling · ship · verify</span>
+        <Link
+          to="/guardian"
+          className="ml-auto text-[11px] text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+        >
+          Guardian
+        </Link>
       </header>
       <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
         Every job runs to the end on its own: the ceiling gate sends a page back to be rebuilt when it fails,
