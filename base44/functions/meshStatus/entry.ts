@@ -1,6 +1,6 @@
 // Mesh status: probes every wired system in both directions and records each heartbeat so the
 // connection has a history instead of an opinion.
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { probeAll } from '../../shared/mesh.ts';
 
 const secret = (name: string) => Deno.env.get(name) || '';
@@ -19,7 +19,7 @@ export default async function(req: Request) {
     return Response.json({ ok: true, runs: page });
   }
 
-  const snapshot = await probeAll(secret);
+  const snapshot = await probeAll(secret, (type: string) => base44.asServiceRole.connectors.getConnection(type));
 
   if (action === 'beat') {
     const record = await base44.asServiceRole.entities.MeshRun.create({

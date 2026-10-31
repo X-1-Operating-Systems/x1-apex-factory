@@ -159,6 +159,35 @@ async function bridgeNode(id, label, baseUrl, key, needs) {
   }
 }
 
+async function driveNode(getConnection) {
+  if (!getConnection) return row('drive', 'Google Drive', 'data', { needs: 'The Google connector' });
+  let last = '';
+  for (const type of ['googleworkspace', 'googledrive']) {
+    try {
+      const { accessToken } = await getConnection(type);
+      if (!accessToken) { last = `${type}: no token`; continue; }
+      const r = await hit(
+        'https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)',
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      const who = r.text.match(/"emailAddress":\s*"([^"]+)"/)?.[1] || '';
+      if (r.ok) {
+        return row('drive', 'Google Drive', 'data', {
+          outbound: true,
+          ok: true,
+          status: r.status,
+          ms: r.ms,
+          detail: `Drive answered${who ? ` for ${who}` : ''} via the ${type} connection`,
+        });
+      }
+      last = `${type}: ${r.status || 'no status'} ${r.text.slice(0, 120)}`;
+    } catch (err) {
+      last = `${type}: ${String(err?.message || err).slice(0, 120)}`;
+    }
+  }
+  return row('drive', 'Google Drive', 'data', { detail: last, needs: 'An authorized Google Drive or Google Workspace connection' });
+}
+
 async function jarvisNode(baseUrl, key) {
   if (!baseUrl) return row('jarvis', 'Jarvis (local command)', 'local', { needs: 'JARVIS_BASE_URL' });
   const headers = key ? { Authorization: `Bearer ${key}` } : {};
@@ -173,7 +202,7 @@ async function jarvisNode(baseUrl, key) {
   });
 }
 
-export async function probeAll(secrets) {
+export async function probeAll(secrets, getConnection) {
   const key = secrets('X1_BRIDGE_KEY') || '';
   const nodes = await Promise.all([
     base44Node(key),
@@ -181,6 +210,7 @@ export async function probeAll(secrets) {
     railwayNode(secrets('RAILWAY_API_KEY') || ''),
     vercelNode(secrets('VERCEL_API_KEY') || ''),
     supabaseNode(secrets('SUPABASE_URL') || '', secrets('SUPABASE_SERVICE_KEY') || ''),
+    driveNode(getConnection),
     bridgeNode('os', 'Strategic Minds AI OS', secrets('X1_OS_BASE_URL') || '', key, 'X1_OS_BASE_URL'),
     bridgeNode('os_local', 'Strategic Minds AI OS (local)', secrets('OS_LOCAL_BASE_URL') || '', key, 'OS_LOCAL_BASE_URL'),
     jarvisNode(secrets('JARVIS_BASE_URL') || '', secrets('JARVIS_KEY') || ''),
