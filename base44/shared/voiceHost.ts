@@ -1,77 +1,25 @@
-import { secrets } from "base44:runtime";
-import { railwayGraphQL } from "./browserHost.ts";
+import { ensureAvatarHost } from "./avatarHost.ts";
 
 /**
- * Client for the app's OWN voice host (see /voice-host, published at github.com/x1-operator/voice-host).
- * It speaks with Piper and stores clone reference audio on its own volume. No vendor is called and no
- * reference audio leaves the container.
- *
- * Resolution order matches the browser host: explicit secrets first (operator override), then the
- * Railway service itself, so the app arms itself once that service has a build.
+ * The app's own speech surface. It runs inside the avatar host container — the same image that
+ * already carries Piper and a volume — so voice costs nothing extra to run and no reference audio
+ * ever leaves it. Presets synthesise here; clone reference audio is stored and kept.
  */
 const TIMEOUT_MS = 30000;
 
-export const RAILWAY = {
-  projectId: "71393748-6467-45a9-a42d-3f7d457ec687",
-  environmentId: "0e252a15-65fa-42d2-aaa9-dc376686e1ba",
-  serviceId: "1249e2f9-fb94-47c1-8f5f-11dbf9f8dc73",
-  serviceName: "voice-host",
-  domain: "voice-host-production-7726.up.railway.app",
-  repo: "x1-operator/voice-host",
-};
-
 export const NOT_CONNECTED =
-  "The voice host container has no build yet. Its Railway service (voice-host) needs the repo x1-operator/voice-host linked as its source, through the Railway GitHub app.";
+  "The speech service is not reachable: it runs inside the avatar host container, which is offline. Deploy avatar-host/ on the avatar-host Railway service (or set AVATAR_HOST_URL and AVATAR_HOST_TOKEN).";
 
-const CACHE_MS = 5 * 60 * 1000;
 const resolved = { url: null, token: null, at: 0, source: null };
 
-function fromSecrets() {
-  const url = secrets.get("VOICE_HOST_URL");
-  const token = secrets.get("VOICE_HOST_TOKEN");
-  if (url && token) return { url: String(url).replace(/\/+$/, ""), token: String(token), source: "secret" };
-  return null;
-}
-
-async function fromRailway() {
-  const result = await railwayGraphQL(
-    `query($p:String!,$e:String!,$s:String!){
-      variables(projectId:$p, environmentId:$e, serviceId:$s)
-      project(id:$p){ services { edges { node { id serviceInstances { edges { node { domains { serviceDomains { domain } } } } } } } } }
-    }`,
-    { p: RAILWAY.projectId, e: RAILWAY.environmentId, s: RAILWAY.serviceId },
-  );
-  if (!result.ok) return null;
-  const vars = result.data?.variables || {};
-  const domains = (result.data?.project?.services?.edges || [])
-    .filter((edge) => edge.node.id === RAILWAY.serviceId)
-    .flatMap((edge) => (edge.node.serviceInstances?.edges || []).flatMap((i) => i.node?.domains?.serviceDomains || []));
-  const token = vars.HOST_TOKEN;
-  const domain = domains[0]?.domain;
-  if (!token || !domain) return null;
-  return { url: `https://${domain}`, token: String(token), source: "railway" };
-}
-
-/** Warm the connection once per function invocation. */
+/** Same connection as the avatar host, because it is the same container. */
 export async function ensureVoice(force = false) {
-  if (!force && resolved.url && Date.now() - resolved.at < CACHE_MS) return resolved;
-  let found = fromSecrets();
-  if (!found) found = await fromRailway().catch(() => null);
-  resolved.url = found ? found.url : null;
-  resolved.token = found ? found.token : null;
-  resolved.source = found ? found.source : null;
+  const host = await ensureAvatarHost(force);
+  resolved.url = host.url;
+  resolved.token = host.token;
+  resolved.source = host.source;
   resolved.at = Date.now();
   return resolved;
-}
-
-function baseUrl() {
-  if (!resolved.url) throw new Error(NOT_CONNECTED);
-  return resolved.url;
-}
-
-function token() {
-  if (!resolved.token) throw new Error(NOT_CONNECTED);
-  return resolved.token;
 }
 
 export function voiceConfigured() {
@@ -84,12 +32,9 @@ export function voiceUrl() {
 
 export async function voiceJson(path, init = {}) {
   await ensureVoice();
-  const headers = { Authorization: `Bearer ${token()}`, ...(init.headers || {}) };
-  const response = await fetch(`${baseUrl()}${path}`, {
-    ...init,
-    headers,
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
+  if (!resolved.url || !resolved.token) throw new Error(NOT_CONNECTED);
+  const headers = { Authorization: `Bearer ${resolved.token}`, ...(init.headers || {}) };
+  const response = await fetch(`${resolved.url}${path}`, { ...init, headers, signal: AbortSignal.timeout(TIMEOUT_MS) });
   const raw = await response.text();
   let data = null;
   try {
@@ -128,5 +73,5 @@ export async function voiceList() {
 
 /** A WAV the browser can play without ever holding the host token. */
 export function voiceFileUrl(jobId) {
-  return `${baseUrl()}/renders/${jobId}.wav`;
+  return `${resolved.url}/voice/${jobId}.wav`;
 }
