@@ -816,3 +816,25 @@ carries owner-or-admin RLS.
 Workbook: `CAPABILITIES.md` now carries the full classification of every system (VW / INT / PART / DIS /
 PLAN / NV), the live evidence for each, and rehydration instructions, because the old table listed only
 the build surfaces and omitted media, browser, guardian and Eden entirely.
+
+### Batch 52 — the claims become a screen the operator can check without me
+
+The operator's objection was not to any single bug but to being told things were done. Prose in a chat
+cannot be audited, and this ledger is only as honest as whoever writes it. So the five things that were
+actually asked for are now a page that re-reads every number live on load:
+
+`/truth` (`src/pages/Truth.jsx`, `src/lib/truthApi.js`, `ClaimRow`, `OwnershipCard`, sidebar "Reality
+check") reads, in parallel and with each failure isolated: `keyStatus` · HeyGen `account.me` · LiveAvatar
+`credits.get` and `avatars.list` · her voice record by id · the owned host's `host.status` · `edenLive
+state` · and live counts of `GuardianFinding`, `BenchmarkRun`, `Automation`, `BrowserRun`, `VideoJob`,
+`LiveSession`, `Template`, `StudioTask`. Each of the five claims renders from those numbers only, states
+what would change it, and the raw readings print underneath so the verdict can be argued with.
+
+Verified live as the admin user: `keyStatus` ok (admin true) · `host.status` ok `{sessions_running: 0,
+max_sessions: 50}` · `edenLive state` ok `{keeper.enabled: false, session: null, credits: 1104}` ·
+counts `tasks 3, automations 0, open findings 0`. Build green.
+
+| id | state | note |
+|---|---|---|
+| G-115 | closed | verdicts are computed from live values, never typed; a source that fails reads "unreadable" rather than defaulting to a kind number |
+| G-116 | recorded, not fixed | the five claims stand at: Manus **partial** (their API has no delete/search/webhooks), Browserbase **not installed** (replaced by the owned host on purpose), HeyGen **blocked at wallet $0**, LiveAvatar **partial** (no owned avatar in their console), autonomy **partial** (engine built, 0 automations scheduled) |

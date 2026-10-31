@@ -22,6 +22,7 @@ import {
   ShieldHalf,
   Clapperboard,
   Radio,
+  Eye,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -32,6 +33,7 @@ const NAV_SECTIONS = [
   {
     label: 'Control',
     items: [
+      { to: '/truth', label: 'Reality check', icon: Eye },
       { to: '/guardian', label: 'Guardian', icon: ShieldHalf },
       { to: '/admin', label: 'Control plane', icon: ShieldCheck },
       { to: '/autopilot', label: 'Autopilot', icon: Rocket },

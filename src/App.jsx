@@ -48,6 +48,7 @@ import VideoStudio from '@/pages/VideoStudio';
 import LiveAvatar from '@/pages/LiveAvatar';
 import Autopilot from '@/pages/Autopilot';
 import Guardian from '@/pages/Guardian';
+import Truth from '@/pages/Truth';
 import OAuthConsent from '@/pages/OAuthConsent';
 // Add page imports here
 
@@ -91,6 +92,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin" element={<AdminControl />} />
           <Route path="/autopilot" element={<Autopilot />} />
           <Route path="/guardian" element={<Guardian />} />
+          <Route path="/truth" element={<Truth />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
           <Route path="/studio/:id" element={<Studio />} />
