@@ -11,7 +11,7 @@ const STATE_TONE = {
 
 export default function EvolveQueue({ jobs }) {
   const rows = jobs || [];
-  const waiting = rows.filter((job) => ['brief_ready', 'planning', 'plan_ready'].includes(job.status));
+  const waiting = rows.filter((job) => ['brief_ready', 'planning'].includes(job.status));
 
   return (
     <section className="rounded-lg border border-border bg-card">
