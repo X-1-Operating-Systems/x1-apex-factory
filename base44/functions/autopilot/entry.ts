@@ -65,7 +65,16 @@ export default async function (req: Request): Promise<Response> {
         advanced.push(current);
       }
 
-      return Response.json({ ok: true, advanced });
+      // Reuse this existing five-minute clock for approved draft PR CI polling.
+      // Never generate paid model output, create new work, publish or merge here.
+      let codeFactory: any = { status: 'NOT_RUN' };
+      try {
+        const response = await base44.asServiceRole.functions.invoke('codeFactory', { action: 'tick' });
+        codeFactory = response?.data || { status: 'UNKNOWN' };
+      } catch (error: any) {
+        codeFactory = { status: 'BLOCKED', detail: String(error?.message || error).slice(0, 200) };
+      }
+      return Response.json({ ok: true, advanced, codeFactory });
     }
 
     if (action === 'get') {
