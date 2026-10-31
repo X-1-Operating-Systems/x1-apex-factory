@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
-import { Check, Copy, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Check, Copy, Loader2, Send, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { runBridgeRoundTrip } from '@/lib/bridgeApi';
+import { callX1Os, runBridgeRoundTrip } from '@/lib/bridgeApi';
 
 export default function BridgeStatusCard({ state, onRoundTrip }) {
   const [copied, setCopied] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [osBusy, setOsBusy] = useState(false);
+  const [osResult, setOsResult] = useState(null);
+
+  const callOsNow = async () => {
+    setOsBusy(true);
+    setOsResult(null);
+    try {
+      setOsResult(await callX1Os());
+    } catch (err) {
+      setOsResult({ ok: false, error: err?.response?.data?.error || err.message });
+    } finally {
+      setOsBusy(false);
+      onRoundTrip?.();
+    }
+  };
 
   const copy = async (value, tag) => {
     if (!value) return;
@@ -73,6 +88,35 @@ export default function BridgeStatusCard({ state, onRoundTrip }) {
             {result.ok
               ? `Answered ${result.status} in ${result.ms} ms`
               : result.error || `Refused (${result.status || 'no answer'})`}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 border-t border-border pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11.5px] font-medium">Outbound to the X1 OS</p>
+          <span className="text-[10px] text-muted-foreground">
+            {state?.os_url_set ? state.os_url : 'X1_OS_BASE_URL · not set'}
+          </span>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          {state?.os_url_set
+            ? 'This factory can call the Operating System back, so the link runs both ways.'
+            : 'Set X1_OS_BASE_URL to the Operating System\u2019s app address and the factory can call it back.'}
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={callOsNow}
+          disabled={osBusy || !state?.os_url_set}
+          className="mt-2 h-8 gap-1.5 text-[11.5px]"
+        >
+          {osBusy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+          Call the OS
+        </Button>
+        {osResult && (
+          <p className={`mt-1.5 text-[11px] ${osResult.ok ? 'text-muted-foreground' : 'text-destructive'}`}>
+            {osResult.ok ? `The OS answered ${osResult.status}` : osResult.error || `No answer (${osResult.status || '—'})`}
           </p>
         )}
       </div>

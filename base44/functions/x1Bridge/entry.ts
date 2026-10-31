@@ -4,6 +4,8 @@ import {
   BRIDGE_SECRET,
   BRIDGE_HEADER,
   KEYED_ACTIONS,
+  OS_URL_SECRET,
+  callOs,
   keyedAction,
   keyMatches,
   readKey,
@@ -12,7 +14,8 @@ import {
 // Two kinds of caller meet here. The app's own console asks for `state` and `verify` as a signed-in
 // admin. Everything else is the X1 Operating System calling in from outside with the shared bridge
 // key, so those calls carry no user session and are authorised by the key alone.
-const ADMIN_ACTIONS = ['state', 'verify'];
+const ADMIN_ACTIONS = ['state', 'verify', 'os.status', 'os.call'];
+const OUTBOUND_ACTIONS = ['ping', ...Object.keys(KEYED_ACTIONS)];
 const PUBLIC_HOST = 'https://x1-apex-factory.base44.app';
 
 async function record(base44: any, event: any) {
@@ -41,11 +44,47 @@ export default async function (req: Request): Promise<Response> {
         return Response.json({
           ok: true,
           key_set: Boolean(configured),
+          os_url_set: Boolean(secrets.get(OS_URL_SECRET)),
+          os_url: secrets.get(OS_URL_SECRET) || '',
           secret: BRIDGE_SECRET,
           header: BRIDGE_HEADER,
           endpoint,
           actions: Object.entries(KEYED_ACTIONS).map(([name, description]) => ({ name, description })),
         });
+      }
+
+      // The other direction: this factory calling the X1 Operating System's own bridge.
+      if (action === 'os.status' || action === 'os.call') {
+        const osUrl = (secrets.get(OS_URL_SECRET) || '').trim();
+        if (!osUrl) {
+          return Response.json({
+            ok: false,
+            armed: false,
+            error: `${OS_URL_SECRET} is not set, so the outbound direction has nowhere to go.`,
+          });
+        }
+        const target = action === 'os.call' ? String(body?.os_action || 'status').trim() : 'status';
+        if (!OUTBOUND_ACTIONS.includes(target)) {
+          return Response.json({ ok: false, error: `"${target}" is not an outbound bridge action.` }, { status: 400 });
+        }
+        if (!configured) {
+          return Response.json({ ok: false, armed: true, error: `${BRIDGE_SECRET} is not set, so the call cannot be signed.` });
+        }
+        const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
+        const answer = await callOs(osUrl, configured, target, payload);
+        await record(base44, {
+          action: `os.${target}`,
+          direction: 'out',
+          ok: answer.ok,
+          status: answer.status,
+          ms: 0,
+          detail: answer.url,
+          at: new Date().toISOString(),
+        });
+        return Response.json(
+          { ok: answer.ok, armed: true, url: answer.url, status: answer.status, action: target, answer: answer.body },
+          { status: answer.ok ? 200 : 502 },
+        );
       }
 
       if (!configured) {

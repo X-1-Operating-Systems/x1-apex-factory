@@ -10,6 +10,11 @@ export async function runBridgeRoundTrip() {
   return data;
 }
 
+export async function callX1Os() {
+  const { data } = await base44.functions.invoke('x1Bridge', { action: 'os.status' });
+  return data;
+}
+
 export async function loadBridgeEvents(limit = 12) {
   const page = await base44.entities.BridgeEvent.filter({}, { sort: '-at', limit });
   return page.items;

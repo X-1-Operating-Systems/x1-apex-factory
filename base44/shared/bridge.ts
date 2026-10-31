@@ -6,6 +6,20 @@ import { createNativeTask } from './native.ts';
 
 export const BRIDGE_SECRET = 'X1_BRIDGE_KEY';
 export const BRIDGE_HEADER = 'x-x1-bridge-key';
+// The outbound half: where the X1 Operating System answers its own bridge.
+export const OS_URL_SECRET = 'X1_OS_BASE_URL';
+
+export async function callOs(baseUrl: string, key: string, action: string, payload: any) {
+  const url = `${baseUrl.replace(/\/$/, '')}/functions/x1Bridge`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', [BRIDGE_HEADER]: key },
+    body: JSON.stringify({ ...payload, action }),
+    signal: AbortSignal.timeout(25000),
+  });
+  const body = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, url, body };
+}
 
 export const KEYED_ACTIONS = {
   ping: 'Health check: the factory answers with its identity and the server time.',

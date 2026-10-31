@@ -241,9 +241,11 @@
                 "task.list",
                 "task.get",
                 "task.create",
-                "finding.list"
+                "finding.list",
+                "os.status",
+                "os.call"
               ],
-              "description": "ping is a health check. status is the live counts. task.create starts a real run."
+              "description": "ping is a health check. status is the live counts. task.create starts a real run. os.status calls the X1 Operating System's own bridge and returns its answer, os.call sends it a named os_action — that is the outbound direction."
             },
             "limit": {
               "type": "number",
@@ -284,6 +286,14 @@
             "owner_id": {
               "type": "string",
               "description": "task.create only: who the run belongs to. Omit to use the workspace admin."
+            },
+            "os_action": {
+              "type": "string",
+              "description": "os.call only: the action to send the X1 Operating System — ping, status, task.list, task.get, task.create or finding.list."
+            },
+            "payload": {
+              "type": "object",
+              "description": "os.call only: that action's own inputs, passed through to the OS."
             }
           },
           "required": [
