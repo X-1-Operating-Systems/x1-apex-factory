@@ -155,6 +155,22 @@ export default async function (req: Request) {
       return Response.json({ok:true,job});
     }
 
+    // The existing Autopilot Clock may call tick without a new scheduler. It only
+    // reads GitHub CI for already approved draft PRs; never generates/bills or commits.
+    if (action === 'tick' && !body.job_id) {
+      const page = await jobs.filter({created_by_id:user.id, state:'awaiting_ci'}, {sort:'updated_date',limit:5});
+      const receipts: any[] = [];
+      for (const item of page.items || []) {
+        try {
+          const result = await checkCI(base44,item);
+          receipts.push({id:item.id,ci_status:result.ci_status,state:result.state});
+        } catch(e) {
+          receipts.push({id:item.id,ci_status:'UNKNOWN',error:textError(e)});
+        }
+      }
+      return Response.json({ok:true,checked:receipts.length,receipts});
+    }
+
     const id = String(body.job_id || '');
     if (!id) throw new Error('job_id is required.');
     const job = await jobs.get(id);
