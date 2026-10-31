@@ -928,3 +928,29 @@ A defect this batch found in its own code and fixed: the owned-host row read `av
 | G-121 | closed | base44/shared/mediaRegister.ts (new), base44/functions/mediaParity/entry.ts (new), src/pages/Parity.jsx (new), src/components/parity/VerdictPill.jsx (new), src/components/parity/RegisterRow.jsx (new), src/App.jsx, src/components/shell/SidebarBody.jsx | register reads live; 7/7 probes green, 0 failures; owned host healthy; build green |
 | G-122 | built, **not deployed** | voice-host/server.py, voice-host/Dockerfile, voice-host/requirements.txt, voice-host/requirements-clone.txt, voice-host/README.md (all new), docker-compose.yml | code complete on avatar-host's contract; the voice rows stay **wired, unproven** until the service exists — no container was deployed this turn |
 | G-123 | open — operator | — | deploy `voice-host` (Railway, root dir `voice-host`, `HOST_TOKEN`, volume `/data`); her identity inside LiveAvatar (their console is the only place it can be installed; the account holds 0 owned avatars); the HeyGen wallet at $0.00, which is why renders and her cloned voice answer 402 |
+
+### Batch 56 — the voice rows stop being paper, and both end-to-end paths re-proven
+
+Batch 55 put the voice rows at `wired` while the app had **no client for that container at all** — so
+`wired` was generous. This batch makes the claim true and then re-proves the two paths the prompt's
+Phase 5 asks for.
+
+Built: `base44/shared/voiceHost.ts` (resolves only from `VOICE_HOST_URL` / `VOICE_HOST_TOKEN` — it does
+not guess a Railway service id; `speak`, `uploadClone`, `voiceList`, `voiceJson`, `voiceFileUrl`) · the
+`video` dispatcher gained `provider: "voice"` with four actions (`status`, `voices`, `speak`, `clone`),
+served **before** any vendor registry lookup, so one call path serves the page and no second endpoint was
+invented · `keyStatus`'s voice surface now keys on `VOICE_HOST_URL` alone rather than counting
+`RAILWAY_API_KEY` as ready, which would have claimed readiness for a container that does not exist.
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-124 | closed | base44/shared/voiceHost.ts (new), base44/functions/video/entry.ts, base44/functions/keyStatus/entry.ts | `video {provider:"voice", action:"status"}` → **400 in 211 ms** with the deploy instruction in the body, not a 500 and not a fake success: the route exists and fails closed. The four actions and the client are real, so the voice rows are now honestly `wired` |
+| G-125 | closed — Phase 5, video path | — | render `2b2750ca44b0` fetched through `avatar {action:"render.get"}` → **200, `video/mp4`, 501 118 bytes, `ftyp` at offset 4**. A finished render is a real file over a signed app-storage link |
+| G-126 | closed — Phase 5, live path | — | sandbox avatar `dd73ea75…`: `sessions.token` → `sessions.start` **ok**, `livekit_url` present, client JWT **449 chars**, sandbox cap **60 s**, `sessions.stop` **ok**. Probe `LiveSession` record deleted (1 removed) |
+
+Two defects in **my own probes**, recorded so they are not repeated as product bugs: `sessions.start`
+requires the minted `session_token` **as an input** (without it the call answers "Missing session_token"),
+and `sessions.stop` is authenticated by the token itself — a **freshly minted** token does not end a
+session that another token started, it answers `false`. The same token that opens a room is the one that
+closes it. Both are now the behaviour in `edenLive` and are why the first two attempts of this batch
+reported a room that never opened.

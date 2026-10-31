@@ -2,6 +2,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { secrets } from 'base44:runtime';
 import { callHeyGen, heygenRegistry } from '../../shared/heygen.ts';
 import { callLiveAvatar, liveAvatarRegistry } from '../../shared/liveavatar.ts';
+import { voiceConfigured, voiceJson, speak, uploadClone, NOT_CONNECTED } from '../../shared/voiceHost.ts';
+
+// The owned speech container. Same dispatcher as the vendors so one call path serves the page.
+const VOICE_ACTIONS = [
+  { action: 'status', verified: true, note: 'Health of the owned voice container.' },
+  { action: 'voices', verified: true, note: 'Presets plus every clone on the volume.' },
+  { action: 'speak', verified: true, note: 'Text in, WAV out (Piper, or XTTS for a clone).' },
+  { action: 'clone', verified: true, note: 'Reference WAV in, a private clone id out.' },
+];
 
 const KEY_FOR = { heygen: 'HEYGEN_API_KEY', liveavatar: 'LIVEAVATAR_API_KEY' };
 
@@ -15,19 +24,53 @@ export default async function (req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const provider = body.provider === 'liveavatar' ? 'liveavatar' : body.provider === 'heygen' ? 'heygen' : null;
+    const provider =
+      body.provider === 'liveavatar'
+        ? 'liveavatar'
+        : body.provider === 'heygen'
+          ? 'heygen'
+          : body.provider === 'voice'
+            ? 'voice'
+            : null;
     const action = typeof body.action === 'string' ? body.action : '';
     const input = body.input && typeof body.input === 'object' ? body.input : {};
 
     if (!provider) {
       return Response.json(
-        { ok: false, error: 'provider must be "heygen" or "liveavatar".' },
+        { ok: false, error: 'provider must be "heygen", "liveavatar" or "voice".' },
         { status: 400 },
       );
     }
 
     // OWNER SAFETY HOLD 2026-10-30: LiveAvatar account mutations require a fresh,
     // Full ceiling: every LiveAvatar action (tokens, contexts, sessions, submissions) runs without a hold.
+
+    // The owned speech container is served here too, before any vendor registry lookup.
+    if (provider === 'voice') {
+      if (action === 'registry.list') return Response.json({ ok: true, provider, data: VOICE_ACTIONS });
+      if (!voiceConfigured()) {
+        return Response.json({ ok: false, provider, action, error: NOT_CONNECTED }, { status: 400 });
+      }
+      if (action === 'status') return Response.json({ ok: true, provider, action, data: await voiceJson('/health') });
+      if (action === 'voices') return Response.json({ ok: true, provider, action, data: await voiceJson('/voices') });
+      if (action === 'speak') {
+        if (!input.text) return Response.json({ ok: false, provider, action, error: 'text is required.' }, { status: 400 });
+        return Response.json({ ok: true, provider, action, data: await speak(String(input.text), input.voice_id) });
+      }
+      if (action === 'clone') {
+        if (!input.audio_base64) {
+          return Response.json({ ok: false, provider, action, error: 'audio_base64 is required.' }, { status: 400 });
+        }
+        const bytes = Uint8Array.from(atob(String(input.audio_base64)), (c) => c.charCodeAt(0));
+        return Response.json({
+          ok: true,
+          provider,
+          action,
+          data: await uploadClone(bytes, input.name ? String(input.name) : 'Unnamed clone'),
+        });
+      }
+      return Response.json({ ok: false, provider, action, error: `Unknown voice action "${action}".` }, { status: 404 });
+    }
 
     if (action === 'registry.list') {
       return Response.json({

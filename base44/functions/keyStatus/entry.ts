@@ -33,8 +33,7 @@ export default async function (req) {
       liveavatar: secrets_state.LIVEAVATAR_API_KEY,
       host:
         (secrets_state.BROWSER_HOST_URL && secrets_state.BROWSER_HOST_TOKEN) || secrets_state.RAILWAY_API_KEY,
-      voice:
-        (secrets_state.VOICE_HOST_URL && secrets_state.VOICE_HOST_TOKEN) || secrets_state.RAILWAY_API_KEY,
+      voice: secrets_state.VOICE_HOST_URL && secrets_state.VOICE_HOST_TOKEN,
       ledger: secrets_state.SUPABASE_URL && secrets_state.SUPABASE_SERVICE_KEY,
       vercel: secrets_state.VERCEL_API_KEY,
       manus: secrets_state.MANUS_API_KEY,
@@ -70,9 +69,9 @@ export default async function (req) {
           ready: ready.host,
         },
         {
-          key: 'RAILWAY_API_KEY',
+          key: 'VOICE_HOST_URL',
           surface: 'Voice host (clone)',
-          stops: 'The self-hosted speech service cannot be resolved, so voice cloning and our own TTS stop.',
+          stops: 'Our own speech container is not addressed, so voice cloning and our own TTS stop.',
           keeps: 'Every screen works; voice falls back to the vendor while its key is present.',
           ready: ready.voice,
         },
