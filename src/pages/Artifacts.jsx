@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Loader2, Search } from 'lucide-react';
 import ArtifactCard from '@/components/manus/ArtifactCard';
 import ArtifactDetailDialog from '@/components/manus/ArtifactDetailDialog';
