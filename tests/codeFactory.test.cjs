@@ -60,6 +60,19 @@ test('rejects non-admin users and unauthorized repository paths',async()=>{
  assert.equal(badPath.body.ok,false);
  assert.equal(store.size,0);
 });
+test('read-only GitHub canary pins the existing branch without model use or writes',async()=>{
+ reset();
+ const result=await action({action:'probe',repo,base_ref:'main'});
+ assert.equal(result.status,200,JSON.stringify(result));
+ assert.equal(result.body.ok,true);
+ assert.equal(result.body.read_only,true);
+ assert.equal(result.body.sha,baseSha);
+ assert.equal(result.body.model_calls,0);
+ assert.equal(modelCalls,0);
+ assert.equal(store.size,0);
+ assert.equal(calls.length,2);
+ assert.equal(calls.filter(c=>c.method!=='GET').length,0);
+});
 test('creates a job without spending credits or altering GitHub',async()=>{
  reset();
  const r=await action({action:'create',repo,title:'Bounded fix',goal:'Fix the task retry path with tests',paths:['src/worker.ts']});
