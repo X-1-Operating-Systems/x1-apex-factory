@@ -23,6 +23,7 @@ import {
   Clapperboard,
   Radio,
   Eye,
+  Code2,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -37,6 +38,7 @@ const NAV_SECTIONS = [
       { to: '/guardian', label: 'Guardian', icon: ShieldHalf },
       { to: '/admin', label: 'Control plane', icon: ShieldCheck },
       { to: '/autopilot', label: 'Autopilot', icon: Rocket },
+      { to: '/code-factory', label: 'Code factory', icon: Code2 },
     ],
   },
   {
