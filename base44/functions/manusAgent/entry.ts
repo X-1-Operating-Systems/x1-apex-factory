@@ -77,7 +77,8 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'testKey') {
-      const { key } = await resolveUserKey(base44, user.id);
+      const { key, source } = await resolveUserKey(base44, user.id);
+      if (user.role !== 'admin' && source !== 'personal') return Response.json({ error: 'Connect your own Manus key to test it.' }, { status: 403 });
       if (!key) return Response.json({ error: 'No Manus key is connected.' }, { status: 400 });
       try {
         await verifyKey(key);
@@ -95,7 +96,15 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ ok: true });
     }
 
-    const { key: userKey } = await resolveUserKey(base44, user.id);
+    const { key: userKey, source } = await resolveUserKey(base44, user.id);
+    // A member cannot consume the owner's shared Manus key or query its tasks.
+    // Personal keys remain isolated by the vendor's account permissions.
+    if (user.role !== 'admin' && source !== 'personal') return Response.json({ error: 'Connect your own Manus key before running tasks.' }, { status: 403 });
+    // A signed private file URL must never be minted for a member-supplied URI
+    // until per-attachment ownership checks exist.
+    if (user.role !== 'admin' && Array.isArray(body?.attachments) && body.attachments.length) {
+      return Response.json({ error: 'Private-file attachments require admin review.' }, { status: 403 });
+    }
     const call = (path: string, options: any = {}) => manusCall(path, { ...options, apiKey: userKey || undefined });
 
     if (action === 'create') {
@@ -152,8 +161,8 @@ export default async function (req: Request): Promise<Response> {
       if (!TASK_ID.test(taskId)) return Response.json({ error: 'A valid task_id is required.' }, { status: 400 });
 
       const [detail, listed] = await Promise.all([
-        manusCall('/v2/task.detail', { query: { task_id: taskId } }),
-        manusCall('/v2/task.listMessages', {
+        call('/v2/task.detail', { query: { task_id: taskId } }),
+        call('/v2/task.listMessages', {
           query: { task_id: taskId, order: 'desc', limit: 60, verbose: true },
         }),
       ]);
