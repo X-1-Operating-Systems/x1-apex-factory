@@ -143,6 +143,17 @@ export default async function (req: Request) {
       const page = await jobs.filter({created_by_id:user.id}, {sort:'-created_date',limit:30});
       return Response.json({ok:true,jobs:page.items || []});
     }
+    if (action === 'probe') {
+      // No model usage and no GitHub write methods. Safe connectivity canary.
+      const repo = safeRepo(body.repo);
+      const base_ref = safeRef(body.base_ref || 'main');
+      const api = await github(base44);
+      const metadata = await api(`/repos/${repo}`);
+      if (metadata.archived || metadata.disabled) throw new Error('Repository is not writable.');
+      const sha = (await api(`/repos/${repo}/git/ref/heads/${encodeURIComponent(base_ref)}`))?.object?.sha;
+      if (!/^[a-f0-9]{40}$/.test(String(sha))) throw new Error('Could not pin the branch commit.');
+      return Response.json({ok:true,read_only:true,repo,base_ref,sha,can_push:metadata.permissions?.push === true,model_calls:0});
+    }
     if (action === 'create') {
       const repo = safeRepo(body.repo);
       const base_ref = safeRef(body.base_ref || 'main');
