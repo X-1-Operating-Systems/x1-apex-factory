@@ -245,7 +245,7 @@
                 "os.status",
                 "os.call"
               ],
-              "description": "ping is a health check. status is the live counts. task.create starts a real run. os.status calls the X1 Operating System's own bridge and returns its answer, os.call sends it a named os_action — that is the outbound direction."
+              "description": "ping is a health check. status is the live counts. task.create starts a real run. os.status sends an authenticated ping to the X1 Operating System's dedicated factory bridge. os.call sends only ping or report there; machine-worker heartbeat, claim and complete are separate."
             },
             "limit": {
               "type": "number",
@@ -289,11 +289,11 @@
             },
             "os_action": {
               "type": "string",
-              "description": "os.call only: the action to send the X1 Operating System — heartbeat (health and queued work), claim (take a queued job), complete (report one back), or ping / status / task.list / task.get / task.create / finding.list on this side. The worker object is filled in for you."
+              "description": "os.call only: ping (read-only factory handshake) or report (write a completed-operation receipt) to /functions/x1ApexBridge. Worker operations are deliberately unsupported."
             },
             "payload": {
               "type": "object",
-              "description": "os.call only: that action's own inputs, passed through to the OS (for complete, the job id and its result)."
+              "description": "os.call only: additional signed input for the selected factory action. report requires a summary and may include operation, target, outcome, actor and detail."
             }
           },
           "required": [
