@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Globe, Loader2 } from 'lucide-react';
 import WebsiteCard from '@/components/manus/WebsiteCard';
 import { listArtifacts } from '@/lib/taskEngine';
