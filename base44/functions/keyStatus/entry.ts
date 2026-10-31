@@ -17,6 +17,7 @@ const SECRETS = [
   'SUPABASE_ACCESS_TOKEN',
   'VERCEL_API_KEY',
   'MANUS_API_KEY',
+  'X1_BRIDGE_KEY',
 ];
 
 export default async function (req) {
@@ -37,6 +38,7 @@ export default async function (req) {
       ledger: secrets_state.SUPABASE_URL && secrets_state.SUPABASE_SERVICE_KEY,
       vercel: secrets_state.VERCEL_API_KEY,
       manus: secrets_state.MANUS_API_KEY,
+      bridge: secrets_state.X1_BRIDGE_KEY,
     };
 
     return Response.json({
@@ -88,6 +90,13 @@ export default async function (req) {
           stops: 'Manus tasks, devices and artifacts.',
           keeps: 'The native engine runs every task; the app already falls back to it.',
           ready: ready.manus,
+        },
+        {
+          key: 'X1_BRIDGE_KEY',
+          surface: 'X1 bridge',
+          stops: 'Every call the X1 Operating System makes into this factory is refused.',
+          keeps: 'Every screen in the app works; the console says the bridge is not armed.',
+          ready: ready.bridge,
         },
         {
           key: 'SUPABASE_ACCESS_TOKEN',

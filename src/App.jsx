@@ -51,6 +51,7 @@ import Guardian from '@/pages/Guardian';
 import Truth from '@/pages/Truth';
 import Parity from '@/pages/Parity';
 import OAuthConsent from '@/pages/OAuthConsent';
+import Bridge from '@/pages/Bridge';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -95,6 +96,7 @@ const AuthenticatedApp = () => {
           <Route path="/guardian" element={<Guardian />} />
           <Route path="/truth" element={<Truth />} />
           <Route path="/parity" element={<Parity />} />
+          <Route path="/bridge" element={<Bridge />} />
           <Route path="/video" element={<VideoStudio />} />
           <Route path="/live" element={<LiveAvatar />} />
           <Route path="/studio/:id" element={<Studio />} />

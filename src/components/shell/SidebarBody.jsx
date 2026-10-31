@@ -24,6 +24,7 @@ import {
   Radio,
   Eye,
   Scale,
+  Cable,
 } from 'lucide-react';
 import SessionList from '@/components/SessionList';
 import ProjectList from '@/components/shell/ProjectList';
@@ -36,6 +37,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/truth', label: 'Reality check', icon: Eye },
       { to: '/parity', label: 'Parity register', icon: Scale },
+      { to: '/bridge', label: 'X1 bridge', icon: Cable },
       { to: '/guardian', label: 'Guardian', icon: ShieldHalf },
       { to: '/admin', label: 'Control plane', icon: ShieldCheck },
       { to: '/autopilot', label: 'Autopilot', icon: Rocket },

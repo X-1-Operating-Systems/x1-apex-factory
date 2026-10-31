@@ -954,3 +954,19 @@ and `sessions.stop` is authenticated by the token itself — a **freshly minted*
 session that another token started, it answers `false`. The same token that opens a room is the one that
 closes it. Both are now the behaviour in `edenLive` and are why the first two attempts of this batch
 reported a room that never opened.
+
+### Batch 57 — the X1 Operating System has a key into this factory (G-127)
+
+The bridge is one shared secret and one endpoint. `X1_BRIDGE_KEY` is set in the app's Secrets and never
+leaves the server: it is not in the bundle, not returned by `state`, and not logged. `POST
+/functions/x1Bridge` with that key in `x-x1-bridge-key` (or `bridge_key` in the body) reaches six
+allowlisted actions — `ping`, `status`, `task.list`, `task.get`, `task.create`, `finding.list` — and
+nothing else; an unknown action is a 400 before any record is touched. A wrong key is refused in
+constant time on SHA-256 digests, so the comparison never leaks where two keys diverge. `state` and
+`verify` are the console's own actions: admin-only, session-authenticated, and `verify` performs a real
+loopback to the published endpoint rather than describing the key. Every call lands in `BridgeEvent`
+(admin-read, owner-scoped, written with the service role because keyed calls carry no user session).
+
+| id | state | files changed | verification (live, this turn) |
+|---|---|---|---|
+| G-127 | closed | base44/shared/bridge.ts (new), base44/functions/x1Bridge/entry.ts (new), base44/entities/BridgeEvent.jsonc (new), src/lib/bridgeApi.js (new), src/pages/Bridge.jsx (new), src/components/bridge/BridgeStatusCard.jsx (new), src/components/bridge/BridgeContract.jsx (new), src/components/bridge/BridgeLog.jsx (new), src/App.jsx, src/components/shell/SidebarBody.jsx, base44/functions/keyStatus/entry.ts | `ping` with no key → **401 "Missing the bridge key."**; `ping` with a wrong key → **401 "The bridge key was refused."**; `verify` → **200 in 1 077 ms** from the published host, both keyed steps green: `ping` **200** and `status` **200** with real counts (`tasks 3` / `running 2`, `projects 1`, `templates 223`, `open_findings 0`, benchmark `17/17`). Audit trail read back with 3 rows — two `ping` 200 and one `ping` 401 — so refusals are recorded, not just successes. `keyStatus` now reports `bridge: ready`, so removing the secret turns the console into an instruction instead of an error. Build green |
